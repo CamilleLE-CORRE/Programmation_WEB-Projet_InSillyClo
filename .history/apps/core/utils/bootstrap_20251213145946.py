@@ -1,0 +1,1 @@
+def bootstrap_public_data
