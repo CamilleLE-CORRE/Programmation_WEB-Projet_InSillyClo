@@ -1,17 +1,12 @@
-<!DOCTYPE html>
-<html>
-<head>
-    <title>Login</title>
-</head>
-<body>
+{% load static %}
+<link rel="stylesheet" href="https://cdn.simplecss.org/simple.min.css">
 
 <h1>Login</h1>
 
 <form method="post">
-    {% csrf_token %}
-    {{ form.as_p }}
-    <button type="submit">Login</button>
+  {% csrf_token %}
+  {{ form.as_p }}
+  <button type="submit">Login</button>
 </form>
 
-</body>
-</html>
+<p>No account? <a href="{% url 'accounts:signup' %}">Create one</a></p>

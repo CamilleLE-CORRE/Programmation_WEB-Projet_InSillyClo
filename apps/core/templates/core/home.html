@@ -1,8 +1,21 @@
-{% extends "core/base.html" %}
+{% load static %}
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Home</title>
+  <link rel="stylesheet" href="https://cdn.simplecss.org/simple.min.css">
+</head>
+<body>
 
-{% block title %}Home - InSillyClo{% endblock %}
+<main>
+  <h1>Home</h1>
+  <p>Connected as {{ request.user.email }}</p>
 
-{% block content %}
-  <h1>InSillyClo Web</h1>
-  <p>Planifier et simuler des campagnes d’assemblage de plasmides (MoClo / Golden Gate).</p>
-{% endblock %}
+  <form method="post" action="{% url 'accounts:logout' %}">
+    {% csrf_token %}
+    <button type="submit">Logout</button>
+  </form>
+</main>
+
+</body>
+</html>
