@@ -1,38 +1,27 @@
-"""
-Docstring for apps.accounts.views
-Define views for user account management, including login, logout, registration, and profile views."""
+from django.urls import reverse_lazy
+from django.views.generic import FormView
+from django.contrib.auth.views import LoginView, LogoutView
+from django.contrib.auth import get_user_model
 
-from django.shortcuts import render
-from django.contrib.auth import login, logout, authenticate
-from django.contrib.auth.decorators import login_required
-from django.http import HttpResponseRedirect
-from django.urls import reverse
-from .forms import CustomUserCreationForm, CustomAuthenticationForm
+from .forms import SignUpForm, EmailAuthenticationForm
 
+User = get_user_model()
 
-def signup_view(request):
-    if request.method == 'POST':
-        form = CustomUserCreationForm(request.POST)
-        if form.is_valid():
-            user = form.save()
-            login(request, user)
-            return HttpResponseRedirect(reverse('home'))
-    else:
-        form = CustomUserCreationForm()
-    return render(request, 'accounts/signup.html', {'form': form})
+class EmailLoginView(LoginView):
+    authentication_form = EmailAuthenticationForm
+    template_name = "accounts/login.html"
 
-def login_view(request):
-    if request.method == 'POST':
-        form = CustomAuthenticationForm(request, data=request.POST)
-        if form.is_valid():
-            user = form.get_user()
-            login(request, user)
-            return HttpResponseRedirect(reverse('home')) # Redirect to home page after login
-    else:
-        form = CustomAuthenticationForm(request)
-    return render(request, 'accounts/login.html', {'form': form})
+class EmailLogoutView(LogoutView):
+    next_page = reverse_lazy("accounts:login")
 
-@login_required  # Ensure the user is logged in to access this view
-def logout_view(request):
-    logout(request)
-    return HttpResponseRedirect(reverse('home'))
+class SignUpView(FormView):
+    template_name = "accounts/signup.html"
+    form_class = SignUpForm
+    success_url = reverse_lazy("accounts:login")
+
+    def form_valid(self, form):
+        User.objects.create_user(
+            email=form.cleaned_data["email"],
+            password=form.cleaned_data["password1"],
+        )
+        return super().form_valid(form)

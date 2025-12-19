@@ -1,38 +1,40 @@
-"""
-Accounts app models.
-Define database models for user accounts, including user profiles and account settings:
-- email (Primary Key)
--firstname
--lastname
--passeword
--date of birth
--role (administratrice, user, cheffe,guest)
-...
-"""
-
 from django.db import models
-from django.contrib.auth.models import AbstractUser, BaseUserManager   # Django自带的包，继承它可以更方便创建用户
+from django.contrib.auth.models import AbstractUser, BaseUserManager
 
-# Create my user:
+class UserManager(BaseUserManager):
+    use_in_migrations = True
+
+    def _create_user(self, email, password, **extra_fields):
+        if not email:
+            raise ValueError("Email is required")
+        email = self.normalize_email(email)
+        user = self.model(email=email, **extra_fields)
+        user.set_password(password)
+        user.save(using=self._db)
+        return user
+
+    def create_user(self, email, password=None, **extra_fields):
+        extra_fields.setdefault("is_staff", False)
+        extra_fields.setdefault("is_superuser", False)
+        return self._create_user(email, password, **extra_fields)
+
+    def create_superuser(self, email, password=None, **extra_fields):
+        extra_fields.setdefault("is_staff", True)
+        extra_fields.setdefault("is_superuser", True)
+        if extra_fields.get("is_staff") is not True:
+            raise ValueError("Superuser must have is_staff=True.")
+        if extra_fields.get("is_superuser") is not True:
+            raise ValueError("Superuser must have is_superuser=True.")
+        return self._create_user(email, password, **extra_fields)
+
 class User(AbstractUser):
-    username = None  # We don't use username field
-    email = models.EmailField(primary_key=True, unique=True)
-    firstname = models.CharField(max_length=30)
-    lastname = models.CharField(max_length=30)
-    date_of_birth = models.DateField( null=True, # 允许为空
-        blank=True,   #允许为空
-        verbose_name="Date of birth")
-    
-    ROLE_CHOICES = [
-        ('administratrice', 'Administratrice'),
-        ('user', 'User'),
-        ('cheffe', 'Cheffe'),
-        ('guest', 'Guest'),
-    ]
-    role = models.CharField(max_length=20, choices=ROLE_CHOICES, default='user')
+    username = None
+    email = models.EmailField(unique=True)
 
-    USERNAME_FIELD = 'email'
-    REQUIRED_FIELDS = ['firstname', 'lastname','role']
+    USERNAME_FIELD = "email"
+    REQUIRED_FIELDS = []
+
+    objects = UserManager()
 
     def __str__(self):
         return self.email
