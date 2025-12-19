@@ -13,8 +13,8 @@ Define database models for user accounts, including user profiles and account se
 from django.db import models
 from django.contrib.auth.models import AbstractUser, BaseUserManager   # Django自带的包，继承它可以更方便创建用户
 
-# Create my user:
-class User(AbstractUser):
+# Create my user:""""
+"""class User(AbstractUser):
     username = None  # We don't use username field
     email = models.EmailField(primary_key=True, unique=True)
     firstname = models.CharField(max_length=30)
@@ -36,3 +36,4 @@ class User(AbstractUser):
 
     def __str__(self):
         return self.email
+"""

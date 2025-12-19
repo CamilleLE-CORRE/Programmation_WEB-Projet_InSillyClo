@@ -2,37 +2,43 @@
 Docstring for apps.accounts.views
 Define views for user account management, including login, logout, registration, and profile views."""
 
-from django.shortcuts import render
-from django.contrib.auth import login, logout, authenticate
+from django.contrib.auth import login, logout
+from django.contrib.auth.forms import AuthenticationForm, UserCreationForm
 from django.contrib.auth.decorators import login_required
-from django.http import HttpResponseRedirect
-from django.urls import reverse
-from .forms import CustomUserCreationForm, CustomAuthenticationForm
+from django.shortcuts import render, redirect
 
 
-def signup_view(request):
-    if request.method == 'POST':
-        form = CustomUserCreationForm(request.POST)
-        if form.is_valid():
-            user = form.save()
-            login(request, user)
-            return HttpResponseRedirect(reverse('home'))
-    else:
-        form = CustomUserCreationForm()
-    return render(request, 'accounts/signup.html', {'form': form})
 
 def login_view(request):
-    if request.method == 'POST':
-        form = CustomAuthenticationForm(request, data=request.POST)
+    if request.method == "POST":
+        form = AuthenticationForm(data=request.POST)
         if form.is_valid():
             user = form.get_user()
             login(request, user)
-            return HttpResponseRedirect(reverse('home')) # Redirect to home page after login
+            return redirect("core:home")
     else:
-        form = CustomAuthenticationForm(request)
-    return render(request, 'accounts/login.html', {'form': form})
+        form = AuthenticationForm()
 
-@login_required  # Ensure the user is logged in to access this view
+    return render(request, "accounts/login.html", {"form": form})
+
 def logout_view(request):
     logout(request)
-    return HttpResponseRedirect(reverse('home'))
+    return redirect("core:home")
+
+
+def signup_view(request):
+    if request.method == "POST":
+        form = UserCreationForm(request.POST)
+        if form.is_valid():
+            user = form.save()
+            login(request, user)
+            return redirect("core:home")
+    else:
+        form = UserCreationForm()
+
+    return render(request, "accounts/signup.html", {"form": form})
+
+
+@login_required
+def profile_view(request):
+    return render(request, "accounts/profile.html")

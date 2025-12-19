@@ -1,0 +1,42 @@
+{% load static %}
+<!doctype html>
+<html lang="fr">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{% block title %}InSillyClo Web{% endblock %}</title>
+    <link rel="stylesheet" href="{% static 'core/home.css' %}">
+  </head>
+  <body>
+
+    <main class="container">
+        {% block content %}{% endblock %}
+      </main>
+
+    <nav class="navbar">
+      <ul class="nav-list">
+        <li><a href="{% url 'core:home' %}">Home</a></li>
+        <li><a href="/campaign_simulator/">Simuler une campagne</a></li>
+        <li><a href="/search_plasmids/">Rechercher des plasmides</a></li>
+        <li><a href="/public_templates/">Templates publiques</a></li>
+
+        <li class="nav-auth">
+            {% if user.is_authenticated %}
+              <a href="{% url 'accounts:profile' %}">Profil</a>
+              |
+              <a href="{% url 'accounts:logout' %}">Logout</a>
+            {% else %}
+              <a href="{% url 'accounts:login' %}">Connexion</a>
+              |
+              <a href="{% url 'accounts:signup' %}">Créer un compte</a>
+            {% endif %}
+          </li>
+          
+          
+      </ul>
+    </nav>
+
+
+
+  </body>
+</html>
