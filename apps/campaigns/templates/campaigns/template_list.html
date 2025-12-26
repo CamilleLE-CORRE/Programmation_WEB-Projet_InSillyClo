@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Campaign Templates</title>
+</head>
+<body>
+  <h1>Campaign Templates</h1>
+
+  <h2>Public templates</h2>
+  {% if public_templates %}
+    <ul>
+      {% for t in public_templates %}
+        <li>
+          {{ t.name }} &nbsp;—&nbsp;
+          <a href="{% url 'campaigns:download_public_template' t.id %}?format=csv">download csv</a>
+          &nbsp;|&nbsp;
+          <a href="{% url 'campaigns:download_public_template' t.id %}?format=xlsx">download xlsx</a>
+        </li>
+      {% endfor %}
+    </ul>
+  {% else %}
+    <p>No public templates available.</p>
+  {% endif %}
+
+  {% if user_templates %}
+    <h2>Your templates</h2>
+
+    {% if messages %}
+      {% for message in messages %}
+        <div class="message {{ message.tags }}">{{ message }}</div>
+      {% endfor %}
+    {% endif %}
+
+    <ul>
+      {% for t in user_templates %}
+        <li>
+          {{ t.name }}
+          &nbsp;—&nbsp;
+          <a href="{% url 'campaigns:download_template' t.id %}?format=csv">download csv</a>
+          &nbsp;|&nbsp;
+          <a href="{% url 'campaigns:download_template' t.id %}?format=xlsx">download xlsx</a>
+        </li>
+      {% endfor %}
+    </ul>
+  {% endif %}
+
+  <p><a href="{% url 'campaigns:create_template' %}">Create a new template</a></p>
+</body>
+</html>
