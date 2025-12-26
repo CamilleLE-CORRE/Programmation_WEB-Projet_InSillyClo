@@ -37,9 +37,21 @@ INSTALLED_APPS = [
     "django.contrib.sessions",
     "django.contrib.messages",
     "django.contrib.staticfiles",
-    "apps.core",
+
+    # Local apps
     "apps.accounts",
+    "apps.campaigns",
+    "apps.core",
+    "apps.correspondences",
+    "apps.plasmids",
+    "apps.publications",
+    "apps.simulations",
+    "apps.teams",
 ]
+
+# Use custom user model
+# AUTH_USER_MODEL must be in the form '<app_label>.<ModelName>' where app_label is the app's label (usually the last part of the package name).
+AUTH_USER_MODEL = "accounts.User"
 
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",

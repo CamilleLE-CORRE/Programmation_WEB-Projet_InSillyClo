@@ -3,6 +3,8 @@ from .views import SignUpView, EmailLoginView, EmailLogoutView
 
 app_name = "accounts"
 
+app_name = "accounts"
+
 urlpatterns = [
     path("signup/", SignUpView.as_view(), name="signup"),
     path("login/", EmailLoginView.as_view(), name="login"),
