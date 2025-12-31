@@ -9,3 +9,4 @@ urlpatterns = [
     path('download/<int:template_id>/', views.download_template, name='download_template'),
     path('public/<int:template_id>/download/', views.download_public_template, name='download_public_template'),
 ]
+
