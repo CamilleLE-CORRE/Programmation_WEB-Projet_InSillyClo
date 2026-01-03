@@ -41,6 +41,7 @@
         <button type="button" id="type-info" style="margin-left:8px;">ℹ️</button>
       </div>
       <div id="type-info-text" style="display:none; margin-top:8px; background:#f6f6f6; padding:8px; border-radius:4px;">
+        /* explications a modifier */
         <p><strong>Simple</strong>: a plain table with columns like Output Plasmid, Input1, Input2.</p>
         <p><strong>Typed</strong>: each input includes a type and a value, separated by the separator character you choose (e.g., '.' or ';').</p>
       </div>
@@ -69,7 +70,6 @@
 
   <script>
     document.addEventListener('DOMContentLoaded', function(){
-      // Separator is always shown (required for templates)
       // Wire the info button
       document.getElementById('type-info').addEventListener('click', function(){
         const t = document.getElementById('type-info-text');
