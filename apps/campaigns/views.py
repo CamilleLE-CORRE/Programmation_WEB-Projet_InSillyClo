@@ -479,3 +479,22 @@ def download_template(request, template_id):
             writer.writerow(r)
 
     return response
+
+
+@login_required
+def delete_template(request, template_id):
+    """Supprime un template appartenant à l'utilisateur connecté"""
+    
+    # Verify that the template does exist and is a private template
+    template = get_object_or_404(
+        CampaignTemplate, 
+        id=template_id, 
+        owner=request.user
+    )
+    
+    if request.method == 'POST':
+        template_name = template.name
+        template.delete()
+        messages.success(request, f"The template '{template_name}' has been deleted with sucess.")
+    
+    return redirect('campaigns:template_list')
