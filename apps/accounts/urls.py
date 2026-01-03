@@ -9,3 +9,6 @@ urlpatterns = [
     path("logout/", EmailLogoutView.as_view(), name="logout"),
     path("profile/", ProfileView.as_view(), name="profile"),
 ]
+
+
+

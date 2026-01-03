@@ -1,8 +1,12 @@
 from django.urls import path
-from . import views
+from .views import HomeView, AdminOnlyView
 
 app_name = "core"
 
 urlpatterns = [
-    path("", views.HomeView.as_view(), name="home"),
+    path("", HomeView.as_view(), name="home"),
+    path("admin-dashboard/", AdminOnlyView.as_view(), name="admin_dashboard"),
+
 ]
+
+
