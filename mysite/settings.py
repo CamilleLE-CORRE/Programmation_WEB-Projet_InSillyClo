@@ -31,27 +31,25 @@ ALLOWED_HOSTS = []
 # Application definition
 
 INSTALLED_APPS = [
+    # Default Django apps
     "django.contrib.admin",
     "django.contrib.auth",
     "django.contrib.contenttypes",
     "django.contrib.sessions",
     "django.contrib.messages",
     "django.contrib.staticfiles",
+    "django_extensions",   # Third-party apps: django-extensions, for example "graphviz"
 
-    # Local apps
-    "apps.accounts",
-    "apps.campaigns",
+    # Custom apps
     "apps.core",
-    "apps.correspondences",
-    "apps.plasmids",
-    "apps.publications",
-    "apps.simulations",
-    "apps.teams",
+    "apps.accounts",
+    "apps.teams.apps.TeamsConfig",
+    "apps.plasmids.apps.PlasmidsConfig",
+    "apps.templates.apps.TemplatesConfig",
+    "apps.simulations.apps.SimulationsConfig",
+    "apps.correspondences.apps.CorrespondencesConfig",
+    "apps.campaigns.apps.CampaignsConfig",
 ]
-
-# Use custom user model
-# AUTH_USER_MODEL must be in the form '<app_label>.<ModelName>' where app_label is the app's label (usually the last part of the package name).
-AUTH_USER_MODEL = "accounts.User"
 
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
@@ -95,6 +93,10 @@ DATABASES = {
 }
 
 
+# Custom user model
+AUTH_USER_MODEL = "accounts.User"
+
+
 # Password validation
 # https://docs.djangoproject.com/en/5.0/ref/settings/#auth-password-validators
 
@@ -136,7 +138,6 @@ STATIC_URL = "static/"
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
-AUTH_USER_MODEL = "accounts.User"
 LOGIN_URL = "/accounts/login/"
 LOGIN_REDIRECT_URL = "/"
 LOGOUT_REDIRECT_URL = "/"
