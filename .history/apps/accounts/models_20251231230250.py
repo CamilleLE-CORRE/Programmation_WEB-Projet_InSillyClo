@@ -1,0 +1,87 @@
+"""
+Accounts app models.
+Define database models for user accounts, including user profiles and account settings:
+-id (Primary Key)
+- email (Unique)
+-firstname
+-lastname
+-passeword
+-date of birth
+-role (administratrice, user, cheffe,guest)
+"""
+
+from django.db import models
+from django.contrib.auth.models import AbstractUser, BaseUserManager   # Django自带的包，继承它可以更方便创建用户
+from teams.models import Team
+
+
+class User(AbstractUser):
+    ROLE_CHOICES = [
+        ("administratrice","Administratrice"),
+        ("cheffe","Cheffe"),
+        ("user","User"),
+        ("guest","Guest"),
+    ]
+
+    id = models.AutoField(primary_key=True)  # Primary key field
+
+    email = models.EmailField(unique=True)  # Email field must be unique
+    
+    date_of_birth =  models.DateField(
+        null=True, 
+        blank=True
+    )  # Date of birth field
+    
+    role = models.CharField(
+        max_length=20, 
+        verbose_name="Role",
+        choices=ROLE_CHOICES, 
+        default="guest"
+    )
+
+    USERNAME_FIELD = 'email'  # Use email as the username field
+    REQUIRED_FIELDS = ['username']  # Username is still required
+
+    class Meta:
+        ordering = ('id','email')  # Default ordering by id and email
+        indexes = (('id',),('email',))  # Indexes for id and email fields
+        verbose_name = "User"  # Singular name
+        verbose_name_plural = "Users"  # Plural name
+
+    # One user can create multiple simulations(campaign)
+    # campaign = models.ManyToManyField(......)
+
+    # One user can possede nultiple plasmide collections
+    # plasmide_collections = models.ManyToManyField(......)
+
+    #One user can create multiple Campaign templates
+    # campaign_templates = models.ManyToManyField(......)
+
+
+
+    def __str__(self):
+        return f"{self.email} ({self.role})"
+    
+
+class TeamMembership(models.Model):
+    user = models.ForeignKey(
+        User, 
+        on_delete=models.CASCADE, # If the user is deleted, delete their memberships as well
+        related_name='team_memberships'
+    )  # Foreign key to User model
+
+    team = models.ForeignKey(
+        'teams.Team', 
+        on_delete=models.CASCADE,
+        related_name='memberships'
+    )  # Foreign key to Team model
+
+    class Meta:
+        unique_together = ('user', 'team')  # Ensure a user can only join a team once
+        verbose_name = "Team Membership"  # Singular name
+        verbose_name_plural = "Team Memberships"  # Plural name
+
+    def __str__(self):
+        return f"{self.user.email} in {self.team.name}"
+
+

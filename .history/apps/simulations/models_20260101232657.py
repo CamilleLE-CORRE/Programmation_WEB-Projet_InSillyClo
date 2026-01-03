@@ -1,0 +1,15 @@
+"""
+Models for the campaigns app.
+Define database models for campaigns here:
+-id (Primary Key)
+-name   
+-owner (Foreign Key to User)
+-template (Foreign Key to CampaignTemplate)
+-created_at (DateTime)
+
+
+"""
+
+from django.db import models
+
+class Campaign(models.Model):
