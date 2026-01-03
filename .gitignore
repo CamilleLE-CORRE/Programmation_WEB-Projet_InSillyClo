@@ -1,4 +1,12 @@
+# Python
+__pycache__/
+*.py[cod]
+
+# Django
 db.sqlite3
 *.sqlite3
-*.sqlite3.bak
-*.bak
+
+# Virtual env
+.venv/
+venv/
+env/

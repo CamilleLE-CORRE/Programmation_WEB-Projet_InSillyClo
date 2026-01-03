@@ -1,12 +1,13 @@
-{% extends "core/base.html" %}
+{% load static %}
+<link rel="stylesheet" href="https://cdn.simplecss.org/simple.min.css">
+<h1>Create account</h1>
 
-{% block title %}Create account{% endblock %}
-
-{% block content %}
-  <h1>Create an account</h1>
-  <form method="post">
+<form method="post">
     {% csrf_token %}
     {{ form.as_p }}
-    <button type="submit">Create account</button>
-  </form>
-{% endblock %}
+    <button type="submit">Sign up</button>
+</form>
+  
+
+
+<p>Already have an account? <a href="{% url 'accounts:login' %}">Login</a></p>
