@@ -19,7 +19,6 @@ class Team(models.Model):
         blank=True
     )   
 
-
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
