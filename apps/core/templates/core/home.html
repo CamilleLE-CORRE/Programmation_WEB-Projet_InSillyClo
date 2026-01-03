@@ -1,0 +1,27 @@
+{% load static %}
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Home</title>
+</head>
+<body>
+
+<main>
+  <h1>Home</h1>
+  <p>Connected as {{ request.user.email }}</p>
+
+  <p><a href="{% url 'campaigns:template_list' %}">Simuler une campagne</a></p>
+  <p><a href="{% url 'campaigns:template_list' %}">Rechercher des plasmides</a></p>
+  <p><a href="{% url 'campaigns:template_list' %}">Templates publiques</a></p>
+
+
+  
+  <form method="post" action="{% url 'accounts:logout' %}">
+    {% csrf_token %}
+    <button type="submit">Logout</button>
+  </form>
+</main>
+
+
+</body>
+</html>

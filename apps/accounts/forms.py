@@ -1,59 +1,35 @@
-"""
-Docstring for apps.accounts.forms.
-Define forms for user account management, including registration, login, and profile update forms:
-- email (Primary Key)
--firstname
--lastname
--passeword
--date of birth
--role (administratrice, user, cheffe,guest)
-...
-"""
 from django import forms
-from .models import User
-from django.contrib.auth.forms import UserCreationForm, AuthenticationForm
 from django.contrib.auth import get_user_model
+from django.contrib.auth.forms import UserCreationForm, AuthenticationForm
 
-User = get_user_model() # Get the custom user model
+User = get_user_model()
 
-class CustomUserCreationForm(UserCreationForm):
-    """
-    Signup form for creating a new user account.(email, firstname, lastname, password, date of birth, role)
-    """ 
-    role = forms.ChoiceField(choices=[
-        ("user", "User"),
-        ("cheffe", "Cheffe"),
-    ]) # Limit role choices during signup.administratrice and guest roles cannot be selected during signup.
-
-    class Meta:
+class EmailUserCreationForm(UserCreationForm):
+    class Meta(UserCreationForm.Meta):
         model = User
-        fields = ('email', 'firstname', 'lastname', 'date_of_birth', 'role')
+        fields = ("email",)
 
-        def clean_email(self):
-            email = self.cleaned_data.get('email').strip().lower() # Normalize email
-            # Check if email already exists
-            if User.objects.filter(email=email).exists():
-                raise forms.ValidationError("Email is already in use.")
-            return email
-        
-        def save(self, commit=True):
-            user = super().save(commit=False) # Call the parent save method
-            user.email = self.cleaned_data['email'].strip().lower() # Normalize email
-            user.firstname = self.cleaned_data.get('firstname').strip()
-            user.lastname = self.cleaned_data.get('lastname').strip()
-            user.date_of_birth = self.cleaned_data.get('date_of_birth')
-            user.role = self.cleaned_data.get('role')
-
-            if commit:
-                user.save() # Save the user to the database 
-            return user
-    
+class EmailAuthenticationForm(AuthenticationForm):
+    username = forms.EmailField(label="Email")
 
 
-class CustomAuthenticationForm(AuthenticationForm):
-    """
-    Login form for authenticating existing users.(email, password)
-    """
-    username = forms.EmailField(label='Email', widget=forms.EmailInput(attrs={"autofocus": True}))
+class SignUpForm(forms.Form):
+    email = forms.EmailField(label="Email")
+    password1 = forms.CharField(
+        label="Password",
+        widget=forms.PasswordInput
+    )
+    password2 = forms.CharField(
+        label="Confirm password",
+        widget=forms.PasswordInput
+    )
 
-   
+    def clean(self):
+        cleaned_data = super().clean()
+        password1 = cleaned_data.get("password1")
+        password2 = cleaned_data.get("password2")
+
+        if password1 and password2 and password1 != password2:
+            raise forms.ValidationError("Passwords do not match")
+
+        return cleaned_data

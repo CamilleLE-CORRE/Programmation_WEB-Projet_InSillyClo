@@ -31,13 +31,24 @@ ALLOWED_HOSTS = []
 # Application definition
 
 INSTALLED_APPS = [
+    # Default Django apps
     "django.contrib.admin",
     "django.contrib.auth",
     "django.contrib.contenttypes",
     "django.contrib.sessions",
     "django.contrib.messages",
     "django.contrib.staticfiles",
+    "django_extensions",   # Third-party apps: django-extensions, for example "graphviz"
+
+    # Custom apps
+    "apps.core",
     "apps.accounts",
+    "apps.teams.apps.TeamsConfig",
+    "apps.plasmids.apps.PlasmidsConfig",
+    "apps.templates.apps.TemplatesConfig",
+    "apps.simulations.apps.SimulationsConfig",
+    "apps.correspondences.apps.CorrespondencesConfig",
+    "apps.campaigns.apps.CampaignsConfig",
 ]
 
 MIDDLEWARE = [
@@ -82,6 +93,10 @@ DATABASES = {
 }
 
 
+# Custom user model
+AUTH_USER_MODEL = "accounts.User"
+
+
 # Password validation
 # https://docs.djangoproject.com/en/5.0/ref/settings/#auth-password-validators
 
@@ -122,3 +137,7 @@ STATIC_URL = "static/"
 # https://docs.djangoproject.com/en/5.0/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
+
+LOGIN_URL = "/accounts/login/"
+LOGIN_REDIRECT_URL = "/"
+LOGOUT_REDIRECT_URL = "/"
