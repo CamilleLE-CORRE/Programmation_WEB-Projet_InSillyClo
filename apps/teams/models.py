@@ -16,7 +16,7 @@ class Team(models.Model):
     owner = models.ForeignKey(
         'accounts.User', 
         on_delete=models.CASCADE, # If the user is deleted, delete their teams as well
-        related_name='teams'
+        related_name='owned_teams'
     )  # Foreign key to User model
 
     class Meta:

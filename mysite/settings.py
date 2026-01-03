@@ -31,12 +31,16 @@ ALLOWED_HOSTS = []
 # Application definition
 
 INSTALLED_APPS = [
+    # Default Django apps
     "django.contrib.admin",
     "django.contrib.auth",
     "django.contrib.contenttypes",
     "django.contrib.sessions",
     "django.contrib.messages",
     "django.contrib.staticfiles",
+    "django_extensions",   # Third-party apps: django-extensions, for example "graphviz"
+
+    # Custom apps
     "apps.core",
     "apps.accounts",
     "apps.teams.apps.TeamsConfig",
@@ -44,6 +48,7 @@ INSTALLED_APPS = [
     "apps.templates.apps.TemplatesConfig",
     "apps.simulations.apps.SimulationsConfig",
     "apps.correspondences.apps.CorrespondencesConfig",
+    "apps.campaigns.apps.CampaignsConfig",
 ]
 
 MIDDLEWARE = [
