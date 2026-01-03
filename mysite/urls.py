@@ -23,4 +23,7 @@ urlpatterns = [
     path("", include("apps.core.urls")),
     path("accounts/", include("apps.accounts.urls")),
     path("campaigns/", include("apps.campaigns.urls")),
+    path("plasmids/", include("apps.plasmids.urls")),
+    path("simulations/", include("apps.simulations.urls")),
+    path("teams/", include("apps.teams.urls")),
 ]

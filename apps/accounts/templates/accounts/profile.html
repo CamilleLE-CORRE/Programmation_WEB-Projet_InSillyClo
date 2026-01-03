@@ -1,9 +1,10 @@
 {% extends "core/base.html" %}
 
-{% block title %}Profile{% endblock %}
+{% block title %}Profil{% endblock %}
 
 {% block content %}
-  <h1>Profile</h1>
-  <p>Username: {{ request.user.username }}</p>
-  <p>Email: {{ request.user.email }}</p>
+<h1>Profil</h1>
+
+<p><strong>Nom d’utilisateur :</strong> {{ request.user.username }}</p>
+<p><strong>Email :</strong> {{ request.user.email }}</p>
 {% endblock %}

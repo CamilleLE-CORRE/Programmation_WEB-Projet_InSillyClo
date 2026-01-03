@@ -297,7 +297,7 @@ def create_template(request):
             template = form.save(commit=False)
             template.owner = request.user
             template.save()
-            messages.success(request, f'Le template "{template.name}" a bien été créé !')
+            messages.success(request, f'The template "{template.name}" has been created !')
             return redirect('campaigns:template_list')
         else:
             messages.error(request, 'Correct the errors below')

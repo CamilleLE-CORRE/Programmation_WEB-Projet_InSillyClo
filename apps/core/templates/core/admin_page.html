@@ -1,0 +1,28 @@
+{% extends "core/base.html" %}
+
+{% block title %}Admin · InSillyClo{% endblock %}
+
+{% block content %}
+<h1>Administration</h1>
+
+<p>Dashboard admin.</p>
+
+<h2>Accès</h2>
+<ul>
+  <li><a href="{% url 'admin:index' %}">Admin Django</a></li>
+</ul>
+
+<h2>Gestion</h2>
+<ul>
+  <li><a href="{% url 'campaigns:template_list' %}">Templates</a></li>
+  <li><a href="{% url 'teams:teams' %}">Équipes</a></li>
+  <li><a href="{% url 'simulations:simu' %}">Simulations</a></li>
+</ul>
+
+<h2>Statistiques</h2>
+<ul>
+  <li>Utilisateurs : {{ user_count }}</li>
+  <li>Templates : {{ template_count }}</li>
+  <li>Simulations : {{ simulation_count }}</li>
+</ul>
+{% endblock %}
