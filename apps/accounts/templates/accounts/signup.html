@@ -1,13 +1,17 @@
-{% load static %}
-<link rel="stylesheet" href="https://cdn.simplecss.org/simple.min.css">
+{% extends "core/base.html" %}
+
+{% block title %}Create account · InSillyClo{% endblock %}
+
+{% block content %}
 <h1>Create account</h1>
 
 <form method="post">
-    {% csrf_token %}
-    {{ form.as_p }}
-    <button type="submit">Sign up</button>
+  {% csrf_token %}
+  {{ form.as_p }}
+  <button type="submit">Sign up</button>
 </form>
-  
 
-
-<p>Already have an account? <a href="{% url 'accounts:login' %}">Login</a></p>
+<p>Already have an account?
+  <a href="{% url 'accounts:login' %}">Login</a>
+</p>
+{% endblock %}

@@ -1,27 +1,16 @@
-{% load static %}
-<!DOCTYPE html>
-<html>
-<head>
-  <title>Home</title>
-</head>
-<body>
+{% extends "core/base.html" %}
 
-<main>
-  <h1>Home</h1>
-  <p>Connected as {{ request.user.email }}</p>
+{% block title %}Home · InSillyClo{% endblock %}
 
-  <p><a href="{% url 'campaigns:template_list' %}">Simuler une campagne</a></p>
-  <p><a href="{% url 'campaigns:template_list' %}">Rechercher des plasmides</a></p>
-  <p><a href="{% url 'campaigns:template_list' %}">Templates publiques</a></p>
+{% block content %}
+<h1>Home</h1>
 
-
-  
-  <form method="post" action="{% url 'accounts:logout' %}">
-    {% csrf_token %}
-    <button type="submit">Logout</button>
-  </form>
-</main>
-
-
-</body>
-</html>
+<h2>Accès rapide</h2>
+<ul>
+  <li><a href="{% url 'campaigns:template_list' %}">Browse templates</a></li>
+  <li><a href="{% url 'campaigns:create_template' %}">Create a template</a></li>
+  <li><a href="{% url 'plasmids:search' %}">Browse plasmids</a></li>
+  <li><a href="{% url 'simulations:simu' %}">Simulations</a></li>
+  <li><a href="{% url 'teams:teams' %}">Teams</a></li>
+</ul>
+{% endblock %}
