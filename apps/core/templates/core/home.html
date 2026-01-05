@@ -5,12 +5,13 @@
 {% block content %}
 <h1>Home</h1>
 
-<h2>Accès rapide</h2>
+<h2>Quick Access</h2>
 <ul>
-  <li><a href="{% url 'campaigns:template_list' %}">Browse templates</a></li>
+  <li><a href="{% url 'campaigns:template_list' %}">Template List</a></li>
   <li><a href="{% url 'campaigns:create_template' %}">Create a template</a></li>
+  <li><a href="{% url 'simulations:simu' %}">Campaign Simulation</a></li>
+  <li><a href="{% url 'plasmids:plasmid_list' %}">Plasmid List</a></li>
   <li><a href="{% url 'plasmids:search' %}">Browse plasmids</a></li>
-  <li><a href="{% url 'simulations:simu' %}">Simulations</a></li>
   <li><a href="{% url 'teams:teams' %}">Teams</a></li>
 </ul>
 {% endblock %}
