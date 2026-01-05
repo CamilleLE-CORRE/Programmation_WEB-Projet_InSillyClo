@@ -50,7 +50,7 @@ class User(AbstractUser):
         ("administratrice", "Administratrice"),
         ("cheffe", "Cheffe"),
         ("user", "User"),
-        ("guest", "Guest"),
+        #   ("guest", "Guest"),
     ]
 
     email = models.EmailField(unique=True)
@@ -64,11 +64,13 @@ class User(AbstractUser):
         verbose_name="Role",
     )
 
-    teams = models.ManyToManyField(
-        "teams.Team",
-        related_name="members",
-        blank=True,
-    )
+    #teams = models.ManyToManyField(
+     #   "teams.Team",
+     #   related_name="members",
+     #   blank=True,
+    #)
+
+
     USERNAME_FIELD = "email"
     REQUIRED_FIELDS = ["username"] 
 

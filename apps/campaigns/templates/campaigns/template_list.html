@@ -1,275 +1,117 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Campaign Templates</title>
-  <style>
-    .delete-icon {
-      cursor: pointer;
-      color: #dc3545;
-      text-decoration: none;
-      font-size: 1.2em;
-      margin-left: 8px;
-      transition: color 0.2s;
-    }
-    .delete-icon:hover {
-      color: #a71d2a;
-    }
-    .info-icon {
-      cursor: pointer;
-      color: #007bff;
-      text-decoration: none;
-      font-size: 1.1em;
-      margin-left: 8px;
-      transition: color 0.2s;
-      font-weight: bold;
-      font-family: Arial, sans-serif;
-    }
-    .info-icon:hover {
-      color: #0056b3;
-    }
-    .message {
-      padding: 10px;
-      margin: 10px 0;
-      border-radius: 4px;
-    }
-    .message.success {
-      background-color: #d4edda;
-      color: #155724;
-      border: 1px solid #c3e6cb;
-    }
-    .message.error {
-      background-color: #f8d7da;
-      color: #721c24;
-      border: 1px solid #f5c6cb;
-    }
-    
-    /* Modal styles */
-    .modal {
-      display: none;
-      position: fixed;
-      z-index: 1000;
-      left: 0;
-      top: 0;
-      width: 100%;
-      height: 100%;
-      background-color: rgba(0, 0, 0, 0.5);
-    }
-    .modal-content {
-      background-color: #fefefe;
-      margin: 10% auto;
-      padding: 20px;
-      border: 1px solid #888;
-      border-radius: 8px;
-      width: 80%;
-      max-width: 500px;
-      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-    }
-    .modal-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-bottom: 15px;
-      padding-bottom: 10px;
-      border-bottom: 2px solid #007bff;
-    }
-    .modal-header h2 {
-      margin: 0;
-      color: #007bff;
-    }
-    .close {
-      color: #aaa;
-      font-size: 28px;
-      font-weight: bold;
-      cursor: pointer;
-      line-height: 20px;
-    }
-    .close:hover,
-    .close:focus {
-      color: #000;
-    }
-    .info-row {
-      margin: 10px 0;
-      padding: 8px;
-      background-color: #f8f9fa;
-      border-radius: 4px;
-    }
-    .info-label {
-      font-weight: bold;
-      color: #495057;
-      display: inline-block;
-      min-width: 150px;
-    }
-    .info-value {
-      color: #212529;
-    }
-  </style>
-</head>
-<body>
-  <h1>Campaign Templates</h1>
+{% extends "core/base.html" %}
 
-  <h2>Public templates</h2>
-  {% if public_templates %}
-    <ul>
-      {% for t in public_templates %}
-        <li>
-          {{ t.name }} &nbsp;—&nbsp;
-          <a href="{% url 'campaigns:download_public_template' t.id %}?format=csv">download csv</a>
-          &nbsp;|&nbsp;
-          <a href="{% url 'campaigns:download_public_template' t.id %}?format=xlsx">download xlsx</a>
-        </li>
-      {% endfor %}
-    </ul>
-  {% else %}
-    <p>No public templates available.</p>
+{% block title %}Campaign Templates · InSillyClo{% endblock %}
+
+{% block content %}
+<h1>Campaign Templates</h1>
+
+<h2>Public templates</h2>
+{% if public_templates %}
+  <ul>
+    {% for t in public_templates %}
+      <li>
+        {{ t.name }} —
+        <a href="{% url 'campaigns:download_public_template' t.id %}?format=csv">csv</a> |
+        <a href="{% url 'campaigns:download_public_template' t.id %}?format=xlsx">xlsx</a>
+      </li>
+    {% endfor %}
+  </ul>
+{% else %}
+  <p>No public templates available.</p>
+{% endif %}
+
+{% if user_templates %}
+  <h2>Your templates</h2>
+
+  {% if messages %}
+    {% for message in messages %}
+      <div class="message {{ message.tags }}">{{ message }}</div>
+    {% endfor %}
   {% endif %}
 
-  {% if user_templates %}
-    <h2>Your templates</h2>
+  <ul>
+    {% for t in user_templates %}
+      <li>
+        {{ t.name }} —
+        <a href="{% url 'campaigns:download_template' t.id %}?format=csv">csv</a> |
+        <a href="{% url 'campaigns:download_template' t.id %}?format=xlsx">xlsx</a>
 
-    {% if messages %}
-      {% for message in messages %}
-        <div class="message {{ message.tags }}">{{ message }}</div>
-      {% endfor %}
-    {% endif %}
+        <a href="#" class="info-icon"
+           data-template-name="{{ t.name }}"
+           data-template-type="{{ t.template_type }}"
+           data-enzyme="{{ t.restriction_enzyme }}"
+           data-separator="{{ t.separator }}"
+           data-created="{{ t.created_at|date:'d/m/Y - H:i' }}"
+           data-owner="{% if t.owner.first_name %}{{ t.owner.first_name }} {{ t.owner.last_name }}{% else %}{{ t.owner.username }}{% endif %}"
+           data-is-public="{{ t.is_public|yesno:'Yes,No' }}"
+           onclick="showTemplateInfo(event, this)">ℹ️</a>
 
-    <ul>
-      {% for t in user_templates %}
-        <li>
-          {{ t.name }}
-          &nbsp;—&nbsp;
-          <a href="{% url 'campaigns:download_template' t.id %}?format=csv">download csv</a>
-          &nbsp;|&nbsp;
-          <a href="{% url 'campaigns:download_template' t.id %}?format=xlsx">download xlsx</a>
-          
-          <!-- Icône d'information -->
-          <a href="#" 
-             class="info-icon" 
-             data-template-id="{{ t.id }}"
-             data-template-name="{{ t.name }}"
-             data-template-type="{{ t.template_type }}"
-             data-enzyme="{{ t.restriction_enzyme }}"
-             data-separator="{{ t.separator }}"
-             data-created="{{ t.created_at|date:'d/m/Y - g:i A' }}"
-             data-owner="{% if t.owner.first_name %}{{ t.owner.first_name }} {{ t.owner.last_name }}{% else %}{{ t.owner.username }}{% endif %}"             data-is-public="{{ t.is_public|yesno:'Yes,No' }}"
-             onclick="showTemplateInfo(event, this)">ℹ️</a>
-          
-          <!-- Icône de suppression -->
-          <a href="#" class="delete-icon" onclick='confirmDelete(event, "{{ t.id }}", "{{ t.name|escapejs }}")'>🗑️</a>
-        </li>
-      {% endfor %}
-    </ul>
-  {% endif %}
+        <a href="#" class="delete-icon"
+           onclick='confirmDelete(event, "{{ t.id }}", "{{ t.name|escapejs }}")'>🗑️</a>
+      </li>
+    {% endfor %}
+  </ul>
+{% endif %}
 
-  <p><a href="{% url 'campaigns:create_template' %}">Create a new template</a></p>
+<p><a href="{% url 'campaigns:create_template' %}">Create a new template</a></p>
 
-  <!-- Modal pour afficher les informations -->
-  <div id="info-modal" class="modal">
-    <div class="modal-content">
-      <div class="modal-header">
-        <h2>Template Information</h2>
-        <span class="close" onclick="closeModal()">&times;</span>
-      </div>
-      <div id="modal-body">
-        <!-- Le contenu sera inséré dynamiquement par JavaScript -->
-      </div>
+<div id="info-modal" class="modal">
+  <div class="modal-content">
+    <div class="modal-header">
+      <h2>Template Information</h2>
+      <span class="close" onclick="closeModal()">&times;</span>
     </div>
+    <div id="modal-body"></div>
   </div>
+</div>
 
-  <!-- Formulaire de suppression caché -->
-  <form id="delete-form" method="post" style="display: none;">
-    {% csrf_token %}
-  </form>
+<form id="delete-form" method="post" style="display:none;">
+  {% csrf_token %}
+</form>
 
-  <script>
-    function confirmDelete(event, templateId, templateName) {
-      event.preventDefault();
-      
-      // Demander confirmation
-      const confirmed = confirm(`Êtes-vous sûr de vouloir supprimer le template "${templateName}" ?\n\nCette action est irréversible.`);
-      
-      if (confirmed) {
-        // Récupérer le formulaire caché
-        const form = document.getElementById('delete-form');
-        
-        // Définir l'action du formulaire avec l'URL de suppression
-        form.action = "{% url 'campaigns:delete_template' 0 %}".replace('0', templateId);
-        
-        // Soumettre le formulaire
-        form.submit();
-      }
-    }
+<script>
+  function confirmDelete(event, templateId, templateName) {
+    event.preventDefault();
+    const ok = confirm(`Supprimer "${templateName}" ?`);
+    if (!ok) return;
+    const form = document.getElementById('delete-form');
+    form.action = "{% url 'campaigns:delete_template' 0 %}".replace('0', templateId);
+    form.submit();
+  }
 
-    function showTemplateInfo(event, element) {
-      event.preventDefault();
-      
-      // Récupérer les données depuis les attributs data-*
-      const templateName = element.getAttribute('data-template-name');
-      const templateType = element.getAttribute('data-template-type');
-      const enzyme = element.getAttribute('data-enzyme');
-      const separator = element.getAttribute('data-separator');
-      const created = element.getAttribute('data-created');
-      const owner = element.getAttribute('data-owner');
-      const isPublic = element.getAttribute('data-is-public');
-      
-      // Construire le contenu HTML
-      const content = `
-        <div class="info-row">
-          <span class="info-label">Name:</span>
-          <span class="info-value">${templateName}</span>
-        </div>
-        <div class="info-row">
-          <span class="info-label">Type:</span>
-          <span class="info-value">${templateType}</span>
-        </div>
-        <div class="info-row">
-          <span class="info-label">Restriction Enzyme:</span>
-          <span class="info-value">${enzyme}</span>
-        </div>
-        <div class="info-row">
-          <span class="info-label">Separator:</span>
-          <span class="info-value">${separator}</span>
-        </div>
-        <div class="info-row">
-          <span class="info-label">Created:</span>
-          <span class="info-value">${created}</span>
-        </div>
-        <div class="info-row">
-          <span class="info-label">Owner:</span>
-          <span class="info-value">${owner}</span>
-        </div>
-        <div class="info-row">
-          <span class="info-label">Is public ?</span>
-          <span class="info-value">${isPublic}</span>
-        </div>
-      `;
-      
-      // Insérer le contenu dans la modale
-      document.getElementById('modal-body').innerHTML = content;
-      
-      // Afficher la modale
-      document.getElementById('info-modal').style.display = 'block';
-    }
+  function showTemplateInfo(event, element) {
+    event.preventDefault();
+    const templateName = element.getAttribute('data-template-name');
+    const templateType = element.getAttribute('data-template-type');
+    const enzyme = element.getAttribute('data-enzyme');
+    const separator = element.getAttribute('data-separator');
+    const created = element.getAttribute('data-created');
+    const owner = element.getAttribute('data-owner');
+    const isPublic = element.getAttribute('data-is-public');
 
-    function closeModal() {
-      document.getElementById('info-modal').style.display = 'none';
-    }
+    document.getElementById('modal-body').innerHTML = `
+      <p><strong>Name:</strong> ${templateName}</p>
+      <p><strong>Type:</strong> ${templateType}</p>
+      <p><strong>Enzyme:</strong> ${enzyme}</p>
+      <p><strong>Separator:</strong> ${separator}</p>
+      <p><strong>Created:</strong> ${created}</p>
+      <p><strong>Owner:</strong> ${owner}</p>
+      <p><strong>Public:</strong> ${isPublic}</p>
+    `;
+    document.getElementById('info-modal').style.display = 'block';
+  }
 
-    // Fermer la modale si on clique en dehors
-    window.onclick = function(event) {
-      const modal = document.getElementById('info-modal');
-      if (event.target === modal) {
-        closeModal();
-      }
-    }
+  function closeModal() {
+    document.getElementById('info-modal').style.display = 'none';
+  }
 
-    // Fermer la modale avec la touche Échap
-    document.addEventListener('keydown', function(event) {
-      if (event.key === 'Escape') {
-        closeModal();
-      }
-    });
-  </script>
-</body>
-</html>
+  window.onclick = function(event) {
+    const modal = document.getElementById('info-modal');
+    if (event.target === modal) closeModal();
+  }
+
+  document.addEventListener('keydown', function(event) {
+    if (event.key === 'Escape') closeModal();
+  });
+</script>
+{% endblock %}

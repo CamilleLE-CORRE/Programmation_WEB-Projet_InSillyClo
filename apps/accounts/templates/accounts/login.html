@@ -1,6 +1,8 @@
-{% load static %}
-<link rel="stylesheet" href="https://cdn.simplecss.org/simple.min.css">
+{% extends "core/base.html" %}
 
+{% block title %}Login · InSillyClo{% endblock %}
+
+{% block content %}
 <h1>Login</h1>
 
 <form method="post">
@@ -10,3 +12,4 @@
 </form>
 
 <p>No account? <a href="{% url 'accounts:signup' %}">Create one</a></p>
+{% endblock %}
