@@ -13,3 +13,6 @@ venv/
 .venv/
 
 .history/
+
+__pycache__/
+*.pyc

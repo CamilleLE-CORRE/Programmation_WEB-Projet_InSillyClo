@@ -1,0 +1,31 @@
+{% extends "core/base.html" %}
+
+{% block content %}
+<h1>{{ team.name }}</h1>
+
+<p><strong>Owner:</strong> {{ team.owner.email }}</p>
+
+<h2>Members</h2>
+<ul>
+  {% for m in team.members.all %}
+    <li>
+      {{ m.email }}
+      {% if user.id == team.owner_id and m.id != team.owner_id %}
+        <form method="post" action="{% url 'teams:remove_member' team.id m.id %}" style="display:inline;">
+          {% csrf_token %}
+          <button type="submit">Remove</button>
+        </form>
+      {% endif %}
+    </li>
+  {% endfor %}
+</ul>
+
+{% if user.id == team.owner_id %}
+  <h2>Add member</h2>
+  <form method="post">
+    {% csrf_token %}
+    {{ add_form.as_p }}
+    <button type="submit">Add</button>
+  </form>
+{% endif %}
+{% endblock %}

@@ -5,13 +5,15 @@
 {% block content %}
 <h1>Your teams</h1>
 
-<br><a class="btn" href="{% url 'teams:create' %}">Create a team</a><br><br>
+<a class="btn" href="{% url 'teams:create' %}">Create a team</a>
 
 {% if teams %}
   <ul>
     {% for team in teams %}
       <li>
-        {{ team.name }}
+        <a href="{% url 'teams:detail' team.pk %}">
+          {{ team.name }}
+        </a>
         {% if team.owner == request.user %}
           (owner)
         {% endif %}

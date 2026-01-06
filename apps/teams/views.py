@@ -1,6 +1,15 @@
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.views.generic import CreateView, ListView
 from django.urls import reverse_lazy
+from django.http import HttpResponseForbidden
+from django.shortcuts import get_object_or_404, redirect, render
+from django.views import View
+from django.contrib.auth import get_user_model
+
+from .models import Team
+from .forms import TeamCreateForm, TeamAddMemberForm
+
+User = get_user_model()
 
 from .models import Team
 from .forms import TeamCreateForm
@@ -22,8 +31,58 @@ class TeamCreateView(LoginRequiredMixin, CreateView):
     success_url = reverse_lazy("teams:teams")
 
     def form_valid(self, form):
-        team = form.save(commit=False)
-        team.owner = self.request.user
-        team.save()
-        team.members.add(self.request.user)  # cheffe = membre
-        return super().form_valid(form)
+        form.instance.owner = self.request.user
+        response = super().form_valid(form)   # self.object est créé ici
+        self.object.members.add(self.request.user)
+        return response
+
+
+
+
+def is_owner(user, team: Team) -> bool:
+    return user.is_authenticated and team.owner_id == user.id
+
+
+class TeamDetailView(LoginRequiredMixin, View):
+    template_name = "teams/team_detail.html"
+
+    def get(self, request, pk):
+        team = get_object_or_404(Team, pk=pk)
+        if not team.members.filter(pk=request.user.pk).exists():
+            return HttpResponseForbidden("Not allowed.")
+
+        add_form = TeamAddMemberForm()
+        return render(request, self.template_name, {"team": team, "add_form": add_form})
+
+    def post(self, request, pk):
+        team = get_object_or_404(Team, pk=pk)
+
+        # seule la cheffe peut modifier l'équipe
+        if not is_owner(request.user, team):
+            return HttpResponseForbidden("Only the team owner can manage members.")
+
+        add_form = TeamAddMemberForm(request.POST)
+        if add_form.is_valid():
+            email = add_form.cleaned_data["email"]
+            user = User.objects.get(email=email)
+
+            team.members.add(user)
+            return redirect("teams:detail", pk=team.pk)
+
+        return render(request, self.template_name, {"team": team, "add_form": add_form})
+
+
+class TeamRemoveMemberView(LoginRequiredMixin, View):
+    def post(self, request, pk, user_id):
+        team = get_object_or_404(Team, pk=pk)
+
+        if not is_owner(request.user, team):
+            return HttpResponseForbidden("Only the team owner can manage members.")
+
+        # empêcher d'enlever la cheffe elle-même (simple et logique)
+        if user_id == team.owner_id:
+            return HttpResponseForbidden("Owner cannot be removed.")
+
+        user = get_object_or_404(User, pk=user_id)
+        team.members.remove(user)
+        return redirect("teams:detail", pk=team.pk)
