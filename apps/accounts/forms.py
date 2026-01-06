@@ -35,3 +35,14 @@ class SignUpForm(UserCreationForm):
 
 class EmailAuthenticationForm(AuthenticationForm):
     username = forms.EmailField(label="Email")
+
+class ProfileForm(forms.ModelForm):
+    class Meta:
+        model = User
+        fields = ("first_name", "last_name", "email", "date_of_birth")
+        widgets = { ... }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields["email"].disabled = True
+

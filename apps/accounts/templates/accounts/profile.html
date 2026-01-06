@@ -1,10 +1,23 @@
 {% extends "core/base.html" %}
 
-{% block title %}Profil{% endblock %}
-
 {% block content %}
-<h1>Profil</h1>
+<h1>Profile</h1>
 
-<p><strong>Nom d’utilisateur :</strong> {{ request.user.username }}</p>
-<p><strong>Email :</strong> {{ request.user.email }}</p>
+<form method="post">
+  {% csrf_token %}
+
+  {{ form.non_field_errors }}
+
+  {% for field in form %}
+    <div style="margin-bottom: 12px;">
+      {{ field.label_tag }}<br>
+      {{ field }}
+      {% if field.errors %}
+        <div style="color:red;">{{ field.errors }}</div>
+      {% endif %}
+    </div>
+  {% endfor %}
+
+  <button type="submit">Save</button>
+</form>
 {% endblock %}

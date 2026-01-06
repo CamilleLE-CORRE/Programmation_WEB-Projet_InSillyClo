@@ -1,4 +1,8 @@
+
 from django import forms
+from django.contrib.auth import get_user_model
+
+User = get_user_model()
 from .models import Team
 
 class TeamCreateForm(forms.ModelForm):
@@ -14,3 +18,5 @@ class TeamAddMemberForm(forms.Form):
         if not User.objects.filter(email=email).exists():
             raise forms.ValidationError("No user with this email.")
         return email
+
+
