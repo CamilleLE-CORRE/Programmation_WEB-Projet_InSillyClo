@@ -7,6 +7,7 @@
 
 <a class="btn" href="{% url 'teams:create' %}">Create a team</a>
 
+<a href="{% url 'teams:detail' team.id %}">{{ team.name }}</a>
 
 
 {% if teams %}
