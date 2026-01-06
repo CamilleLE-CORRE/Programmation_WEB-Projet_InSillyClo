@@ -3,8 +3,8 @@ from django.views.generic import CreateView, TemplateView
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.contrib.auth.views import LoginView, LogoutView
 from django.contrib.auth import get_user_model
-
-from .forms import SignUpForm, EmailAuthenticationForm
+from django.views.generic import UpdateView
+from .forms import SignUpForm, EmailAuthenticationForm, ProfileForm
 
 User = get_user_model()
 
@@ -27,3 +27,16 @@ class SignUpView(CreateView):
 
 class ProfileView(LoginRequiredMixin, TemplateView):
     template_name = "accounts/profile.html"
+
+
+
+class ProfileView(LoginRequiredMixin, UpdateView):
+    model = User
+    form_class = ProfileForm
+    template_name = "accounts/profile.html"
+    success_url = reverse_lazy("accounts:profile")
+
+    def get_object(self):
+        return self.request.user
+  
+
