@@ -16,3 +16,4 @@ class CampaignTemplate(models.Model):
     )
     is_public = models.BooleanField(default=False)
     created_at = models.DateTimeField(auto_now_add=True)
+

@@ -40,6 +40,18 @@ class Campaign(models.Model):
         blank=True
     )  # Many-to-many relationship with Plasmid model
 
+    parameters = models.JSONField(default=dict, blank=True)
+    results_data = models.JSONField(default=dict, blank=True)
+
+    collections_used = models.ManyToManyField(
+        'plasmids.PlasmidCollection',
+        blank=True,
+        related_name='campaigns'
+    )
+
+    output_files = models.JSONField(default=dict, blank=True)
+
+
     class Meta:
         ordering = ('id', 'name')  # Default ordering by id and name
         #indexes = (('id',), ('name',))  # Indexes for id and name fields
