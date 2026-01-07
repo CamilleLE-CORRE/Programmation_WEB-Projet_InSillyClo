@@ -37,7 +37,7 @@ class Correspondence(models.Model):
 class CorrespondenceEntry(models.Model):
     """
     One roe in a correspondence
-    identifier <-> desplay_name + type
+    identifier <-> desplay_name + type (optional)
     """
     correspondence = models.ForeignKey(
         Correspondence, 
@@ -47,7 +47,7 @@ class CorrespondenceEntry(models.Model):
 
     identifier = models.CharField(max_length=100)  # Plasmid ID
     display_name = models.CharField(max_length=200)  # Name shown to user
-    entry_type = models.CharField(max_length=100)  # Type of the entry
+    entry_type = models.CharField(max_length=100, blank=True, default="")  # Type of the entry
 
     class Meta:
         ordering = ('correspondence_id','identifier')  # Default ordering by id

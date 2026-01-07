@@ -1,0 +1,17 @@
+<h1>Correspondences</h1>
+
+{% if correspondences %}
+  <ul>
+    {% for c in correspondences %}
+      <li>
+        <a href="{% url 'correspondences:detail' c.id %}">
+          {{ c.name }}
+        </a>
+        — entries: {{ c.entries_count }}
+        {% if c.is_public %}(public){% else %}(private){% endif %}
+      </li>
+    {% endfor %}
+  </ul>
+{% else %}
+  <p>No correspondences found.</p>
+{% endif %}

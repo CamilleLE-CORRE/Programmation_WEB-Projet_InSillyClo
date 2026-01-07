@@ -26,4 +26,5 @@ urlpatterns = [
     path("plasmids/", include("apps.plasmids.urls")),
     path("simulations/", include("apps.simulations.urls")),
     path("teams/", include("apps.teams.urls")),
+    path("correspondences/", include("apps.correspondences.urls")),
 ]

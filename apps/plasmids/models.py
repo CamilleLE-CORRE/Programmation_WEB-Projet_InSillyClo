@@ -25,9 +25,16 @@ class Plasmid(models.Model):
     id = models.AutoField(primary_key=True)  # Primary key field
     identifier = models.CharField(max_length=100, unique=True)  # Unique identifier for the plasmid
     name = models.CharField(max_length=200)  # Name of the plasmid
-    type = models.CharField(max_length=50)  # Type of the plasmid
+    plasmid_type = models.CharField(max_length=50)  # Type of the plasmid
     sequence = models.TextField()  # DNA sequence of the plasmid
     is_public = models.BooleanField(default=False)  # Public visibility flag
+    plasmidCollection = models.ForeignKey(
+        'PlasmidCollection',
+        on_delete=models.CASCADE,
+        related_name='plasmids',   
+        null=True,
+        blank=True
+    )  # Optional foreign key to PlasmidCollection
 
     class Meta:
         ordering = ('id', 'identifier')  # Default ordering by id and identifier

@@ -45,7 +45,6 @@ INSTALLED_APPS = [
     "apps.accounts",
     "apps.teams.apps.TeamsConfig",
     "apps.plasmids.apps.PlasmidsConfig",
-    "apps.templates.apps.TemplatesConfig",
     "apps.simulations.apps.SimulationsConfig",
     "apps.correspondences.apps.CorrespondencesConfig",
     "apps.campaigns.apps.CampaignsConfig",
