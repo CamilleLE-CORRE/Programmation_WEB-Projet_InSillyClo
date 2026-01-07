@@ -13,6 +13,16 @@
         {{ t.name }} —
         <a href="{% url 'campaigns:download_public_template' t.id %}?format=csv">csv</a> |
         <a href="{% url 'campaigns:download_public_template' t.id %}?format=xlsx">xlsx</a>
+        
+        <a href="#" class="info-icon"
+           data-template-name="{{ t.name }}"
+           data-template-type="{{ t.template_type }}"
+           data-enzyme="{{ t.restriction_enzyme }}"
+           data-separator="{{ t.separator }}"
+           data-created="{{ t.created_at|date:'d/m/Y - H:i' }}"
+           data-owner="{% if t.owner.first_name %}{{ t.owner.first_name }} {{ t.owner.last_name }}{% else %}{{ t.owner.username }}{% endif %}"
+           data-is-public="{{ t.is_public|yesno:'Yes,No' }}"
+           onclick="showTemplateInfo(event, this)">ℹ️</a>
       </li>
     {% endfor %}
   </ul>

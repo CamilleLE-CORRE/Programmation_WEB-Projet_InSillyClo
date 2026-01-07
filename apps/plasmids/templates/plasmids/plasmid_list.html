@@ -1,9 +1,56 @@
 {% extends "core/base.html" %}
 {% block title %}Plasmids{% endblock %}
 {% block content %}
-<h1>Plasmids</h1>
+<h1>Plasmid List</h1>
 
 <br><a class="btn" href="{% url 'plasmids:search' %}">Search plasmids</a><br><br>
 
 <p>TO DO: Cette page affichera la liste des plasmides de la base.</p>
+
+
+{% if not plasmids %}
+
+    <tr>
+        <td colspan="6" class="text-center">Aucun plasmide trouvé</td>
+    </tr>
+
+{% else %}
+
+    <td colspan="6" class="text-center">Il y a {{ plasmids.count }} plasmides.</td>
+    <table class="table table-striped">
+        <thead>
+            <tr>
+                <th>Id</th>
+                <th>Name</th>
+                <th>Type</th>
+                <th>Length</th>
+                <th>Collection</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+                           
+                {% for plasmid in plasmids %}
+                <tr>
+                    <td>{{ plasmid.identifier }}</td>
+                    <td>{{ plasmid.name }}</td>
+                    <td>{{ plasmid.plasmid_type|default:"-" }}</td>
+                    <td>{{ plasmid.length }} bp</td>
+                    <td>
+                        {{ plasmid.collection.name }}
+                        {% if plasmid.collection.is_public %}
+                            <span class="badge bg-success">Public</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        <a href="{% url 'plasmid_detail' plasmid.id %}" 
+                            class="btn btn-sm btn-info">Details</a>
+                    </td>
+                </tr>
+                {% endfor %}
+            
+        </tbody>
+    </table>
+{% endif %}
+</div>
 {% endblock %}
