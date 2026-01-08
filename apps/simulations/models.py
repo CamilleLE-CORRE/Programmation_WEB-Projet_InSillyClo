@@ -16,7 +16,7 @@ Define campaign's results:
 
 from django.db import models
 from apps.accounts.models import User
-from apps.templates.models import CampaignTemplate
+from apps.campaigns.models import CampaignTemplate
 
 
 class Campaign(models.Model):
@@ -28,7 +28,7 @@ class Campaign(models.Model):
         related_name='campaigns'
     )  # Foreign key to User model
     template = models.ForeignKey(
-        'templates.CampaignTemplate', 
+        'campaigns.CampaignTemplate',
         on_delete=models.CASCADE,  # If the template is deleted, delete associated campaigns as well
         related_name='campaigns'
     )  # Foreign key to CampaignTemplate model

@@ -1,0 +1,29 @@
+<h1>{{ correspondence.name }}</h1>
+<p>
+  Owner: {{ correspondence.owner.email }} |
+  {% if correspondence.is_public %}public{% else %}private{% endif %}
+   <a href="{% url 'correspondences:upload' correspondence.id %}">Upload/Replace entries</a>
+</p>
+
+<table border="1" cellpadding="6">
+  <thead>
+    <tr>
+      <th>Identifier</th>
+      <th>Display name</th>
+      <th>Type</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for e in entries %}
+      <tr>
+        <td>{{ e.identifier }}</td>
+        <td>{{ e.display_name }}</td>
+        <td>{{ e.entry_type }}</td>
+      </tr>
+    {% empty %}
+      <tr><td colspan="3">No entries.</td></tr>
+    {% endfor %}
+  </tbody>
+</table>
+
+<p><a href="{% url 'correspondences:list' %}">← Back to list</a></p>
