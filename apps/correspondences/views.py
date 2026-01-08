@@ -8,37 +8,7 @@ from django.shortcuts import get_object_or_404, redirect, render
 
 from .forms import CorrespondenceCreateForm, CorrespondenceUploadForm
 from .models import Correspondence, CorrespondenceEntry
-
-
-def parse_correspondence_text(raw_text: str):
-    rows = []
-    errors = []
-    seen_identifiers = set()
-
-    for lineno, line in enumerate(raw_text.splitlines(), start=1):
-        line = line.strip()
-        if not line or line.startswith("#"):
-            continue
-
-        parts = re.split(r"[,\t;]+|\s{2,}", line)
-        parts = [p.strip() for p in parts if p.strip()]
-
-        if len(parts) not in (2, 3):
-            errors.append(f"Line {lineno}: expected 2 or 3 columns, got {len(parts)} -> {line}")
-            continue
-
-        identifier = parts[0]
-        display_name = parts[1]
-        entry_type = parts[2] if len(parts) == 3 else ""
-
-        if identifier in seen_identifiers:
-            errors.append(f"Line {lineno}: duplicate identifier '{identifier}' in file.")
-            continue
-        seen_identifiers.add(identifier)
-
-        rows.append((identifier, display_name, entry_type))
-
-    return rows, errors
+from apps.correspondences.parsers import parse_correspondence_text
 
 
 def correspondence_list(request):

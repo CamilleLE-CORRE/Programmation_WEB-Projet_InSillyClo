@@ -6,6 +6,16 @@
 </head>
 <body>
   <h1>Upload entries for: {{ correspondence.name }}</h1>
+  <p>
+  <strong>Expected correspondence table format:</strong><br>
+  Each line must contain:
+  <ul>
+    <li><strong>identifier</strong> (required)</li>
+    <li><strong>display_name</strong> (required)</li>
+    <li><strong>type</strong> (optional)</li>
+  </ul>
+   Must be csv,tsv or txt files.  
+</p>
 
   <form method="post" enctype="multipart/form-data">
     {% csrf_token %}
