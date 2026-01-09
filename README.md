@@ -4,7 +4,7 @@
 Membres du projet :  
 
 - Camille LECORRE  
-- Laure LEFEVRE  
+- Laura LEFEVRE  
 - Muyao GUO  
 - Saïda MOUSSAEVA    
 
@@ -19,4 +19,5 @@ python manage.py migrate
 python manage.py createsuperuser  
 python manage.py runserver
 ```
+
 
