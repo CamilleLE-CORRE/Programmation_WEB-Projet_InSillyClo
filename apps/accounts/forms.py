@@ -17,7 +17,6 @@ class SignUpForm(UserCreationForm):
             self.fields["role"].choices = [
                 ("user", "User"),
                 ("administratrice", "Administratrice"),
-                ("cheffe", "Cheffe"),
             ]
 
     def save(self, commit=True):
