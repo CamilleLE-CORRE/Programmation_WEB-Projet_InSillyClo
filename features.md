@@ -1,22 +1,22 @@
-# Fonctionnalités optionnelles (choisies)
+# Fonctionnalités optionnelles 
 
 > Statuts utilisés : **Prévu** / **En cours** / **Fait** / **Abandonnée**
 
-## 1) Templates de campagne (avancé)
+## 1) Templates de campagne 
 ### 1.1 Import + mise à jour du template depuis un fichier XLSX
 - Permettre de **télécharger un template (xlsx)**, le modifier (ajout/retrait de colonnes de plasmides),
   puis **mettre à jour la modélisation en base** à partir du fichier xlsx.
-- **Statut : En cours**
+- **Statut : Prévu**
 - **Critère d’acceptation :**
   - Import d’un xlsx valide => mise à jour des colonnes en base (ajout/suppression) sans casser les campagnes existantes.
 - **Risque :** parsing xlsx + gestion des migrations logiques.
 
 ---
 
-## 2) Avantage utilisateur connecté (avancé)
+## 2) Avantage utilisateur connecté 
 ### 2.1 Collections : sauvegarde + création “de novo”
 - Deux possibilités : **sauvegarder une collection fournie** (archive) et **créer une collection de novo** via l’interface.
-- **Statut : En cours**
+- **Statut : Prévu**
 - **Critère d’acceptation :**
   - Un utilisateur peut créer/nommer une collection, lister ses collections, et réutiliser une collection existante.
 
@@ -40,7 +40,7 @@
 
 ---
 
-## 3) Gestion d’équipe (option)
+## 3) Gestion d’équipe 
 ### 3.1 Ressources partagées au niveau équipe
 - Attacher des **collections** et **tables de correspondance** à une équipe.
 - Les membres peuvent les utiliser, mais **seule la cheffe d’équipe** choisit quelles ressources sont attachées.
@@ -57,7 +57,7 @@
 
 ---
 
-## 4) Recherche plasmides (option)
+## 4) Recherche plasmides 
 ### 4.1 Autocomplétion (noms / types / sites)
 - Proposer l’autocomplétion en fonction des valeurs existantes dans la base
   (noms de plasmides, types, sites de fixation).
@@ -74,16 +74,16 @@
 
 ---
 
-## 5) Extraction des données annotées (option)
+## 5) Extraction des données annotées 
 ### 5.1 Export multi-collections + sous-ensemble
 - Extraire des séquences de plusieurs collections et **choisir un sous-ensemble** dans chacune.
-- **Statut : Prévu**
+- **Statut : Encours**
 - **Critère d’acceptation :**
   - UI de sélection + export (zip / fasta / genbank selon choix) des plasmides sélectionnés.
 
 ---
 
-## 6) Publication (option)
+## 6) Publication 
 ### 6.1 Notification email aux administratrices
 - Envoyer un email lorsqu’une demande de publication est faite
   (django console EmailBackend pour dev).
@@ -97,3 +97,10 @@
 - **Statut : Prévu**
 - **Critère d’acceptation :**
   - Workflow clair + historique de validation/refus + justification en cas de refus.
+
+
+## 7) Visualisation avancée des plasmides
+- Proposer une **page de visualisation détaillée et interactive des plasmides**
+  (annotations, séquences, éléments cliquables),
+  afin de répondre à un besoin identifié comme manquant dans le site original.
+- **Statut : Prévu**
