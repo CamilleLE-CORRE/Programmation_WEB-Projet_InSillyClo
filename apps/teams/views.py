@@ -79,10 +79,11 @@ class TeamRemoveMemberView(LoginRequiredMixin, View):
         if not is_owner(request.user, team):
             return HttpResponseForbidden("Only the team owner can manage members.")
 
-        # empêcher d'enlever la cheffe elle-même (simple et logique)
+        # empêcher d'enlever la cheffe elle-même
         if user_id == team.owner_id:
             return HttpResponseForbidden("Owner cannot be removed.")
 
         user = get_object_or_404(User, pk=user_id)
         team.members.remove(user)
         return redirect("teams:detail", pk=team.pk)
+
