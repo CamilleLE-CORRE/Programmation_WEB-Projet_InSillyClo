@@ -12,14 +12,18 @@ from .models import Campaign, CampaignResult
 from django.db.models import Count
 from apps.campaigns.models import CampaignTemplate
 from apps.plasmids.models import PlasmidCollection
+from django.urls import reverse_lazy
+from django.contrib.auth.mixins import LoginRequiredMixin
 
 # from .forms import SimulationForm
 # from .utils.insillyclo_wrapper import InSillyCloPipeline
 
-class SimulationListView(TemplateView):
+class SimulationListView(LoginRequiredMixin, TemplateView):
     template_name = "simulations/simu.html"
+    login_url = reverse_lazy("accounts:login")
 
-    
+
+@login_required(login_url=reverse_lazy("accounts:login"))
 @require_http_methods(["GET", "POST"])
 def simulation_view(request):
     """

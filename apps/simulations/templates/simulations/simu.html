@@ -256,7 +256,7 @@
             
             {% if not user.is_authenticated %}
             <div class="alert alert-warning mt-3">
-                <strong>Tip:</strong> <a href="{% url 'register' %}">Create an account</a> to save your collections, 
+                <strong>Tip:</strong> <a href="{% url 'accounts:signup' %}">Create an account</a> to save your collections, 
                 correspondence tables, and simulation results for future use!
             </div>
             {% endif %}
