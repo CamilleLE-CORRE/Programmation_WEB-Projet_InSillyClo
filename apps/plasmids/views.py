@@ -1,10 +1,7 @@
 from django.shortcuts import render, get_object_or_404
 from django.views.generic import TemplateView
 from .models import Plasmid, PlasmidCollection
-
-
-class PlasmidSearchView(TemplateView):
-    template_name = "plasmids/search.html"
+from .forms import PlasmidSearchForm, PLASMID_TYPE_CHOICES, RESTRICTION_SITE_CHOICES
 
 # class PlasmidList(TemplateView):
 #     template_name = "plasmids/plasmid_list.html"
@@ -31,3 +28,74 @@ def plasmid_detail(request, identifier):
     return render(request, "plasmids/plasmid_detail.html", {
         "plasmid": plasmid
     })
+
+class PlasmidSearchView(TemplateView):
+    template_name = "plasmids/search.html"
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        form = PlasmidSearchForm(self.request.GET or None)
+        context['form'] = form
+        context['PLASMID_TYPE_CHOICES'] = PLASMID_TYPE_CHOICES
+        context['RESTRICTION_SITE_CHOICES'] = RESTRICTION_SITE_CHOICES
+        plasmids = Plasmid.objects.all()
+
+        if form.is_valid():
+            sequence_pattern = form.cleaned_data.get("sequence_pattern")
+            name = form.cleaned_data.get("name")
+            types = form.cleaned_data.get("types")
+            sites = form.cleaned_data.get("sites")
+
+            if sequence_pattern:
+                plasmids = plasmids.filter(sequence__icontains=sequence_pattern)
+            if name:
+                plasmids = plasmids.filter(name__icontains=name)
+            if types:
+                plasmids = plasmids.filter(type__in=types)
+            if sites:
+                for site in sites:
+                    plasmids = plasmids.filter(sites__icontains=site)
+
+        context['plasmids'] = plasmids
+        return context
+
+
+class PlasmidSearchResultsView(TemplateView):
+    template_name = "plasmids/search_results.html"
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        form = PlasmidSearchForm(self.request.GET or None)
+        context['form'] = form
+
+        plasmids = Plasmid.objects.all()
+
+        if form.is_valid():
+            # Champs texte
+            sequence_pattern = form.cleaned_data.get("sequence_pattern")
+            name = form.cleaned_data.get("name")
+            if sequence_pattern:
+                plasmids = plasmids.filter(sequence__icontains=sequence_pattern)
+            if name:
+                plasmids = plasmids.filter(name__icontains=name)
+
+            # Types
+            for t, _ in PLASMID_TYPE_CHOICES:
+                choice = self.request.GET.get(f"type_{t}", "indifferent")
+                if choice == "yes":
+                    plasmids = plasmids.filter(type__icontains=t)
+                elif choice == "no":
+                    plasmids = plasmids.exclude(type__icontains=t)
+
+            # Sites ER
+            for s, _ in RESTRICTION_SITE_CHOICES:
+                choice = self.request.GET.get(f"site_{s}", "indifferent")
+                if choice == "yes":
+                    plasmids = plasmids.filter(sites__icontains=s)
+                elif choice == "no":
+                    plasmids = plasmids.exclude(sites__icontains=s)
+
+        context['plasmids'] = plasmids
+        context['PLASMID_TYPE_CHOICES'] = PLASMID_TYPE_CHOICES
+        context['RESTRICTION_SITE_CHOICES'] = RESTRICTION_SITE_CHOICES
+        return context

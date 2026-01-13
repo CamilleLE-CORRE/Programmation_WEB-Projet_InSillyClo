@@ -1,6 +1,130 @@
 {% extends "core/base.html" %}
-{% block title %}Plasmids{% endblock %}
+{% block title %}Recherche de plasmides{% endblock %}
+
 {% block content %}
-<h1>Plasmid Search</h1>
-<p>TO DO: Cette page contiendra un formulaire pour la recherche des plasmides.</p>
+<h1>Recherche de plasmides</h1>
+
+<form method="get" action="{% url 'plasmids:search_results' %}">
+    {% csrf_token %}
+
+    <div class="card" style="margin-bottom:16px;">
+        {{ form.sequence_pattern.label_tag }}
+        {{ form.sequence_pattern }}
+    </div>
+
+    <div class="card" style="margin-bottom:16px;">
+        {{ form.name.label_tag }}
+        {{ form.name }}
+    </div>
+
+    <!-- Tableau tri-state Types -->
+    <div class="card" style="margin-bottom:16px;">
+        <h3>Types de plasmide</h3>
+        <table class="tri-state-table">
+            <thead>
+                <tr><th>Type</th><th>Presence</th></tr>
+            </thead>
+            <tbody>
+                {% for t, t_label in PLASMID_TYPE_CHOICES %}
+                <tr>
+                    <td>{{ t_label }}</td>
+                    <td>
+                        <div class="tri-state-cell" data-name="{{ t }}" data-value="indifferent"></div>
+                        <input type="hidden" name="type_{{ t }}" value="indifferent">
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <!-- Tableau tri-state Sites ER -->
+    <div class="card" style="margin-bottom:16px;">
+        <h3>Sites de restriction</h3>
+        <table class="tri-state-table">
+            <thead>
+                <tr><th>Restriction Enzyme Site</th><th>Presence</th></tr>
+            </thead>
+            <tbody>
+                {% for s, s_label in RESTRICTION_SITE_CHOICES %}
+                <tr>
+                    <td>{{ s_label }}</td>
+                    <td>
+                        <div class="tri-state-cell" data-name="{{ s }}" data-value="indifferent"></div>
+                        <input type="hidden" name="site_{{ s }}" value="indifferent">
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <button type="submit" class="btn">Search</button>
+</form>
+
+<!-- JS tri-state -->
+<script>
+document.addEventListener("DOMContentLoaded", () => {
+    const cells = document.querySelectorAll(".tri-state-cell");
+    cells.forEach(cell => {
+        cell.addEventListener("click", () => {
+            const hiddenInput = cell.nextElementSibling;
+            let current = cell.dataset.value;
+            if(current === "indifferent") {
+                cell.dataset.value = "yes";
+                hiddenInput.value = "yes";
+                cell.classList.remove("absent");
+                cell.classList.add("present");
+                cell.innerHTML = "✔";
+            } else if(current === "yes") {
+                cell.dataset.value = "no";
+                hiddenInput.value = "no";
+                cell.classList.remove("present");
+                cell.classList.add("absent");
+                cell.innerHTML = "✖";
+            } else {
+                cell.dataset.value = "indifferent";
+                hiddenInput.value = "indifferent";
+                cell.classList.remove("absent");
+                cell.innerHTML = "";
+            }
+        });
+    });
+});
+</script>
+
+<style>
+.tri-state-cell {
+    width: 30px;
+    height: 30px;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background-color: white;
+    font-size: 18px;
+    transition: all 0.2s;
+}
+.tri-state-cell.present {
+    background-color: #d1fae5;
+    color: #065f46;
+}
+.tri-state-cell.absent {
+    background-color: #fee2e2;
+    color: #991b1b;
+}
+.tri-state-table {
+    border-collapse: separate;
+    border-spacing: 20px 5px;
+}
+
+.tri-state-table th,
+.tri-state-table td {
+    text-align: center;
+    vertical-align: middle;
+}
+</style>
+
 {% endblock %}
