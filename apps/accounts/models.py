@@ -7,12 +7,13 @@ Define database models for user accounts, including user profiles and account se
 -lastname
 -passeword
 -date of birth
--role (administratrice, user, cheffe,guest)
+-role (administratrice, user)
 """
 
 from django.contrib.auth.models import AbstractUser
 from django.contrib.auth.base_user import BaseUserManager
 from django.db import models
+from django.utils import timezone
 
 
 class UserManager(BaseUserManager):
