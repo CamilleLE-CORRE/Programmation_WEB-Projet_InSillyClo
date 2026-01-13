@@ -1,96 +1,150 @@
-from django.contrib.auth.mixins import LoginRequiredMixin
-from django.views import View
-from django.views.generic import CreateView, ListView
-from django.urls import reverse_lazy
-from django.http import HttpResponseForbidden
-from django.shortcuts import get_object_or_404, redirect, render
+from django.contrib import messages
 from django.contrib.auth import get_user_model
+from django.contrib.auth.mixins import LoginRequiredMixin
+from django.db import transaction
+from django.http import Http404, HttpResponseRedirect
+from django.shortcuts import get_object_or_404, redirect
+from django.urls import reverse
+from django.views import View
+from django.views.generic import CreateView, DetailView, ListView
+
+from .forms import TeamAddMemberForm, TeamCreateForm, TeamTransferOwnerForm
+from .models import Team, TeamMembership
+
 User = get_user_model()
-from .models import Team
-from .forms import TeamCreateForm, TeamAddMemberForm
 
+# Accès réservé aux membres de l'équipe.
+class TeamMemberRequiredMixin(LoginRequiredMixin):
+    team: Team | None = None
 
-# Vérifie si l’utilisateur est authentifié et propriétaire de l’équipe.
-def is_owner(user, team: Team) -> bool:
-    return user.is_authenticated and team.owner_id == user.id
+    def get_team(self) -> Team:
+        if self.team is not None:
+            return self.team
+        pk = self.kwargs.get("pk")
+        team = get_object_or_404(Team.objects.select_related("owner"), pk=pk)
+        self.team = team
+        return team
 
+    def dispatch(self, request, *args, **kwargs):
+        team = self.get_team()
+        is_member = TeamMembership.objects.filter(team=team, user=request.user).exists()
+        if not is_member:
+            raise Http404
+        return super().dispatch(request, *args, **kwargs)
 
-# Liste des équipes dont l’utilisateur connecté est membre.
-class TeamsListView(LoginRequiredMixin, ListView):
+# Accès réservé à l'owner de l'équipe (donc forcément membre).
+class TeamOwnerRequiredMixin(TeamMemberRequiredMixin):
+    def dispatch(self, request, *args, **kwargs):
+        team = self.get_team()
+        if team.owner_id != request.user.id:
+            raise Http404
+        return super().dispatch(request, *args, **kwargs)
+
+# Gestion des vues liées aux équipes
+class TeamListView(LoginRequiredMixin, ListView):
     model = Team
     template_name = "teams/teams.html"
     context_object_name = "teams"
 
     def get_queryset(self):
-        return Team.objects.filter(members=self.request.user)
+        return (
+            Team.objects.filter(memberships__user=self.request.user)
+            .select_related("owner")
+            .distinct()
+            .order_by("name")
+        )
 
 
-# Création d’une équipe.
-# Définit l’utilisateur comme owner.
-# Ajoute automatiquement l’owner aux membres.
 class TeamCreateView(LoginRequiredMixin, CreateView):
     model = Team
     form_class = TeamCreateForm
     template_name = "teams/create_team.html"
-    success_url = reverse_lazy("teams:teams")
 
+    @transaction.atomic
     def form_valid(self, form):
-        form.instance.owner = self.request.user
-        response = super().form_valid(form)   # self.object est créé ici
-        self.object.members.add(self.request.user)
-        return response
+        team = form.save(commit=False)
+        team.owner = self.request.user
+        team.save()  # Team.save() crée/force le membership OWNER (invariant)
+        messages.success(self.request, "Équipe créée.")
+        return redirect("teams:team_detail", pk=team.pk)
 
-# Affichage d’une équipe / Contrôle d’accès par appartenance / Gestion d’une équipe / Ajout de membres
-class TeamDetailView(LoginRequiredMixin, View):
+
+class TeamDetailView(TeamMemberRequiredMixin, DetailView):
+    model = Team
     template_name = "teams/team_detail.html"
-    
-    # Affiche le détail d’une équipe.
-    # Vérifie l’appartenance de l’utilisateur à l’équipe.
-    # Fournit le formulaire d’ajout de membre.
-    def get(self, request, pk):
-        team = get_object_or_404(Team, pk=pk)
-        if not team.members.filter(pk=request.user.pk).exists():
-            return HttpResponseForbidden("Not allowed.")
+    context_object_name = "team"
 
-        add_form = TeamAddMemberForm()
-        return render(request, self.template_name, {"team": team, "add_form": add_form})
+    def get_queryset(self):
+        return (
+            Team.objects.select_related("owner")
+            .prefetch_related("members")
+            .prefetch_related("memberships__user")
+        )
 
-    # Ajoute un membre à l’équipe.
-    # Action réservée au owner.
-    # Ajout par email utilisateur.
-    def post(self, request, pk):
-        team = get_object_or_404(Team, pk=pk)
+    def get_context_data(self, **kwargs):
+        ctx = super().get_context_data(**kwargs)
+        team: Team = self.object
+        ctx["is_owner"] = (team.owner_id == self.request.user.id)
+        ctx["add_member_form"] = TeamAddMemberForm(team=team)
+        ctx["transfer_owner_form"] = TeamTransferOwnerForm(team=team)
+        ctx["memberships"] = (
+            TeamMembership.objects.filter(team=team)
+            .select_related("user")
+            .order_by("-role", "user__email")
+        )
+        return ctx
 
-        # seule la cheffe peut modifier l'équipe
-        if not is_owner(request.user, team):
-            return HttpResponseForbidden("Only the team owner can manage members.")
+# Actions sur les équipes : ajout/retrait de membres, transfert de propriété
+class TeamAddMemberView(TeamOwnerRequiredMixin, View):
+    def post(self, request, pk: int):
+        team = self.get_team()
+        form = TeamAddMemberForm(request.POST, team=team)
 
-        add_form = TeamAddMemberForm(request.POST)
-        if add_form.is_valid():
-            email = add_form.cleaned_data["email"]
-            user = User.objects.get(email=email)
+        if not form.is_valid():
+            for err in form.errors.values():
+                messages.error(request, err.as_text())
+            return redirect("teams:team_detail", pk=team.pk)
 
-            team.members.add(user)
-            return redirect("teams:detail", pk=team.pk)
+        TeamMembership.objects.create(team=team, user=form.user, role=TeamMembership.Role.MEMBER)
+        messages.success(request, "Membre ajouté.")
+        return redirect("teams:team_detail", pk=team.pk)
 
-        return render(request, self.template_name, {"team": team, "add_form": add_form})
+# Retrait d'un membre (sauf l'owner)
+class TeamRemoveMemberView(TeamOwnerRequiredMixin, View):
+    def post(self, request, pk: int):
+        team = self.get_team()
+        user_id = request.POST.get("user_id")
 
+        if not user_id:
+            messages.error(request, "Utilisateur manquant.")
+            return redirect("teams:team_detail", pk=team.pk)
 
-# Supprime un membre d’une équipe.
-# Action réservée au owner.
-# Empêche la suppression du owner.
-class TeamRemoveMemberView(LoginRequiredMixin, View):
-    def post(self, request, pk, user_id):
-        team = get_object_or_404(Team, pk=pk)
+        # Interdire de retirer l'owner
+        if str(team.owner_id) == str(user_id):
+            messages.error(request, "Impossible de retirer la cheffe d’équipe.")
+            return redirect("teams:team_detail", pk=team.pk)
 
-        if not is_owner(request.user, team):
-            return HttpResponseForbidden("Only the team owner can manage members.")
+        deleted, _ = TeamMembership.objects.filter(team=team, user_id=user_id).delete()
+        if deleted:
+            messages.success(request, "Membre retiré.")
+        else:
+            messages.error(request, "Cet utilisateur n’est pas membre de l’équipe.")
+        return redirect("teams:team_detail", pk=team.pk)
 
-        # empêcher d'enlever la cheffe elle-même
-        if user_id == team.owner_id:
-            return HttpResponseForbidden("Owner cannot be removed.")
+# Transfert de propriété de l'équipe
+class TeamTransferOwnerView(TeamOwnerRequiredMixin, View):
+    @transaction.atomic
+    def post(self, request, pk: int):
+        team = self.get_team()
+        form = TeamTransferOwnerForm(request.POST, team=team)
 
-        user = get_object_or_404(User, pk=user_id)
-        team.members.remove(user)
-        return redirect("teams:detail", pk=team.pk)
+        if not form.is_valid():
+            for err in form.errors.values():
+                messages.error(request, err.as_text())
+            return redirect("teams:team_detail", pk=team.pk)
 
+        new_owner = form.cleaned_data["new_owner"]
+        team.owner = new_owner
+        team.save()  # Team.save() force le membership OWNER sur new_owner et MEMBER sur ancien owner
+        messages.success(request, "Propriété de l’équipe transférée.")
+        return redirect("teams:team_detail", pk=team.pk)
