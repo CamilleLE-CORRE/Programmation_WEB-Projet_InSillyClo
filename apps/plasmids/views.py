@@ -1,25 +1,101 @@
-from django.shortcuts import render
+from django.shortcuts import render, get_object_or_404
 from django.views.generic import TemplateView
 from .models import Plasmid, PlasmidCollection
+from .forms import PlasmidSearchForm, PLASMID_TYPE_CHOICES, RESTRICTION_SITE_CHOICES
 
+# class PlasmidList(TemplateView):
+#     template_name = "plasmids/plasmid_list.html"
+
+def plasmid_list(request):
+
+    # A connected user can see both public and private plasmid collections
+    if request.user.is_authenticated:
+        plasmids = Plasmid.objects.all()
+
+    # An unregistered user can only see public plasmid collections
+    else:
+        plasmids = Plasmid.objects.filter(collection__is_public=True)
+
+    return render(request, 'plasmids/plasmid_list.html', {
+        'plasmids': plasmids
+    })
+
+def plasmid_detail(request, identifier):
+    
+    # Get plasmid and verify it exists
+    plasmid = get_object_or_404(Plasmid, identifier=identifier)
+    
+    return render(request, "plasmids/plasmid_detail.html", {
+        "plasmid": plasmid
+    })
 
 class PlasmidSearchView(TemplateView):
     template_name = "plasmids/search.html"
 
-class PlasmidList(TemplateView):
-    template_name = "plasmids/plasmid_list.html"
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        form = PlasmidSearchForm(self.request.GET or None)
+        context['form'] = form
+        context['PLASMID_TYPE_CHOICES'] = PLASMID_TYPE_CHOICES
+        context['RESTRICTION_SITE_CHOICES'] = RESTRICTION_SITE_CHOICES
+        plasmids = Plasmid.objects.all()
 
-def plasmid_list(request):
-    if request.user.is_authenticated:
-        plasmids = Plasmid.objects.filter(
-            collection__is_public=True
-        ) | Plasmid.objects.filter(
-            collection__owner=request.user
-        )
-    else:
-        plasmids = Plasmid.objects.filter(collection__is_public=True)
-    
-    
-    return render(request, 'plasmids/list.html', {
-        'plasmids': plasmids.distinct()
-    })
+        if form.is_valid():
+            sequence_pattern = form.cleaned_data.get("sequence_pattern")
+            name = form.cleaned_data.get("name")
+            types = form.cleaned_data.get("types")
+            sites = form.cleaned_data.get("sites")
+
+            if sequence_pattern:
+                plasmids = plasmids.filter(sequence__icontains=sequence_pattern)
+            if name:
+                plasmids = plasmids.filter(name__icontains=name)
+            if types:
+                plasmids = plasmids.filter(type__in=types)
+            if sites:
+                for site in sites:
+                    plasmids = plasmids.filter(sites__icontains=site)
+
+        context['plasmids'] = plasmids
+        return context
+
+
+class PlasmidSearchResultsView(TemplateView):
+    template_name = "plasmids/search_results.html"
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        form = PlasmidSearchForm(self.request.GET or None)
+        context['form'] = form
+
+        plasmids = Plasmid.objects.all()
+
+        if form.is_valid():
+            # Champs texte
+            sequence_pattern = form.cleaned_data.get("sequence_pattern")
+            name = form.cleaned_data.get("name")
+            if sequence_pattern:
+                plasmids = plasmids.filter(sequence__icontains=sequence_pattern)
+            if name:
+                plasmids = plasmids.filter(name__icontains=name)
+
+            # Types
+            for t, _ in PLASMID_TYPE_CHOICES:
+                choice = self.request.GET.get(f"type_{t}", "indifferent")
+                if choice == "yes":
+                    plasmids = plasmids.filter(type__icontains=t)
+                elif choice == "no":
+                    plasmids = plasmids.exclude(type__icontains=t)
+
+            # Sites ER
+            for s, _ in RESTRICTION_SITE_CHOICES:
+                choice = self.request.GET.get(f"site_{s}", "indifferent")
+                if choice == "yes":
+                    plasmids = plasmids.filter(sites__icontains=s)
+                elif choice == "no":
+                    plasmids = plasmids.exclude(sites__icontains=s)
+
+        context['plasmids'] = plasmids
+        context['PLASMID_TYPE_CHOICES'] = PLASMID_TYPE_CHOICES
+        context['RESTRICTION_SITE_CHOICES'] = RESTRICTION_SITE_CHOICES
+        return context

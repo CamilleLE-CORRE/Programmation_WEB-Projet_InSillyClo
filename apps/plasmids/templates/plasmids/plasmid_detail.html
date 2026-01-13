@@ -1,0 +1,11 @@
+{% extends "core/base.html" %}
+
+{% block title %}Plasmid detail{% endblock %}
+
+{% block content %}
+<h1>{{ plasmid.identifier }}</h1>
+
+<p>TO DO: Display information.</p>
+
+<a class="btn" href="{% url 'plasmids:plasmid_list' %}">Back to plasmid list</a>
+{% endblock %}

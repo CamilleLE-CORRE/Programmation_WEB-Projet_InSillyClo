@@ -1,16 +1,12 @@
 {% extends "core/base.html" %}
-{% block title %}Plasmids{% endblock %}
+{% block title %}Search Results{% endblock %}
 
 {% block content %}
-<h1>Plasmid List</h1>
-
-<br>
-<a class="btn" href="{% url 'plasmids:search' %}">Search plasmids</a>
-<br><br>
+<h1>Search Results</h1>
 
 {% if plasmids %}
     <p class="text-center">
-        {{ plasmids|length }} plasmids available.
+        {{ plasmids|length }} plasmids found.
     </p>
 
     <table class="table plasmid-table">
@@ -40,56 +36,42 @@
     </table>
 
     <style>
-    /* Tableau principal */
+    /* Copié-collé de plasmid_list.html pour garder le même style >>> faire un truc groupé après */
     .plasmid-table {
         width: 100%;
         border-collapse: separate;
         border-spacing: 0;
         font-size: 15px;
     }
-
-    /* En-têtes avec bandeau foncé */
     .plasmid-table thead tr {
         background-color: var(--primary);
         color: #fff;
         text-align: left;
     }
-
     .plasmid-table th, .plasmid-table td {
         padding: 14px 12px;
         border-bottom: 1px solid var(--border);
     }
-
-    /* Lignes alternées */
     .plasmid-table tbody tr:nth-child(odd) {
         background-color: var(--card);
     }
-
     .plasmid-table tbody tr:nth-child(even) {
         background-color: var(--primary-soft);
     }
-
-    /* Curseur pointer */
     .clickable-row {
         cursor: pointer;
         transition: background-color 0.2s;
     }
-
-    /* Hover visible sur tous les td de la ligne */
     .clickable-row:hover td {
-        background-color: var(--primary); /* bleu foncé ou couleur souhaitée */
-        color: #fff; /* texte blanc si nécessaire pour le contraste */
+        background-color: var(--primary);
+        color: #fff;
     }
-
-    /* Badges restent visibles */
     .clickable-row .badge {
         transition: background-color 0.2s;
     }
     </style>
 
-
     <script>
-        // Rendre chaque ligne cliquable
         document.addEventListener("DOMContentLoaded", function() {
             const rows = document.querySelectorAll(".clickable-row");
             rows.forEach(row => {
@@ -102,8 +84,11 @@
 
 {% else %}
     <p class="text-center text-muted">
-        Aucun plasmide trouvé
+        No plasmids matching your search were found.
     </p>
+
+    <br><a class="btn" href="{% url 'plasmids:plasmid_list' %}">Back to plasmid list</a>
+
 {% endif %}
 
 {% endblock %}

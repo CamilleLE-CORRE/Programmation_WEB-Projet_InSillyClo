@@ -1,9 +1,10 @@
 from django.urls import path
-from .views import PlasmidSearchView
-from .views import PlasmidList
+from .views import PlasmidSearchView, PlasmidSearchResultsView, plasmid_list, plasmid_detail
 
 app_name = "plasmids"
 urlpatterns = [
+    path("plasmid_list/", plasmid_list, name="plasmid_list"),
     path("search/", PlasmidSearchView.as_view(), name="search"),
-    path("plasmid_list/", PlasmidList.as_view(), name="plasmid_list"),
+    path("search/results/", PlasmidSearchResultsView.as_view(), name="search_results"),
+    path("<str:identifier>/", plasmid_detail, name="plasmid_detail"),
 ]
