@@ -6,9 +6,20 @@ User = get_user_model()
 
 
 class SignUpForm(UserCreationForm):
+
+    date_of_birth = forms.DateField(
+        required=False,
+        widget=forms.DateInput(
+            attrs={
+                "type": "date",          
+                "class": "form-control",
+            }
+        ),
+    )
+
     class Meta:
         model = User
-        fields = ("email", "username", "first_name", "last_name", "date_of_birth", "role")
+        fields = ("email", "first_name", "last_name", "date_of_birth", "role")
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
