@@ -3,9 +3,11 @@
 {% block title %}Plasmid detail{% endblock %}
 
 {% block content %}
-<h1>{{ plasmid.identifier }}</h1>
+
+<div style="display: flex; justify-content: space-between; align-items: center;">
+    <h1>{{ plasmid.identifier }}</h1>
+    <a class="btn" href="{% url 'plasmids:plasmid_list' %}">Back to Plasmid List</a>
+</div>
 
 <p>TO DO: Display information.</p>
-
-<a class="btn" href="{% url 'plasmids:plasmid_list' %}">Back to plasmid list</a>
 {% endblock %}

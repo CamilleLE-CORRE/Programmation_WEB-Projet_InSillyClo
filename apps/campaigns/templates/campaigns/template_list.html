@@ -1,125 +1,199 @@
 {% extends "core/base.html" %}
-
-{% block title %}Campaign Templates · InSillyClo{% endblock %}
+{% block title %}Templates{% endblock %}
 
 {% block content %}
-<h1>Campaign Templates</h1>
 
-<h2>Public templates</h2>
-{% if public_templates %}
-  <ul>
-    {% for t in public_templates %}
-      <li>
-        {{ t.name }} —
-        <a href="{% url 'campaigns:download_public_template' t.id %}?format=csv">csv</a> |
-        <a href="{% url 'campaigns:download_public_template' t.id %}?format=xlsx">xlsx</a>
-        
-        <a href="#" class="info-icon"
-           data-template-name="{{ t.name }}"
-           data-template-type="{{ t.template_type }}"
-           data-enzyme="{{ t.restriction_enzyme }}"
-           data-separator="{{ t.separator }}"
-           data-created="{{ t.created_at|date:'d/m/Y - H:i' }}"
-           data-owner="{% if t.owner.first_name %}{{ t.owner.first_name }} {{ t.owner.last_name }}{% else %}{{ t.owner.username }}{% endif %}"
-           data-is-public="{{ t.is_public|yesno:'Yes,No' }}"
-           onclick="showTemplateInfo(event, this)">ℹ️</a>
-      </li>
-    {% endfor %}
-  </ul>
-{% else %}
-  <p>No public templates available.</p>
-{% endif %}
+<div style="display:flex; justify-content:space-between; align-items:center;">
+    <h1>Template List</h1>
 
-
-<h2>Your templates</h2>
-
-{% if user_templates %}
-  <ul>
-    {% for t in user_templates %}
-      <li>
-        {{ t.name }} —
-        <a href="{% url 'campaigns:download_template' t.id %}?format=csv">csv</a> |
-        <a href="{% url 'campaigns:download_template' t.id %}?format=xlsx">xlsx</a>
-
-        <a href="#" class="info-icon"
-           data-template-name="{{ t.name }}"
-           data-template-type="{{ t.template_type }}"
-           data-enzyme="{{ t.restriction_enzyme }}"
-           data-separator="{{ t.separator }}"
-           data-created="{{ t.created_at|date:'d/m/Y - H:i' }}"
-           data-owner="{% if t.owner.first_name %}{{ t.owner.first_name }} {{ t.owner.last_name }}{% else %}{{ t.owner.username }}{% endif %}"
-           data-is-public="{{ t.is_public|yesno:'Yes,No' }}"
-           onclick="showTemplateInfo(event, this)">ℹ️</a>
-
-        <a href="#" class="delete-icon"
-           onclick='confirmDelete(event, "{{ t.id }}", "{{ t.name|escapejs }}")'>🗑️</a>
-      </li>
-    {% endfor %}
-  </ul>
-
-{% else %}
-  <p>No templates yet.</p>
-{% endif %}
-
-<p><a href="{% url 'campaigns:create_template' %}">Create a new template</a></p>
-
-<div id="info-modal" class="modal">
-  <div class="modal-content">
-    <div class="modal-header">
-      <h2>Template Information</h2>
-      <span class="close" onclick="closeModal()">&times;</span>
-    </div>
-    <div id="modal-body"></div>
-  </div>
+    <a class="btn" href="{% url 'campaigns:create_template' %}">
+        + Create new template
+    </a>
 </div>
 
-<form id="delete-form" method="post" style="display:none;">
-  {% csrf_token %}
-</form>
+<br>
 
-<script>
-  function confirmDelete(event, templateId, templateName) {
-    event.preventDefault();
-    const ok = confirm(`Supprimer "${templateName}" ?`);
-    if (!ok) return;
-    const form = document.getElementById('delete-form');
-    form.action = "{% url 'campaigns:delete_template' 0 %}".replace('0', templateId);
-    form.submit();
-  }
+{% if public_templates or user_templates %}
+    <!-- {% with total=public_templates|length %}
+        {% with total=total|add:user_templates|length %}
+            <p class="text-center">
+                {{ total }} templates available.
+            </p>
+        {% endwith %}
+    {% endwith %} -->
 
-  function showTemplateInfo(event, element) {
-    event.preventDefault();
-    const templateName = element.getAttribute('data-template-name');
-    const templateType = element.getAttribute('data-template-type');
-    const enzyme = element.getAttribute('data-enzyme');
-    const separator = element.getAttribute('data-separator');
-    const created = element.getAttribute('data-created');
-    const owner = element.getAttribute('data-owner');
-    const isPublic = element.getAttribute('data-is-public');
+    <table class="table plasmid-table">
+        <thead>
+            <tr>
+                <th style="width:40px;"></th>
+                <th>Name</th>
+                <th>CSV</th>
+                <th>XLSX</th>
+                <th>Visibility</th>
+                <th>Type</th>
+                <th>Restriction enzyme</th>
+                <th>Separator</th>
+                <th>Created</th>
+                <th>Owner</th>
+            </tr>
+        </thead>
 
-    document.getElementById('modal-body').innerHTML = `
-      <p><strong>Name:</strong> ${templateName}</p>
-      <p><strong>Type:</strong> ${templateType}</p>
-      <p><strong>Enzyme:</strong> ${enzyme}</p>
-      <p><strong>Separator:</strong> ${separator}</p>
-      <p><strong>Created:</strong> ${created}</p>
-      <p><strong>Owner:</strong> ${owner}</p>
-      <p><strong>Public:</strong> ${isPublic}</p>
-    `;
-    document.getElementById('info-modal').style.display = 'block';
-  }
+        <tbody>
+            {# ===== PUBLIC TEMPLATES ===== #}
+            {% for template in public_templates %}
+                <tr>
+                    <td></td>
 
-  function closeModal() {
-    document.getElementById('info-modal').style.display = 'none';
-  }
+                    <td class="template-name">{{ template.name }}</td>
 
-  window.onclick = function(event) {
-    const modal = document.getElementById('info-modal');
-    if (event.target === modal) closeModal();
-  }
+                    <td>
+                        <a class="download-link"
+                           href="{% url 'campaigns:download_public_template' template.id %}?format=csv">
+                            CSV
+                        </a>
+                    </td>
 
-  document.addEventListener('keydown', function(event) {
-    if (event.key === 'Escape') closeModal();
-  });
-</script>
+                    <td>
+                        <a class="download-link"
+                           href="{% url 'campaigns:download_public_template' template.id %}?format=xlsx">
+                            XLSX
+                        </a>
+                    </td>
+
+                    <td class="template-meta">
+                        <span class="badge bg-success">Public</span>
+                    </td>
+
+                    <td class="template-meta">{{ template.template_type }}</td>
+                    <td class="template-meta">{{ template.restriction_enzyme|default_if_none:"" }}</td>
+                    <td class="template-meta">{{ template.separator|default_if_none:"" }}</td>
+                    <td class="template-meta">{{ template.created_at|date:"Y-m-d H:i" }}</td>
+                    <td class="template-meta">{{ template.owner.username|default_if_none:"" }}</td>
+                </tr>
+            {% endfor %}
+
+            {# ===== USER TEMPLATES ===== #}
+            {% for template in user_templates %}
+                <tr>
+                    <td>
+                        <form method="post"
+                              action="{% url 'campaigns:delete_template' template.id %}"
+                              onsubmit="return confirm('Delete this template?');">
+                            {% csrf_token %}
+                            <button type="submit" class="delete-icon">🗑️</button>
+                        </form>
+                    </td>
+
+                    <td class="template-name">{{ template.name }}</td>
+
+                    <td>
+                        <a class="download-link"
+                           href="{% url 'campaigns:download_template' template.id %}?format=csv">
+                            CSV
+                        </a>
+                    </td>
+
+                    <td>
+                        <a class="download-link"
+                           href="{% url 'campaigns:download_template' template.id %}?format=xlsx">
+                            XLSX
+                        </a>
+                    </td>
+
+                    <td class="template-meta">
+                        <span class="badge bg-secondary">Private</span>
+                    </td>
+
+                    <td class="template-meta">{{ template.template_type }}</td>
+                    <td class="template-meta">{{ template.restriction_enzyme|default_if_none:"" }}</td>
+                    <td class="template-meta">{{ template.separator|default_if_none:"" }}</td>
+                    <td class="template-meta">{{ template.created_at|date:"Y-m-d H:i" }}</td>
+                    <td class="template-meta">{{ template.owner.username|default_if_none:"" }}</td>
+                </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+{% else %}
+    <p class="text-center text-muted">No templates found</p>
+{% endif %}
+
+<style>
+.plasmid-table {
+    width: 100%;
+    border-collapse: separate;
+    border-spacing: 0;
+    font-size: 15px;
+}
+
+.plasmid-table thead tr {
+    background-color: var(--primary);
+    color: #fff;
+}
+
+.plasmid-table th,
+.plasmid-table td {
+    padding: 14px 12px;
+    border-bottom: 1px solid var(--border);
+    vertical-align: middle;
+    text-align: center;
+}
+
+/* Alternating rows */
+.plasmid-table tbody tr:nth-child(odd) {
+    background-color: var(--card);
+}
+
+.plasmid-table tbody tr:nth-child(even) {
+    background-color: var(--primary-soft);
+}
+
+/* UNIFORM hover on entire row */
+.plasmid-table tbody tr:hover {
+    background-color: var(--primary);
+    color: #fff;
+}
+
+.plasmid-table tbody tr:hover a,
+.plasmid-table tbody tr:hover span,
+.plasmid-table tbody tr:hover button {
+    color: #fff;
+}
+
+/* Name emphasis */
+.template-name {
+    font-size: 16px;
+    font-weight: 600;
+}
+
+/* Less prominent metadata */
+.template-meta {
+    font-size: 13px;
+    opacity: 0.8;
+}
+
+/* Download links */
+.download-link {
+    font-weight: 600;
+    text-decoration: none;
+    color: inherit;
+}
+
+.download-link:hover {
+    text-decoration: underline;
+}
+
+/* Delete button */
+.delete-icon {
+    background: none;
+    border: none;
+    cursor: pointer;
+    font-size: 18px;
+}
+
+.delete-icon:hover {
+    color: red;
+}
+</style>
+
 {% endblock %}
