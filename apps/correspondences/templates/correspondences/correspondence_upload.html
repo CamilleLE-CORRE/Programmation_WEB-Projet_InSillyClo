@@ -2,6 +2,14 @@
 {% load static %}
 
 {% block content %}
+{% if messages %}
+  <ul class="messages">
+    {% for message in messages %}
+      <li class="{{ message.tags }}">{{ message }}</li>
+    {% endfor %}
+  </ul>
+{% endif %}
+
 <h1>Upload entries for: {{ correspondence.name }}</h1>
 
 <p><strong>Expected correspondence table format:</strong><br>
@@ -23,3 +31,4 @@ Must be csv,tsv or txt files.
 <p>
   <a href="{% url 'correspondences:detail' correspondence.id %}">← Back to Correspondence Detail</a>
 {% endblock %}
+

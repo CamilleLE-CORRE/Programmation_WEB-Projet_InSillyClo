@@ -5,18 +5,16 @@
 <h1>{{ correspondence.name }}</h1>
 
 <p>
-  Owner :{{ correspondence.owner.username }} <br>
+  Owner :{{ correspondence.owner.username }} | 
   Email: {{ correspondence.owner.email }} <br>
-  {% if correspondence.is_public %}
-    (Public)
-  {% else %}
-    (Private)
-  {% endif %}
-  |
-  <a href="{% url 'correspondences:upload' correspondence.id %}"> 📤Upload / Replace entries</a>
-  <p>
-  <a href="{% url 'correspondences:list' %}">← Back to My correspondence Table</a>
+  Status: <strong>
+    {% if correspondence.is_public %}(Public){% else %}(Private){% endif %}
+  </strong>
 </p>
+
+
+  <a href="{% url 'correspondences:upload' correspondence.id %}"> 📤Upload / Replace entries</a>
+
 </p>
 
 <table>

@@ -160,5 +160,41 @@ footer{
     color:var(--muted);
 }
 
+/* Django messages */
+.messages {
+  margin: 1em 0;
+  padding: 0;
+}
+
+.messages li {
+  list-style: none;
+  padding: 8px 12px;
+  margin-bottom: 6px;
+  border-radius: 4px;
+}
+
+/* Error messages (red) */
+.messages .error {
+  color: #a40000;
+  background-color: #fdecea;
+  border: 1px solid #f5c2c7;
+}
+
+/* success messages (green) */
+.messages .success {
+  color: #0f5132;
+  background-color: #d1e7dd;
+  border: 1px solid #badbcc;
+}
+
+ul.messages li.error {
+  color: #b00020 !important;
+  background: #fdecea !important;
+  border: 1px solid #f5c2c7 !important;
+  padding: 8px 12px !important;
+  border-radius: 6px !important;
+  margin: 6px 0 !important;
+}
+
 
 
