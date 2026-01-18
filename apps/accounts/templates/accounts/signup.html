@@ -3,6 +3,13 @@
 {% block title %}Create account · InSillyClo{% endblock %}
 
 {% block content %}
+
+{% if form.errors %}
+  <div>
+    {{ form.errors }}
+  </div>
+{% endif %}
+
 <h1>Create account</h1>
 
 <form method="post">
