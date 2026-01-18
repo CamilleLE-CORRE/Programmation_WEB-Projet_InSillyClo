@@ -6,7 +6,7 @@ from .views import (
     TeamDetailView,
     TeamListView,
     TeamRemoveMemberView,
-    TeamTransferOwnerView, 
+    TeamTransferOwnerView,
 )
 
 app_name = "teams"
@@ -19,7 +19,5 @@ urlpatterns = [
     # actions (POST)
     path("<int:pk>/add-member/", TeamAddMemberView.as_view(), name="add_member"),
     path("<int:pk>/remove-member/", TeamRemoveMemberView.as_view(), name="remove_member"),
-
-    # option : transfert de propriété
     path("<int:pk>/transfer-owner/", TeamTransferOwnerView.as_view(), name="transfer_owner"),
 ]
