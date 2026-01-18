@@ -9,6 +9,7 @@ from django.shortcuts import get_object_or_404, redirect, render
 from .forms import CorrespondenceCreateForm, CorrespondenceUploadForm
 from .models import Correspondence, CorrespondenceEntry
 from apps.correspondences.parsers import parse_correspondence_text
+from collections import defaultdict
 
 
 def correspondence_list(request):
@@ -55,6 +56,19 @@ def correspondence_create(request):
 
 @login_required
 def correspondence_upload(request, pk: int):
+    """
+    POST
+    ├─ form.is_valid()
+    │   ├─ read file
+    │   ├─ parse_correspondence_text(raw)
+    │   │    ↳ rows, errors
+    │   ├─ if errors:  ← CSV/TSV
+    │   │      return
+    │   ├─ with transaction.atomic():
+    │   │     ├─ delete existing (optional)
+    │   │     ├─ bulk_create entries  
+    │   └─ success
+    """
     corr = get_object_or_404(Correspondence, pk=pk, owner=request.user)
 
     if request.method == "POST":
@@ -66,6 +80,45 @@ def correspondence_upload(request, pk: int):
             raw = f.read().decode("utf-8", errors="replace")
             rows, errors = parse_correspondence_text(raw)
 
+            # ======= Conflits detection =======
+            by_name = defaultdict(set)   # (display_name, entry_type) -> set(identifier)
+            by_identifier = defaultdict(set)  # identifier -> set((display_name, entry_type))
+            
+            for identifier, display_name, entry_type in rows:
+                key_name = (display_name, entry_type or "")
+                key_id = (identifier, entry_type or "")
+                by_name[key_name].add(identifier)
+                by_identifier[identifier].add((display_name))
+            
+            conflict_messages = []
+
+            # (1) Same display_name --> multiple identifiers
+            for (display_name, entry_type), identifiers in by_name.items():
+                if len(identifiers) > 1:
+                    conflict_messages.append(
+                        f"Conflict: Display name '{display_name}' (type: '{entry_type}') maps to multiple identifiers: {', '.join(sorted(identifiers))}."
+                    )
+            # (2) Same identifier --> multiple display_names
+            for identifier, name_types in by_identifier.items():
+                if len(name_types) > 1:
+                    conflict_messages.append(
+                        f"Conflict: Identifier '{identifier}' maps to multiple display names: {', '.join(sorted(name_types))}."
+                    )
+            if conflict_messages:
+                # We do not automatically resolve ambiguous correspondences.
+                # User must fix the correspondence table.
+                messages.error(
+                    request,
+                    "Conflicts detected in the uploaded correspondence table:\n" 
+                    "Ambiguous mapping are not allowed."
+                    "Please fix the following issues and re-upload:\n" 
+                )
+                for msg in conflict_messages:
+                    messages.error(request, msg)
+                return render(request, "correspondences/correspondence_upload.html", {"form": form, "correspondence": corr})
+            # ===================================
+
+            # ============= Handle parsing errors=============
             if errors:
                 for e in errors[:10]:
                     messages.error(request, e)
