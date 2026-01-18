@@ -1,17 +1,27 @@
-<h1>Correspondences</h1>
+{% extends "core/base.html" %}
+{% load static %}
+
+{% block title %}My correspondence Table{% endblock %}
+
+{% block content %}
+<h1> My correspondence Table</h1>
+<a href="{% url 'correspondences:create' %}">📤Create New Correspondence Table📤</a>
 
 {% if correspondences %}
-  <ul>
-    {% for c in correspondences %}
-      <li>
-        <a href="{% url 'correspondences:detail' c.id %}">
-          {{ c.name }}
-        </a>
-        — entries: {{ c.entries_count }}
-        {% if c.is_public %}(public){% else %}(private){% endif %}
-      </li>
-    {% endfor %}
-  </ul>
+<ul>
+  {% for c in correspondences %}
+    <li>
+      <a href="{% url 'correspondences:detail' c.pk %}">{{ c.name }}</a>
+      - Entries: {{ c.entries.count }}
+      {% if c.is_public %}
+        (Public)
+      {% else %}
+        (Private)
+      {% endif %}
+    </li>
+  {% endfor %}
+</ul>
 {% else %}
-  <p>No correspondences found.</p>
+<p>No correspondences found.</p>
 {% endif %}
+{% endblock %}

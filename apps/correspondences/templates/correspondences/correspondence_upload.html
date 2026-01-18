@@ -1,32 +1,25 @@
-<!doctype html>
-<html>
-<head>
-  <meta charset="utf-8">
-  <title>Upload</title>
-</head>
-<body>
-  <h1>Upload entries for: {{ correspondence.name }}</h1>
-  <p>
-  <strong>Expected correspondence table format:</strong><br>
-  Each line must contain:
-  <ul>
-    <li><strong>identifier</strong> (required)</li>
-    <li><strong>display_name</strong> (required)</li>
-    <li><strong>type</strong> (optional)</li>
-  </ul>
-   Must be csv,tsv or txt files.  
+{% extends "core/base.html" %}
+{% load static %}
+
+{% block content %}
+<h1>Upload entries for: {{ correspondence.name }}</h1>
+
+<p><strong>Expected correspondence table format:</strong><br>
+Each line must contain:
+<ul>
+  <li><strong>identifier</strong> (required)</li>
+  <li><strong>display_name</strong> (required)</li>
+  <li><strong>type</strong> (optional)</li>
+</ul>
+Must be csv,tsv or txt files.
 </p>
 
-  <form method="post" enctype="multipart/form-data">
-    {% csrf_token %}
-    {{ form.as_p }}
-    <button type="submit">Upload</button>
-  </form>
+<form method="post" enctype="multipart/form-data">
+  {% csrf_token %}
+  {{ form.as_p }}
+  <button type="submit">📤Upload</button>
+</form>
 
-  <p>
-    <a href="{% url 'correspondences:detail' correspondence.id %}">
-      ← Back to detail
-    </a>
-  </p>
-</body>
-</html>
+<p>
+  <a href="{% url 'correspondences:detail' correspondence.id %}">← Back to Correspondence Detail</a>
+{% endblock %}
