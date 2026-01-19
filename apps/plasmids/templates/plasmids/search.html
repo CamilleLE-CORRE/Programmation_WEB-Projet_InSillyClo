@@ -2,7 +2,16 @@
 {% block title %}Recherche de plasmides{% endblock %}
 
 {% block content %}
-<h1>Recherche de plasmides</h1>
+
+<div style="display:flex; justify-content:space-between; align-items:center;">
+    <h1>Recherche de plasmides</h1>
+
+    <a class="btn" href="{% url 'plasmids:plasmid_list' %}">
+            Back to Plasmid List
+    </a>
+</div>
+
+<br>
 
 <form method="get" action="{% url 'plasmids:search_results' %}">
     {% csrf_token %}

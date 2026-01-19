@@ -2,6 +2,7 @@ from django.shortcuts import render, get_object_or_404
 from django.views.generic import TemplateView
 from .models import Plasmid, PlasmidCollection
 from .forms import PlasmidSearchForm, PLASMID_TYPE_CHOICES, RESTRICTION_SITE_CHOICES
+from .management.genbank import parse_genbank
 
 # class PlasmidList(TemplateView):
 #     template_name = "plasmids/plasmid_list.html"
@@ -99,3 +100,51 @@ class PlasmidSearchResultsView(TemplateView):
         context['PLASMID_TYPE_CHOICES'] = PLASMID_TYPE_CHOICES
         context['RESTRICTION_SITE_CHOICES'] = RESTRICTION_SITE_CHOICES
         return context
+
+colors = {
+    "CDS": "#0000FF",
+    "promoter": "#66CCFF",
+    "terminator": "#FF9900",
+    "misc_feature": "#FFFD6C",
+}
+
+
+def plasmid_detail(request, identifier):
+    plasmid = get_object_or_404(Plasmid, identifier=identifier)
+
+    # Si genbank_data existe et contient des features
+    if plasmid.genbank_data and plasmid.genbank_data.get("features"):
+        parsed = parse_genbank(plasmid.genbank_data)
+    else:
+        # Générer parsed depuis les annotations
+        features = []
+        for ann in plasmid.annotations.all():
+            features.append({
+                "start": ann.start + 1,
+                "end": ann.end,
+                "length": ann.end - ann.start,
+                "label": ann.label or ann.feature_type,
+                "type": ann.feature_type,
+                "strand": ann.strand,
+                "color": colors.get(ann.feature_type, "#CCCCCC"),
+                "linked_plasmid": None
+            })
+        parsed = {
+            "length": plasmid.length or (max((f["end"] for f in features), default=1)),
+            "features": features
+        }
+
+    VISUAL_WIDTH = 900
+    ratio = VISUAL_WIDTH / parsed.get("length", 1)
+
+    for f in parsed.get("features", []):
+        f["visual_width"] = max(2, int(f.get("length", 1) * ratio))
+        f["visual_left"] = int(f.get("start", 0) * ratio)
+
+    context = {
+        "plasmid": plasmid,
+        "parsed": parsed,
+        "visual_width": VISUAL_WIDTH,
+    }
+
+    return render(request, "plasmids/plasmid_detail.html", context)

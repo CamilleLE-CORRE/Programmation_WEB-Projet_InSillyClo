@@ -1,13 +1,97 @@
 {% extends "core/base.html" %}
+{% load static %}
 
 {% block title %}Plasmid detail{% endblock %}
 
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/plasmid.css' %}">
+{% endblock %}
+
+
 {% block content %}
 
-<div style="display: flex; justify-content: space-between; align-items: center;">
+<!-- Header with plasmid name (left) and back button (right) -->
+<div class="plasmid-header">
+
+    <div style="display:flex; justify-content:space-between; align-items:center;">
+    
     <h1>{{ plasmid.identifier }}</h1>
-    <a class="btn" href="{% url 'plasmids:plasmid_list' %}">Back to Plasmid List</a>
+
+    <a class="btn" href="{% url 'plasmids:plasmid_list' %}">
+            Back to Plasmid List
+    </a>
 </div>
 
-<p>TO DO: Display information.</p>
+<!-- Plasmid metadata -->
+<div class="plasmid-metadata">
+    <p><strong>Length:</strong> {{ parsed.length }} bp</p>
+    <p><strong>Collection:</strong> {{ plasmid.collection }}</p>
+    <!-- <p><strong>Created:</strong> {{ plasmid.created_at|date:"F j, Y, g:i a" }}</p>
+    <p><strong>Owner:</strong> {{ plasmid.owner.username }}</p> -->
+</div>
+
+<!-- Plasmid visualization -->
+<h2>Plasmid Visualization</h2>
+
+<div class="plasmid-map-container">
+    <div
+        class="plasmid-map"
+        style="--map-width: {{ visual_width }}px;"
+    >
+        {% for feature in parsed.features %}
+
+            {% if feature.linked_plasmid %}
+                <a
+                    href="{% url 'plasmids:plasmid_detail' feature.linked_plasmid %}"
+                    class="plasmid-feature {% if feature.strand == -1 %}reverse{% endif %}"
+                    title="{{ feature.label }} ({{ feature.start }}..{{ feature.end }})"
+                    style="
+                        --left: {{ feature.visual_left }}px;
+                        --width: {{ feature.visual_width }}px;
+                        --background-color: {{ feature.color }};
+                    ">
+                </a>
+            {% else %}
+                <div
+                    class="plasmid-feature {% if feature.strand == -1 %}reverse{% endif %}"
+                    title="{{ feature.label }} ({{ feature.start }}..{{ feature.end }})"
+                    style="
+                        --left: {{ feature.visual_left }}px;
+                        --width: {{ feature.visual_width }}px;
+                        --background-color: {{ feature.color }};
+                    ">
+                </div>
+            {% endif %}
+
+        {% endfor %}
+
+    </div>
+</div>
+
+<!-- Annotations table -->
+<h2>Annotations</h2>
+
+    <table class="plasmid-table">
+        <thead>
+            <tr>
+                <th>Label</th>
+                <th>Type</th>
+                <th>Location</th>
+                <th>Length</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for feature in parsed.features %}
+            <tr>
+                <td>{{ feature.label }}</td>
+                <td>{{ feature.type }}</td>
+                <td>{{ feature.start }}..{{ feature.end }}</td>
+                <td>{{ feature.length }} bp</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+</div>
+
 {% endblock %}

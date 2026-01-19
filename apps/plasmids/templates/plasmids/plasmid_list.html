@@ -2,11 +2,15 @@
 {% block title %}Plasmids{% endblock %}
 
 {% block content %}
-<h1>Plasmid List</h1>
 
-<br>
-<a class="btn" href="{% url 'plasmids:search' %}">Search plasmids</a>
-<br><br>
+<div style="display:flex; justify-content:space-between; align-items:center;">
+    <h1>Plasmid List</h1>
+
+    <a class="btn" href="{% url 'plasmids:search' %}">
+        Search plasmids
+    </a>
+</div>
+
 
 {% if plasmids %}
     <p class="text-center">
