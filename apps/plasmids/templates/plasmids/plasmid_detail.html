@@ -11,3 +11,21 @@
 
 <p>TO DO: Display information.</p>
 {% endblock %}
+
+{% if can_request_publication %}
+  <form method="post" action="{% url 'publications:request_create' collection.id %}">
+    {% csrf_token %}
+    <button type="submit">
+      Request publication
+    </button>
+  </form>
+{% elif publication_request %}
+  <p>
+    Publication request status:
+    <strong>{{ publication_request.status }}</strong>
+  </p>
+
+  {% if publication_request.status == "REJECTED" %}
+    <p>Reason: {{ publication_request.rejection_reason }}</p>
+  {% endif %}
+{% endif %}
