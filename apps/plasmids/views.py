@@ -103,9 +103,11 @@ class PlasmidSearchResultsView(TemplateView):
 
 colors = {
     "CDS": "#0000FF",
+    "rep_origin": "#1C9BFF",
     "promoter": "#66CCFF",
-    "terminator": "#FF9900",
-    "misc_feature": "#FFFD6C",
+    "misc_feature": "#C2E0FF",
+    "protein_bind": "#FF9900",
+    "terminator": "#FFCD36",
 }
 
 
@@ -140,6 +142,7 @@ def plasmid_detail(request, identifier):
     for f in parsed.get("features", []):
         f["visual_width"] = max(2, int(f.get("length", 1) * ratio))
         f["visual_left"] = int(f.get("start", 0) * ratio)
+        f["visual_center"] = f["visual_left"] + f["visual_width"] // 2
 
     context = {
         "plasmid": plasmid,
@@ -148,3 +151,4 @@ def plasmid_detail(request, identifier):
     }
 
     return render(request, "plasmids/plasmid_detail.html", context)
+

@@ -1,16 +1,18 @@
-/* Container for the linear plasmid map */
+Container for the linear plasmid map
 .plasmid-map-container {
     overflow-x: auto;
     padding: 12px 0;
+    margin: 20px 0;
 }
 
 .plasmid-map {
     position: relative;
-    height: 40px;           /* hauteur de la barre */
-    width: var(--map-width); /* largeur dynamique */
-    background-color: var(--background-color);
+    height: 40px;
+    width: var(--map-width);
+    background-color: #e8e8e8; /* Couleur de fond de la barre */
     border-radius: 6px;
     border: 1px solid #ccc;
+    min-width: 100%; /* Au minimum la largeur du conteneur */
 }
 
 /* Individual feature box */
@@ -24,17 +26,24 @@
     border-radius: 4px;
     cursor: pointer;
     transition: transform 0.1s;
+    border: 1px solid rgba(0,0,0,0.2); /* Bordure pour mieux voir */
 }
 
 /* Hover effect */
 .plasmid-feature:hover {
     transform: scaleY(1.2);
     opacity: 0.9;
+    z-index: 10;
 }
 
 /* Reverse strand features */
 .plasmid-feature.reverse {
-    border-top: 2px solid #333;
+    border-top: 3px solid #333;
+}
+
+/* Si c'est un lien */
+a.plasmid-feature {
+    text-decoration: none;
 }
 
 /* Table of annotations */
@@ -54,4 +63,18 @@
 .plasmid-table th {
     background-color: #f9f9f9;
     font-weight: 600;
+}
+
+.plasmid-map {
+    border: 1px solid #ccc;
+    background: #fafafa;
+}
+
+.plasmid-feature {
+    cursor: pointer;
+    transition: opacity 0.15s ease;
+}
+
+.plasmid-feature:hover {
+    opacity: 0.75;
 }
