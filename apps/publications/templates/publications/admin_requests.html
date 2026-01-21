@@ -1,0 +1,65 @@
+{% extends "core/base.html" %}
+{% load static %}
+
+{% block content %}
+<h1>Publication requests (admin)</h1>
+
+<table border="1" cellpadding="5" cellspacing="0">
+    <thead>
+        <tr>
+            <th>ID</th>
+            <th>Requested by</th>
+            <th>Target</th>
+            <th>Status</th>
+            <th>Comment</th>
+            <th>Actions</th>
+        </tr>
+    </thead>
+
+    <tbody>
+        {% for pub in publications %}
+        <tr>
+            <td>{{ pub.id }}</td>
+            <td>{{ pub.requested_by.email }}</td>
+            <td>
+                {{ pub.target_content_type.app_label }} /
+                {{ pub.target_content_type.model }}
+                (id={{ pub.target_object_id }})
+            </td>
+            <td>{{ pub.status }}</td>
+            <td>{{ pub.reviewed_comment }}</td>
+            <td>
+                {% if pub.status == "PENDING" %}
+                <!-- Approve -->
+                <form method="post"
+                      action="{% url 'publications:admin_review' pub.id %}"
+                      style="display:inline;">
+                    {% csrf_token %}
+                    <input type="hidden" name="action" value="approve">
+                    <button type="submit">Approve</button>
+                </form>
+
+                <!-- Reject -->
+                <form method="post"
+                      action="{% url 'publications:admin_review' pub.id %}"
+                      style="display:inline;">
+                    {% csrf_token %}
+                    <input type="hidden" name="action" value="reject">
+                    <input type="text" name="comment"
+                           placeholder="Rejection reason"
+                           required>
+                    <button type="submit">Reject</button>
+                </form>
+                {% else %}
+                    —
+                {% endif %}
+            </td>
+        </tr>
+        {% empty %}
+        <tr>
+            <td colspan="6">No publication requests.</td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+{% endblock %}
