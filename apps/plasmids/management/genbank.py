@@ -27,7 +27,7 @@ def parse_genbank(source):
         "features": []
     }
 
-    # --- Si source est un dict ---
+    # Si source est un dict
     if isinstance(source, dict):
         parsed["length"] = source.get("length", 1)
         features = source.get("features", [])
@@ -46,7 +46,7 @@ def parse_genbank(source):
             parsed["length"] = max(f.get("end", 1) for f in features)
         return parsed
 
-    # --- Sinon, parser un fichier GenBank ---
+    # Sinon, parser un fichier GenBank
     with open(source, "r") as f:
         lines = f.readlines()
 
