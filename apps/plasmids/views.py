@@ -36,7 +36,6 @@ class PlasmidSearchView(TemplateView):
         context["PLASMID_TYPE_CHOICES"] = PLASMID_TYPE_CHOICES
         context["RESTRICTION_SITE_CHOICES"] = RESTRICTION_SITE_CHOICES
 
-        # 👉 Aucune recherche au premier chargement
         plasmids = None
 
         if self.request.GET and form.is_valid():
@@ -73,11 +72,14 @@ class PlasmidSearchView(TemplateView):
 
 
 colors = {
+    "tRNA": "#070087",
     "CDS": "#0000FF",
     "rep_origin": "#1C9BFF",
     "promoter": "#66CCFF",
     "misc_feature": "#C2E0FF",
+    "misc_RNA": "#C2E0FF",
     "protein_bind": "#FF9900",
+    "RBS": "#F8B409",
     "terminator": "#FFCD36",
 }
 
