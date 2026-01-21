@@ -1,19 +1,15 @@
 from django.shortcuts import render, get_object_or_404
 from django.views.generic import TemplateView
-from .models import Plasmid, PlasmidCollection
-from .forms import PlasmidSearchForm, PLASMID_TYPE_CHOICES, RESTRICTION_SITE_CHOICES
-from .management.genbank import parse_genbank
-
-# class PlasmidList(TemplateView):
-#     template_name = "plasmids/plasmid_list.html"
+from .models import Plasmid
+from .forms import (
+    PlasmidSearchForm,
+    PLASMID_TYPE_CHOICES,
+    RESTRICTION_SITE_CHOICES
+)
 
 def plasmid_list(request):
-
-    # A connected user can see both public and private plasmid collections
     if request.user.is_authenticated:
         plasmids = Plasmid.objects.all()
-
-    # An unregistered user can only see public plasmid collections
     else:
         plasmids = Plasmid.objects.filter(collection__is_public=True)
 
@@ -21,66 +17,42 @@ def plasmid_list(request):
         'plasmids': plasmids
     })
 
+
 def plasmid_detail(request, identifier):
-    
-    # Get plasmid and verify it exists
     plasmid = get_object_or_404(Plasmid, identifier=identifier)
-    
     return render(request, "plasmids/plasmid_detail.html", {
         "plasmid": plasmid
     })
+
 
 class PlasmidSearchView(TemplateView):
     template_name = "plasmids/search.html"
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
+
         form = PlasmidSearchForm(self.request.GET or None)
-        context['form'] = form
-        context['PLASMID_TYPE_CHOICES'] = PLASMID_TYPE_CHOICES
-        context['RESTRICTION_SITE_CHOICES'] = RESTRICTION_SITE_CHOICES
-        plasmids = Plasmid.objects.all()
+        context["form"] = form
+        context["PLASMID_TYPE_CHOICES"] = PLASMID_TYPE_CHOICES
+        context["RESTRICTION_SITE_CHOICES"] = RESTRICTION_SITE_CHOICES
 
-        if form.is_valid():
-            sequence_pattern = form.cleaned_data.get("sequence_pattern")
-            name = form.cleaned_data.get("name")
-            types = form.cleaned_data.get("types")
-            sites = form.cleaned_data.get("sites")
+        # 👉 Aucune recherche au premier chargement
+        plasmids = None
 
-            if sequence_pattern:
-                plasmids = plasmids.filter(sequence__icontains=sequence_pattern)
-            if name:
-                plasmids = plasmids.filter(name__icontains=name)
-            if types:
-                plasmids = plasmids.filter(type__in=types)
-            if sites:
-                for site in sites:
-                    plasmids = plasmids.filter(sites__icontains=site)
+        if self.request.GET and form.is_valid():
+            plasmids = Plasmid.objects.all()
 
-        context['plasmids'] = plasmids
-        return context
-
-
-class PlasmidSearchResultsView(TemplateView):
-    template_name = "plasmids/search_results.html"
-
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
-        form = PlasmidSearchForm(self.request.GET or None)
-        context['form'] = form
-
-        plasmids = Plasmid.objects.all()
-
-        if form.is_valid():
             # Champs texte
             sequence_pattern = form.cleaned_data.get("sequence_pattern")
             name = form.cleaned_data.get("name")
+
             if sequence_pattern:
                 plasmids = plasmids.filter(sequence__icontains=sequence_pattern)
+
             if name:
                 plasmids = plasmids.filter(name__icontains=name)
 
-            # Types
+            # Types (tri-state)
             for t, _ in PLASMID_TYPE_CHOICES:
                 choice = self.request.GET.get(f"type_{t}", "indifferent")
                 if choice == "yes":
@@ -88,7 +60,7 @@ class PlasmidSearchResultsView(TemplateView):
                 elif choice == "no":
                     plasmids = plasmids.exclude(type__icontains=t)
 
-            # Sites ER
+            # Sites de restriction (tri-state)
             for s, _ in RESTRICTION_SITE_CHOICES:
                 choice = self.request.GET.get(f"site_{s}", "indifferent")
                 if choice == "yes":
@@ -96,10 +68,9 @@ class PlasmidSearchResultsView(TemplateView):
                 elif choice == "no":
                     plasmids = plasmids.exclude(sites__icontains=s)
 
-        context['plasmids'] = plasmids
-        context['PLASMID_TYPE_CHOICES'] = PLASMID_TYPE_CHOICES
-        context['RESTRICTION_SITE_CHOICES'] = RESTRICTION_SITE_CHOICES
+        context["plasmids"] = plasmids
         return context
+
 
 colors = {
     "CDS": "#0000FF",
