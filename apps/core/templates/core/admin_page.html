@@ -6,8 +6,6 @@
 <h1>Administration</h1>
 
 {% if user.is_authenticated %}
-  <p>Dashboard admin.</p>
-
   {% if user.is_superuser %}
     <h2>Accès</h2>
     <ul>
@@ -19,9 +17,22 @@
     <h2>Gestion</h2>
     <ul>
       <li><a href="{% url 'campaigns:template_list' %}">Templates</a></li>
-      <li><a href="{% url 'teams:teams' %}">Équipes</a></li>
+      <li><a href="{% url 'teams:admin_team_list' %}">Teams</a></li>
       <li><a href="{% url 'simulations:simu' %}">Simulations</a></li>
     </ul>
+
+    <h2>Publications</h2>
+    <ul>
+      <li>
+        <a href="{% url 'publications:admin_requests_list' %}">
+          Demandes de publication
+          {% if pending_publication_count %}
+            ({{ pending_publication_count }})
+          {% endif %}
+        </a>
+      </li>
+    </ul>
+
   {% endif %}
 
   {% if user.is_superuser %}

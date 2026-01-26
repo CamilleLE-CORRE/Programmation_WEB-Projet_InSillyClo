@@ -15,7 +15,6 @@ from django.core.exceptions import ValidationError
 
 import apps
 
-
 class Publication(models.Model):
     class Status(models.TextChoices):
         PENDING = 'PENDING', 'Pending'
@@ -37,7 +36,7 @@ class Publication(models.Model):
     status = models.CharField(
         max_length=20,
         choices=Status.choices,
-        default=Status.PENDING
+        default=Status.PENDING,
         db_index=True
     )
     reviewed_by = models.ForeignKey(
@@ -55,16 +54,17 @@ class Publication(models.Model):
         ordering = ('- created_at',)  # Default ordering by id
         verbose_name = "Publication request"  # Singular name
         verbose_name_plural = "Publications requests"  # Plural name
-        indeexes = {
+        indexes = [
             models.Index(fields=['status']),
-            models.Index(fields=['target_content_type', 'target_object_id']),
-            constraints=[
-                # Prevent multiple pending requests for the same target
-                feilds=['target_content_type', 'target_object_id', 'status'],
+            models.Index(fields=['target_content_type', 'target_object_id'])
+        ]
+        constraints = [
+            models.UniqueConstraint(
+                fields=['target_content_type', 'target_object_id', 'status'],
                 name='unique_pending_publication_request',
                 condition=models.Q(status=Status.PENDING)
-            ]
-        }
+            )
+        ]
 
     def __str__(self):
         return f"Publication {self.id} requested by {self.requested_by.email}"

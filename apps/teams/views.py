@@ -6,12 +6,26 @@ from django.http import Http404
 from django.shortcuts import get_object_or_404, redirect
 from django.views import View
 from django.views.generic import CreateView, DetailView, ListView
+from django.shortcuts import render
+from django.http import HttpResponseForbidden
 
 from .forms import TeamAddMemberForm, TeamCreateForm, TeamTransferOwnerForm
 from .models import Team
 
 User = get_user_model()
 
+
+
+def admin_team_list(request):
+    if not request.user.is_authenticated or not (request.user.is_staff or request.user.is_superuser):
+        return HttpResponseForbidden("Access denied")
+
+    teams = Team.objects.select_related("owner").prefetch_related("members").order_by("-id")
+    return render(
+        request,
+        "teams/admin_team_list.html",
+        {"teams": teams},
+    )
 
 # Accès réservé aux membres de l'équipe.
 class TeamMemberRequiredMixin(LoginRequiredMixin):
@@ -26,19 +40,27 @@ class TeamMemberRequiredMixin(LoginRequiredMixin):
         return team
 
     def dispatch(self, request, *args, **kwargs):
+        if request.user.is_authenticated and (request.user.is_staff or request.user.is_superuser):
+            return super().dispatch(request, *args, **kwargs)
+
         team = self.get_team()
         if not team.members.filter(pk=request.user.pk).exists():
             raise Http404
         return super().dispatch(request, *args, **kwargs)
 
 
+
 # Accès réservé à l'owner de l'équipe.
 class TeamOwnerRequiredMixin(TeamMemberRequiredMixin):
     def dispatch(self, request, *args, **kwargs):
+        if request.user.is_authenticated and (request.user.is_staff or request.user.is_superuser):
+            return super(TeamMemberRequiredMixin, self).dispatch(request, *args, **kwargs)
+
         team = self.get_team()
         if team.owner_id != request.user.id:
             raise Http404
         return super().dispatch(request, *args, **kwargs)
+
 
 
 class TeamListView(LoginRequiredMixin, ListView):
@@ -149,3 +171,22 @@ class TeamTransferOwnerView(TeamOwnerRequiredMixin, View):
         team.save()  # Team.save() force owner membre
         messages.success(request, "Propriété de l’équipe transférée.")
         return redirect("teams:team_detail", pk=team.pk)
+
+
+def admin_team_detail(request, pk: int):
+    if not request.user.is_authenticated or not (request.user.is_staff or request.user.is_superuser):
+        return HttpResponseForbidden("Access denied")
+
+    team = get_object_or_404(
+        Team.objects.select_related("owner").prefetch_related("members"),
+        pk=pk,
+    )
+
+    members = team.members.all().order_by("email")
+
+    ctx = {
+        "team": team,
+        "members": members,
+    }
+
+    return render(request, "teams/admin_team_detail.html", ctx)
