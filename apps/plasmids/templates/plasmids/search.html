@@ -1,10 +1,19 @@
 {% extends "core/base.html" %}
-{% block title %}Recherche de plasmides{% endblock %}
+{% block title %}Plasmid Browser{% endblock %}
 
 {% block content %}
-<h1>Recherche de plasmides</h1>
 
-<form method="get" action="{% url 'plasmids:search_results' %}">
+<div style="display:flex; justify-content:space-between; align-items:center;">
+    <h1>Plasmid Browser</h1>
+
+    <a class="btn" href="{% url 'plasmids:plasmid_list' %}">
+        Back to Plasmid List
+    </a>
+</div>
+
+<br>
+
+<form method="get" action="{% url 'plasmids:search' %}">
     {% csrf_token %}
 
     <div class="card" style="margin-bottom:16px;">
@@ -22,7 +31,10 @@
         <h3>Types de plasmide</h3>
         <table class="tri-state-table">
             <thead>
-                <tr><th>Type</th><th>Presence</th></tr>
+                <tr>
+                    <th>Type</th>
+                    <th>Presence</th>
+                </tr>
             </thead>
             <tbody>
                 {% for t, t_label in PLASMID_TYPE_CHOICES %}
@@ -43,7 +55,10 @@
         <h3>Sites de restriction</h3>
         <table class="tri-state-table">
             <thead>
-                <tr><th>Restriction Enzyme Site</th><th>Presence</th></tr>
+                <tr>
+                    <th>Restriction Enzyme Site</th>
+                    <th>Presence</th>
+                </tr>
             </thead>
             <tbody>
                 {% for s, s_label in RESTRICTION_SITE_CHOICES %}
@@ -62,6 +77,59 @@
     <button type="submit" class="btn">Search</button>
 </form>
 
+<hr>
+
+{% if plasmids != None %}
+
+<h1>Search Results</h1>
+
+{% if plasmids %}
+    <p class="text-center">
+        {{ plasmids|length }} plasmids found.
+    </p>
+
+    <!-- 🔴 Card autour du tableau -->
+    <div class="card">
+        <table class="plasmid-table rounded-table">
+            <thead>
+                <tr>
+                    <th>Name</th>
+                    <th>Length</th>
+                    <th>Collection</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for plasmid in plasmids %}
+                <tr class="clickable-row"
+                    data-href="{% url 'plasmids:plasmid_detail' plasmid.identifier %}">
+                    <td>{{ plasmid.name }}</td>
+                    <td>{{ plasmid.length }} bp</td>
+                    <td>
+                        {{ plasmid.collection.name }}
+                        {% if plasmid.collection.is_public %}
+                            <span class="badge bg-success">Public</span>
+                        {% else %}
+                            <span class="badge bg-secondary">Private</span>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+{% else %}
+    <p class="text-center text-muted">
+        No plasmids matching your search were found.
+    </p>
+
+    <br>
+    <a class="btn" href="{% url 'plasmids:plasmid_list' %}">
+        Back to plasmid list
+    </a>
+{% endif %}
+{% endif %}
+
 <!-- JS tri-state -->
 <script>
 document.addEventListener("DOMContentLoaded", () => {
@@ -70,13 +138,14 @@ document.addEventListener("DOMContentLoaded", () => {
         cell.addEventListener("click", () => {
             const hiddenInput = cell.nextElementSibling;
             let current = cell.dataset.value;
-            if(current === "indifferent") {
+
+            if (current === "indifferent") {
                 cell.dataset.value = "yes";
                 hiddenInput.value = "yes";
                 cell.classList.remove("absent");
                 cell.classList.add("present");
                 cell.innerHTML = "✔";
-            } else if(current === "yes") {
+            } else if (current === "yes") {
                 cell.dataset.value = "no";
                 hiddenInput.value = "no";
                 cell.classList.remove("present");
@@ -90,41 +159,14 @@ document.addEventListener("DOMContentLoaded", () => {
             }
         });
     });
+
+    const rows = document.querySelectorAll(".clickable-row");
+    rows.forEach(row => {
+        row.addEventListener("click", () => {
+            window.location = row.dataset.href;
+        });
+    });
 });
 </script>
-
-<style>
-.tri-state-cell {
-    width: 30px;
-    height: 30px;
-    border: 1px solid var(--border);
-    border-radius: 6px;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    background-color: white;
-    font-size: 18px;
-    transition: all 0.2s;
-}
-.tri-state-cell.present {
-    background-color: #d1fae5;
-    color: #065f46;
-}
-.tri-state-cell.absent {
-    background-color: #fee2e2;
-    color: #991b1b;
-}
-.tri-state-table {
-    border-collapse: separate;
-    border-spacing: 20px 5px;
-}
-
-.tri-state-table th,
-.tri-state-table td {
-    text-align: center;
-    vertical-align: middle;
-}
-</style>
 
 {% endblock %}

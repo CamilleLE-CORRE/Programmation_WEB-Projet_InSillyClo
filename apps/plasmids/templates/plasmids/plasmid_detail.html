@@ -1,15 +1,251 @@
 {% extends "core/base.html" %}
+{% load static %}
 
 {% block title %}Plasmid detail{% endblock %}
 
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/plasmid.css' %}">
+{% endblock %}
+
 {% block content %}
 
-<div style="display: flex; justify-content: space-between; align-items: center;">
-    <h1>{{ plasmid.identifier }}</h1>
-    <a class="btn" href="{% url 'plasmids:plasmid_list' %}">Back to Plasmid List</a>
+<!-- Header -->
+<div class="plasmid-header">
+    <div style="display:flex; justify-content:space-between; align-items:center;">
+        <h1>{{ plasmid.identifier }}</h1>
+        <a class="btn" href="{% url 'plasmids:plasmid_list' %}">
+            Back to Plasmid List
+        </a>
+    </div>
 </div>
 
-<p>TO DO: Display information.</p>
+<!-- Metadata -->
+<div class="plasmid-metadata">
+    <p><strong>Length:</strong> {{ parsed.length }} bp</p>
+    <p><strong>Collection:</strong> {{ plasmid.collection }}</p>
+</div>
+
+<h2>Visualization</h2>
+
+<!-- SVG MAP -->
+<div class="plasmid-map-container">
+
+<svg
+    class="plasmid-map"
+    width="{{ visual_width }}"
+    height="300"
+    viewBox="-50 0 {{ visual_width|add:100 }} 300"
+    xmlns="http://www.w3.org/2000/svg"
+    xmlns:xlink="http://www.w3.org/1999/xlink"
+>
+
+    <!-- Backbone ADN -->
+    <line
+        x1="0"
+        y1="150"
+        x2="{{ visual_width }}"
+        y2="150"
+        stroke="#444"
+        stroke-width="4"
+    />
+
+    {% for feature in parsed.features %}
+
+        {% if feature.linked_plasmid %}
+            <a xlink:href="{% url 'plasmids:plasmid_detail' feature.linked_plasmid %}">
+        {% endif %}
+
+        {# =========================
+           FEATURE SHAPE
+           ========================= #}
+
+        {% if feature.length > 50 and feature.strand == 1 %}
+            <!-- Arrow to the right -->
+            <polygon
+                points="
+                    {{ feature.visual_left }},125
+                    {{ feature.visual_left|add:feature.visual_width|add:-10 }},125
+                    {{ feature.visual_left|add:feature.visual_width }},150
+                    {{ feature.visual_left|add:feature.visual_width|add:-10 }},175
+                    {{ feature.visual_left }},175
+                "
+                fill="{{ feature.color }}"
+                stroke="#222"
+                stroke-width="1.5"
+                class="plasmid-feature"
+            >
+                <title>{{ feature.label }} ({{ feature.start }}..{{ feature.end }})</title>
+            </polygon>
+
+        {% elif feature.length > 100 and feature.strand == -1 %}
+            <!-- Arrow to the left -->
+            <polygon
+                points="
+                    {{ feature.visual_left|add:feature.visual_width }},125
+                    {{ feature.visual_left|add:10 }},125
+                    {{ feature.visual_left }},150
+                    {{ feature.visual_left|add:10 }},175
+                    {{ feature.visual_left|add:feature.visual_width }},175
+                "
+                fill="{{ feature.color }}"
+                stroke="#222"
+                stroke-width="1.5"
+                class="plasmid-feature"
+            >
+                <title>{{ feature.label }} ({{ feature.start }}..{{ feature.end }})</title>
+            </polygon>
+
+        {% else %}
+            <!-- Classic rectangle -->
+            <rect
+                x="{{ feature.visual_left }}"
+                y="125"
+                width="{{ feature.visual_width }}"
+                height="50"
+                fill="{{ feature.color }}"
+                stroke="#222"
+                stroke-width="1.5"
+                rx="4"
+                ry="4"
+                class="plasmid-feature"
+            >
+                <title>{{ feature.label }} ({{ feature.start }}..{{ feature.end }})</title>
+            </rect>
+        {% endif %}
+
+        {# =========================
+           LABELS (INCHANGÉS)
+           ========================= #}
+
+        {% if feature.label_position == "inside" %}
+            <!-- Gene label inside box -->
+            <text
+                x="{{ feature.visual_center }}"
+                y="150"
+                text-anchor="middle"
+                dominant-baseline="middle"
+                font-size="14"
+                font-weight="bold"
+                fill="#fff"
+                pointer-events="none"
+            >
+                {{ feature.label }}
+            </text>
+        {% else %}
+            <!-- Label outside -->
+            {% if feature.label_side == "above" %}
+                {% if feature.label_level == 0 %}
+                    <line x1="{{ feature.visual_center }}" y1="125" x2="{{ feature.visual_center }}" y2="80"
+                          stroke="#666" stroke-width="1" />
+                    <text x="{{ feature.visual_center }}" y="70" text-anchor="middle"
+                          dominant-baseline="middle" font-size="14" font-weight="bold"
+                          fill="#333" pointer-events="none">
+                        {{ feature.label }}
+                    </text>
+                {% elif feature.label_level == 1 %}
+                    <line x1="{{ feature.visual_center }}" y1="125" x2="{{ feature.visual_center }}" y2="50"
+                          stroke="#666" stroke-width="1" />
+                    <text x="{{ feature.visual_center }}" y="40" text-anchor="middle"
+                          dominant-baseline="middle" font-size="14" font-weight="bold"
+                          fill="#333" pointer-events="none">
+                        {{ feature.label }}
+                    </text>
+                {% else %}
+                    <line x1="{{ feature.visual_center }}" y1="125" x2="{{ feature.visual_center }}" y2="20"
+                          stroke="#666" stroke-width="1" />
+                    <text x="{{ feature.visual_center }}" y="10" text-anchor="middle"
+                          dominant-baseline="middle" font-size="14" font-weight="bold"
+                          fill="#333" pointer-events="none">
+                        {{ feature.label }}
+                    </text>
+                {% endif %}
+            {% else %}
+                {% if feature.label_level == 0 %}
+                    <line x1="{{ feature.visual_center }}" y1="175" x2="{{ feature.visual_center }}" y2="220"
+                          stroke="#666" stroke-width="1" />
+                    <text x="{{ feature.visual_center }}" y="230" text-anchor="middle"
+                          dominant-baseline="middle" font-size="14" font-weight="bold"
+                          fill="#333" pointer-events="none">
+                        {{ feature.label }}
+                    </text>
+                {% elif feature.label_level == 1 %}
+                    <line x1="{{ feature.visual_center }}" y1="175" x2="{{ feature.visual_center }}" y2="250"
+                          stroke="#666" stroke-width="1" />
+                    <text x="{{ feature.visual_center }}" y="260" text-anchor="middle"
+                          dominant-baseline="middle" font-size="14" font-weight="bold"
+                          fill="#333" pointer-events="none">
+                        {{ feature.label }}
+                    </text>
+                {% else %}
+                    <line x1="{{ feature.visual_center }}" y1="175" x2="{{ feature.visual_center }}" y2="280"
+                          stroke="#666" stroke-width="1" />
+                    <text x="{{ feature.visual_center }}" y="290" text-anchor="middle"
+                          dominant-baseline="middle" font-size="14" font-weight="bold"
+                          fill="#333" pointer-events="none">
+                        {{ feature.label }}
+                    </text>
+                {% endif %}
+            {% endif %}
+        {% endif %}
+
+        {% if feature.linked_plasmid %}
+            </a>
+        {% endif %}
+
+    {% endfor %}
+
+</svg>
+</div>
+
+<!-- Annotations table -->
+<h2>Annotations</h2>
+
+<div class="card">
+    <table class="plasmid-table">
+        <thead>
+            <tr>
+                <th>Label</th>
+                <th>Type</th>
+                <th>Location</th>
+                <th>Length</th>
+                <th>Strand</th>
+                <th>External Link</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for feature in parsed.features %}
+            <tr>
+                <td>{{ feature.label }}</td>
+                <td>{{ feature.type }}</td>
+                <td>{{ feature.start }}..{{ feature.end }}</td>
+                <td>{{ feature.length }} bp</td>
+                <td>
+                    {% if feature.strand == 1 %}
+                        <span class="badge bg-success">+</span>
+                    {% else %}
+                        <span class="badge bg-secondary">−</span>
+                    {% endif %}
+                </td>
+                <td>
+                    {% if feature.external_link %}
+                        {% if "ncbi.nlm.nih.gov" in feature.external_link %}
+                            <a href="{{ feature.external_link }}" target="_blank">NCBI</a>
+                        {% else %}
+                            <a href="{{ feature.external_link }}" target="_blank">Google</a>
+                        {% endif %}
+                    {% else %}
+                        -
+                    {% endif %}
+                </td>
+
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+
+
 {% endblock %}
 
 {% if can_request_publication %}

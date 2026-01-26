@@ -1,55 +1,103 @@
-from django.conf import settings
+"""
+Models for the publications app:
+- requested_by: user (FK to User model)
+- target_type (collection / correspondence)
+- target_id
+- reviewed_by: user (FK to User model)
+- reviewed_comment: text
+"""
+
+from django.db import models
+from django.utils import timezone
 from django.contrib.contenttypes.fields import GenericForeignKey
 from django.contrib.contenttypes.models import ContentType
-from django.db import models
+from django.core.exceptions import ValidationError
 
-class PublicationStatus(models.TextChoices):
-    PENDING_TEAM_LEAD = "PENDING_TEAM_LEAD", "Pending team lead"
-    PENDING_ADMIN = "PENDING_ADMIN", "Pending admin"
-    APPROVED = "APPROVED", "Approved"
-    REJECTED = "REJECTED", "Rejected"
+import apps
 
-class PublicationRequest(models.Model):
-    # cible (collection de plasmides OU table de correspondance)
-    content_type = models.ForeignKey(ContentType, on_delete=models.CASCADE)
-    object_id = models.PositiveIntegerField()
-    target = GenericForeignKey("content_type", "object_id")
+class Publication(models.Model):
+    class Status(models.TextChoices):
+        PENDING = 'PENDING', 'Pending'
+        APPROVED = 'APPROVED', 'Approved'
+        REJECTED = 'REJECTED', 'Rejected'
 
     requested_by = models.ForeignKey(
-        settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="publication_requests"
-    )
+        'apps.accounts.models.User', 
+        on_delete=models.CASCADE,
+        related_name='requested_publications'
+    )  # Foreign key to User model for requester
+    target_content_type = models.ForeignKey(
+        ContentType,
+        on_delete=models.CASCADE
+    )  # Content type for generic relation
+    target_object_id = models.PositiveIntegerField()  # ID for generic relation
+    target = GenericForeignKey('target_content_type', 'target_object_id')  # Generic foreign
+
     status = models.CharField(
-        max_length=32, choices=PublicationStatus.choices, default=PublicationStatus.PENDING_ADMIN
+        max_length=20,
+        choices=Status.choices,
+        default=Status.PENDING,
+        db_index=True
     )
-
-    team = models.ForeignKey("teams.Team", null=True, blank=True, on_delete=models.SET_NULL)
-    team_validated_by = models.ForeignKey(
-        settings.AUTH_USER_MODEL, null=True, blank=True, on_delete=models.SET_NULL,
-        related_name="publication_team_validations"
-    )
-    team_validated_at = models.DateTimeField(null=True, blank=True)
-
-    decided_by = models.ForeignKey(
-        settings.AUTH_USER_MODEL, null=True, blank=True, on_delete=models.SET_NULL,
-        related_name="publication_decisions"
-    )
-    decided_at = models.DateTimeField(null=True, blank=True)
-    rejection_reason = models.TextField(blank=True)
-
-    created_at = models.DateTimeField(auto_now_add=True)
-    updated_at = models.DateTimeField(auto_now=True)
+    reviewed_by = models.ForeignKey(
+        'apps.accounts.models.User', 
+        on_delete=models.SET_NULL,
+        related_name='reviewed_publications',
+        null=True,
+        blank=True
+    )  # Foreign key to User model for reviewer
+    reviewed_comment = models.TextField(blank=True)  # Reviewer's comment
+    created_at = models.DateTimeField(default=timezone.now)  # Timestamp of creation
+    reviewed_at = models.DateTimeField(null=True, blank=True)  # Timestamp of review
 
     class Meta:
+        ordering = ('- created_at',)  # Default ordering by id
+        verbose_name = "Publication request"  # Singular name
+        verbose_name_plural = "Publications requests"  # Plural name
         indexes = [
-            models.Index(fields=["status"]),
-            models.Index(fields=["content_type", "object_id"]),
+            models.Index(fields=['status']),
+            models.Index(fields=['target_content_type', 'target_object_id'])
         ]
         constraints = [
             models.UniqueConstraint(
-                fields=["content_type", "object_id"],
-                name="uniq_publication_request_per_target"
+                fields=['target_content_type', 'target_object_id', 'status'],
+                name='unique_pending_publication_request',
+                condition=models.Q(status=Status.PENDING)
             )
         ]
 
     def __str__(self):
-        return f"{self.target} [{self.status}]"
+        return f"Publication {self.id} requested by {self.requested_by.email}"
+
+    def approuve(self, reviwer):
+        self.status = self.Status.APPROVED
+        self.reviewed_by = reviwer
+        self.reviewed_at = timezone.now()
+        self.save()
+
+    def reject(self, reviwer, comment=''):
+        self.status = self.Status.REJECTED
+        self.reviewed_by = reviwer
+        self.reviewed_comment = comment
+        self.reviewed_at = timezone.now()
+        self.save()
+
+    def clean(self):
+        """
+        Only allowed 2 targets: collection and correspondence
+        """
+
+        models = self.target_content_type.model_class()
+        allowed = {
+            "correspondences":{"apps.correspondences.models.Correspondence"},
+            "plasmidcollections":{"apps.plasmids.models.PlasmidCollection"}
+        }
+        app_label = self.target_content_type.app_label
+        model_name = self.target_content_type.model
+
+        if app_label not in allowed or model_name not in allowed[app_label]:
+            raise ValidationError(f"Invalid target type: {app_label}.{model_name}")
+        
+        # If rejected, require a comment
+        if self.status == self.Status.REJECTED and not self.reviewed_comment:
+            raise ValidationError("A comment is required when rejecting a publication request.")

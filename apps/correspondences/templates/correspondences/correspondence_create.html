@@ -1,3 +1,8 @@
+{% extends "core/base.html" %}
+{% load static %}
+
+{% block content %}
+
 <h1>New correspondence</h1>
 
 <form method="post">
@@ -7,3 +12,4 @@
 </form>
 
 <p><a href="{% url 'correspondences:list' %}">← Back to list</a></p>
+{% endblock %}
