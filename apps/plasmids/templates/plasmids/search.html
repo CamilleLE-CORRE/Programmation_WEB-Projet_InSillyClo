@@ -77,6 +77,59 @@
     <button type="submit" class="btn">Search</button>
 </form>
 
+<hr>
+
+{% if plasmids != None %}
+
+<h1>Search Results</h1>
+
+{% if plasmids %}
+    <p class="text-center">
+        {{ plasmids|length }} plasmids found.
+    </p>
+
+    <!-- 🔴 Card autour du tableau -->
+    <div class="card">
+        <table class="plasmid-table rounded-table">
+            <thead>
+                <tr>
+                    <th>Name</th>
+                    <th>Length</th>
+                    <th>Collection</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for plasmid in plasmids %}
+                <tr class="clickable-row"
+                    data-href="{% url 'plasmids:plasmid_detail' plasmid.identifier %}">
+                    <td>{{ plasmid.name }}</td>
+                    <td>{{ plasmid.length }} bp</td>
+                    <td>
+                        {{ plasmid.collection.name }}
+                        {% if plasmid.collection.is_public %}
+                            <span class="badge bg-success">Public</span>
+                        {% else %}
+                            <span class="badge bg-secondary">Private</span>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+{% else %}
+    <p class="text-center text-muted">
+        No plasmids matching your search were found.
+    </p>
+
+    <br>
+    <a class="btn" href="{% url 'plasmids:plasmid_list' %}">
+        Back to plasmid list
+    </a>
+{% endif %}
+{% endif %}
+
 <!-- JS tri-state -->
 <script>
 document.addEventListener("DOMContentLoaded", () => {
@@ -106,130 +159,7 @@ document.addEventListener("DOMContentLoaded", () => {
             }
         });
     });
-});
-</script>
 
-<hr>
-
-{% if plasmids != None %}
-
-<h1>Search Results</h1>
-
-{% if plasmids %}
-    <p class="text-center">
-        {{ plasmids|length }} plasmids found.
-    </p>
-
-    <table class="table plasmid-table">
-        <thead>
-            <tr>
-                <th>Name</th>
-                <th>Length</th>
-                <th>Collection</th>
-            </tr>
-        </thead>
-        <tbody>
-            {% for plasmid in plasmids %}
-            <tr class="clickable-row"
-                data-href="{% url 'plasmids:plasmid_detail' plasmid.identifier %}">
-                <td>{{ plasmid.name }}</td>
-                <td>{{ plasmid.length }} bp</td>
-                <td>
-                    {{ plasmid.collection.name }}
-                    {% if plasmid.collection.is_public %}
-                        <span class="badge bg-success">Public</span>
-                    {% else %}
-                        <span class="badge bg-secondary">Private</span>
-                    {% endif %}
-                </td>
-            </tr>
-            {% endfor %}
-        </tbody>
-    </table>
-
-{% else %}
-    <p class="text-center text-muted">
-        No plasmids matching your search were found.
-    </p>
-
-    <br>
-    <a class="btn" href="{% url 'plasmids:plasmid_list' %}">
-        Back to plasmid list
-    </a>
-{% endif %}
-{% endif %}
-
-<style>
-/* ===== TRI-STATE ===== */
-.tri-state-cell {
-    width: 30px;
-    height: 30px;
-    border: 1px solid var(--border);
-    border-radius: 6px;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    background-color: white;
-    font-size: 18px;
-    transition: all 0.2s;
-}
-.tri-state-cell.present {
-    background-color: #d1fae5;
-    color: #065f46;
-}
-.tri-state-cell.absent {
-    background-color: #fee2e2;
-    color: #991b1b;
-}
-.tri-state-table {
-    border-collapse: separate;
-    border-spacing: 20px 5px;
-}
-.tri-state-table th,
-.tri-state-table td {
-    text-align: center;
-    vertical-align: middle;
-}
-
-/* ===== TABLEAU RESULTATS (IDENTIQUE search_results.html) ===== */
-.plasmid-table {
-    width: 100%;
-    border-collapse: separate;
-    border-spacing: 0;
-    font-size: 15px;
-}
-.plasmid-table thead tr {
-    background-color: var(--primary);
-    color: #fff;
-    text-align: left;
-}
-.plasmid-table th,
-.plasmid-table td {
-    padding: 14px 12px;
-    border-bottom: 1px solid var(--border);
-}
-.plasmid-table tbody tr:nth-child(odd) {
-    background-color: var(--card);
-}
-.plasmid-table tbody tr:nth-child(even) {
-    background-color: var(--primary-soft);
-}
-.clickable-row {
-    cursor: pointer;
-    transition: background-color 0.2s;
-}
-.clickable-row:hover td {
-    background-color: var(--primary);
-    color: #fff;
-}
-.clickable-row .badge {
-    transition: background-color 0.2s;
-}
-</style>
-
-<script>
-document.addEventListener("DOMContentLoaded", function () {
     const rows = document.querySelectorAll(".clickable-row");
     rows.forEach(row => {
         row.addEventListener("click", () => {

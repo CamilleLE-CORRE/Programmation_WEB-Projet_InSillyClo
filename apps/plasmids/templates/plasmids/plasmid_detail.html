@@ -25,6 +25,8 @@
     <p><strong>Collection:</strong> {{ plasmid.collection }}</p>
 </div>
 
+<h2>Visualization</h2>
+
 <!-- SVG MAP -->
 <div class="plasmid-map-container">
 
@@ -198,27 +200,50 @@
 <!-- Annotations table -->
 <h2>Annotations</h2>
 
-<table class="plasmid-table">
-    <thead>
-        <tr>
-            <th>Label</th>
-            <th>Type</th>
-            <th>Location</th>
-            <th>Length</th>
-            <th>Strand</th>
-        </tr>
-    </thead>
-    <tbody>
-        {% for feature in parsed.features %}
-        <tr>
-            <td>{{ feature.label }}</td>
-            <td>{{ feature.type }}</td>
-            <td>{{ feature.start }}..{{ feature.end }}</td>
-            <td>{{ feature.length }} bp</td>
-            <td>{{ feature.strand }}</td>
-        </tr>
-        {% endfor %}
-    </tbody>
-</table>
+<div class="card">
+    <table class="plasmid-table">
+        <thead>
+            <tr>
+                <th>Label</th>
+                <th>Type</th>
+                <th>Location</th>
+                <th>Length</th>
+                <th>Strand</th>
+                <th>External Link</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for feature in parsed.features %}
+            <tr>
+                <td>{{ feature.label }}</td>
+                <td>{{ feature.type }}</td>
+                <td>{{ feature.start }}..{{ feature.end }}</td>
+                <td>{{ feature.length }} bp</td>
+                <td>
+                    {% if feature.strand == 1 %}
+                        <span class="badge bg-success">+</span>
+                    {% else %}
+                        <span class="badge bg-secondary">−</span>
+                    {% endif %}
+                </td>
+                <td>
+                    {% if feature.external_link %}
+                        {% if "ncbi.nlm.nih.gov" in feature.external_link %}
+                            <a href="{{ feature.external_link }}" target="_blank">NCBI</a>
+                        {% else %}
+                            <a href="{{ feature.external_link }}" target="_blank">Google</a>
+                        {% endif %}
+                    {% else %}
+                        -
+                    {% endif %}
+                </td>
+
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+
 
 {% endblock %}

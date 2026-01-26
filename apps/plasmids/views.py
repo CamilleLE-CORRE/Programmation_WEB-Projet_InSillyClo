@@ -84,10 +84,26 @@ colors = {
 }
 
 
+def generate_external_link(feature):
+    import urllib.parse
+
+    label = feature.get("label", "").strip()
+    if not label:
+        return None
+
+    query = urllib.parse.quote_plus(label)
+
+    # Lien de recherche NCBI Gene
+    ncbi_link = f"https://www.ncbi.nlm.nih.gov/gene/?term={query}"
+
+    # Google si nécessaire
+    return ncbi_link or f"https://www.google.com/search?q={query}"
+
+
 def plasmid_detail(request, identifier):
     plasmid = get_object_or_404(Plasmid, identifier=identifier)
 
-    # Si genbank_data existe et contient des features
+    # Parse features depuis genbank ou annotations
     if plasmid.genbank_data and plasmid.genbank_data.get("features"):
         parsed = parse_genbank(plasmid.genbank_data)
     else:
@@ -109,47 +125,36 @@ def plasmid_detail(request, identifier):
             "features": features
         }
 
-    # TRI DES FEATURES PAR POSITION DE DÉPART
+    # Trier les features
     parsed["features"] = sorted(parsed.get("features", []), key=lambda f: f.get("start", 0))
 
+    # Calcul de la visualisation
     VISUAL_WIDTH = 900
     ratio = VISUAL_WIDTH / parsed.get("length", 1)
-
-    # Compteur pour l'alternance dessus/dessous
     external_label_counter = 0
-    
+
     for f in parsed.get("features", []):
         f["visual_width"] = max(2, int(f.get("length", 1) * ratio))
         f["visual_left"] = int(f.get("start", 0) * ratio)
         f["visual_center"] = f["visual_left"] + f["visual_width"] // 2
-        f['visual_width_half'] = f['visual_left'] + (f['visual_width'] / 2)
-        f['visual_center'] = f['visual_left'] + f['visual_width'] / 2
-        
-        # Estimation de la largeur du texte (environ 8 pixels par caractère en bold 14px)
+
+        # Largeur du texte
         label_text_width = len(f.get("label", "")) * 8
-        
-        # Décider si le label peut tenir dans la boîte
-        if label_text_width <= f["visual_width"] - 10:  # -10 pour le padding
+        if label_text_width <= f["visual_width"] - 10:
             f["label_position"] = "inside"
-            f["external_label_index"] = None
             f["label_side"] = None
             f["label_level"] = 0
-            f["label_text_width"] = 0
         else:
             f["label_position"] = "outside"
-            f["external_label_index"] = external_label_counter
-            f["label_text_width"] = label_text_width
-            
-            # Alterner dessus/dessous
-            if external_label_counter % 2 == 0:
-                f["label_side"] = "above"
-            else:
-                f["label_side"] = "below"
-            
-            # Par défaut, niveau 0 (tout au même niveau)
+            f["label_side"] = "above" if external_label_counter % 2 == 0 else "below"
             f["label_level"] = 0
-            
+            f["label_text_width"] = label_text_width
             external_label_counter += 1
+
+        # -----------------------------
+        # Génération automatique du lien externe
+        # -----------------------------
+        f["external_link"] = generate_external_link(f)
 
     # DÉTECTION DES CHEVAUCHEMENTS ET AJUSTEMENT DES NIVEAUX
     features_above = [f for f in parsed["features"] if f.get("label_position") == "outside" and f.get("label_side") == "above"]

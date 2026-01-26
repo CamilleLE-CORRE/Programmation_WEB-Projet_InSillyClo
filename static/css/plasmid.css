@@ -1,4 +1,8 @@
-Container for the linear plasmid map
+/* ===============================
+   PLASMID MAP
+   =============================== */
+
+/* Container for the linear plasmid map */
 .plasmid-map-container {
     overflow-x: auto;
     padding: 12px 0;
@@ -6,75 +10,53 @@ Container for the linear plasmid map
 }
 
 .plasmid-map {
-    position: relative;
-    height: 40px;
-    width: var(--map-width);
-    background-color: #e8e8e8; /* Couleur de fond de la barre */
-    border-radius: 6px;
-    border: 1px solid #ccc;
-    min-width: 100%; /* Au minimum la largeur du conteneur */
-}
-
-/* Individual feature box */
-.plasmid-feature {
-    position: absolute;
-    top: 0;
-    height: 100%;
-    left: var(--left);
-    width: var(--width);
-    background-color: var(--background-color);
-    border-radius: 4px;
-    cursor: pointer;
-    transition: transform 0.1s;
-    border: 1px solid rgba(0,0,0,0.2); /* Bordure pour mieux voir */
-}
-
-/* Hover effect */
-.plasmid-feature:hover {
-    transform: scaleY(1.2);
-    opacity: 0.9;
-    z-index: 10;
-}
-
-/* Reverse strand features */
-.plasmid-feature.reverse {
-    border-top: 3px solid #333;
-}
-
-/* Si c'est un lien */
-a.plasmid-feature {
-    text-decoration: none;
-}
-
-/* Table of annotations */
-.plasmid-table {
-    width: 100%;
-    border-collapse: collapse;
-    margin-top: 16px;
-}
-
-.plasmid-table th,
-.plasmid-table td {
-    border: 1px solid #ddd;
-    padding: 6px 8px;
-    text-align: left;
-}
-
-.plasmid-table th {
-    background-color: #f9f9f9;
-    font-weight: 600;
-}
-
-.plasmid-map {
     border: 1px solid #ccc;
     background: #fafafa;
 }
 
+/* Individual feature */
 .plasmid-feature {
     cursor: pointer;
-    transition: opacity 0.15s ease;
+    transition: opacity 0.15s ease, transform 0.1s;
 }
 
 .plasmid-feature:hover {
     opacity: 0.75;
+    transform: scaleY(1.15);
+}
+
+/* ===============================
+   ANNOTATIONS TABLE
+   =============================== */
+
+.plasmid-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 1rem;
+    font-size: 14px;
+}
+
+.plasmid-table thead {
+    background-color: #f2f2f2;
+}
+
+.plasmid-table th,
+.plasmid-table td {
+    border: 1px solid #ccc;
+    padding: 8px 10px;
+    text-align: center;
+    vertical-align: middle;
+}
+
+.plasmid-table th {
+    font-weight: 600;
+    color: #333;
+}
+
+.plasmid-table tbody tr:nth-child(even) {
+    background-color: #fafafa;
+}
+
+.plasmid-table tbody tr:hover {
+    background-color: #eef6ff;
 }
