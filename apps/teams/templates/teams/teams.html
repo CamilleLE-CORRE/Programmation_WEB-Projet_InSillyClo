@@ -4,9 +4,9 @@
 
 {% block content %}
 <h1>Your teams</h1>
-
+<br>
 <a class="btn" href="{% url 'teams:create_team' %}">Create a team</a>
-
+<br><br>
 {% if teams %}
   <ul>
     {% for team in teams %}
@@ -21,6 +21,10 @@
     {% endfor %}
   </ul>
 {% else %}
+
+  <br>
+  <br>
+
   <p>You are not part of any team.</p>
 {% endif %}
 {% endblock %}

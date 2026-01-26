@@ -1,0 +1,21 @@
+{% extends "core/base.html" %}
+
+{% block title %}Team · Admin{% endblock %}
+
+{% block content %}
+<h1>{{ team.name }}</h1>
+
+<h2>Owner</h2>
+<p>{{ team.owner.email }}</p>
+
+<h2>Members ({{ members|length }})</h2>
+<ul>
+  {% for u in members %}
+    <li>
+      {{ u.email }}{% if u.id == team.owner_id %} (owner){% endif %}
+    </li>
+  {% endfor %}
+</ul>
+
+<p><a href="{% url 'teams:admin_team_list' %}">← Back to all teams</a></p>
+{% endblock %}
