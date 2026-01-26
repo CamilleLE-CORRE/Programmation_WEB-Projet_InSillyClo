@@ -19,9 +19,9 @@ urlpatterns = [
 
     # Admin publication review views
     path(
-        "admin/review/<int:publication_id>/",
+        "admin/requests/",
         views.admin_publication_requests,
-        name="admin_review",
+        name="admin_requests",
     ),
 
     path(

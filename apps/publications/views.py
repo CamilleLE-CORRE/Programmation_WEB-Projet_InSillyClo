@@ -36,9 +36,9 @@ def request_publication(request, target_kind:str, target_id:int):
     - target_kind: collection or correspondence
     - target_id: ID of the target object.(PK)
     """
-    kind_to_ct = {  # Map target kinds to ContentType
+    kind_to_ct = {  # Map target kinds to ContentType (app_label, model name)
         "collection":("plasmids","plasmidcollection"),
-        "correspondence":("communications","correspondence"),
+        "correspondence":("correspondences","correspondence"),
     }
 
     if target_kind not in kind_to_ct:
@@ -121,7 +121,7 @@ def admin_review_publication_request(request, publication_id:int):
     if action == "approve":
         pub.approve(request.user)
         target = pub.target
-        if hasattr(target, 'publish'):
+        if hasattr(target, 'is_public'):
             target.is_public = True
             target.save()
         messages.success(request, "Publication request approved.")
@@ -132,4 +132,4 @@ def admin_review_publication_request(request, publication_id:int):
         pub.reject(request.user, comment)
         messages.success(request, "Publication request rejected.")
     
-    return
+    return redirect("publications:admin_requests")
