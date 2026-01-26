@@ -62,7 +62,7 @@ class Publication(models.Model):
             models.UniqueConstraint(
                 fields=['target_content_type', 'target_object_id', 'status'],
                 name='unique_pending_publication_request',
-                condition=models.Q(status=Status.PENDING)
+                condition=models.Q(status='PENDING')
             )
         ]
 
