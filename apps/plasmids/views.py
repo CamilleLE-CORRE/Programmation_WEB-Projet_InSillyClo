@@ -1,11 +1,9 @@
 from django.shortcuts import render, get_object_or_404
 from django.views.generic import TemplateView
 from .models import Plasmid
-from .forms import (
-    PlasmidSearchForm,
-    PLASMID_TYPE_CHOICES,
-    RESTRICTION_SITE_CHOICES
-)
+from .forms import PlasmidSearchForm
+import json
+
 
 def plasmid_list(request):
     if request.user.is_authenticated:
@@ -33,15 +31,31 @@ class PlasmidSearchView(TemplateView):
 
         form = PlasmidSearchForm(self.request.GET or None)
         context["form"] = form
-        context["PLASMID_TYPE_CHOICES"] = PLASMID_TYPE_CHOICES
-        context["RESTRICTION_SITE_CHOICES"] = RESTRICTION_SITE_CHOICES
+
+        context["annotation_constraints"] = [
+        {"name": n, "mode": m}
+        for n, m in zip(
+            self.request.GET.getlist("annotation_name"),
+            self.request.GET.getlist("annotation_mode"),
+        )
+    ]
+
+        context["restriction_constraints"] = [
+            {"name": n, "mode": m}
+            for n, m in zip(
+                self.request.GET.getlist("restriction_name"),
+                self.request.GET.getlist("restriction_mode"),
+            )
+        ]
+
+
 
         plasmids = None
 
         if self.request.GET and form.is_valid():
             plasmids = Plasmid.objects.all()
 
-            # Champs texte
+            # --- Champs texte ---
             sequence_pattern = form.cleaned_data.get("sequence_pattern")
             name = form.cleaned_data.get("name")
 
@@ -51,25 +65,40 @@ class PlasmidSearchView(TemplateView):
             if name:
                 plasmids = plasmids.filter(name__icontains=name)
 
-            # Types (tri-state)
-            for t, _ in PLASMID_TYPE_CHOICES:
-                choice = self.request.GET.get(f"type_{t}", "indifferent")
-                if choice == "yes":
-                    plasmids = plasmids.filter(type__icontains=t)
-                elif choice == "no":
-                    plasmids = plasmids.exclude(type__icontains=t)
+            # --- Contraintes annotations ---
+            for ann_name, mode in context["annotation_constraints"]:
+                ann_name = ann_name.strip()
+                if not ann_name:
+                    continue
 
-            # Sites de restriction (tri-state)
-            for s, _ in RESTRICTION_SITE_CHOICES:
-                choice = self.request.GET.get(f"site_{s}", "indifferent")
-                if choice == "yes":
-                    plasmids = plasmids.filter(sites__icontains=s)
-                elif choice == "no":
-                    plasmids = plasmids.exclude(sites__icontains=s)
+                if mode == "present":
+                    plasmids = plasmids.filter(
+                        annotations__label__icontains=ann_name
+                    )
+                elif mode == "absent":
+                    plasmids = plasmids.exclude(
+                        annotations__label__icontains=ann_name
+                    )
+
+            # --- Contraintes sites de restriction ---
+            for site, mode in context["restriction_constraints"]:
+                site = site.strip()
+                if not site:
+                    continue
+
+                if mode == "present":
+                    plasmids = plasmids.filter(
+                        sites__icontains=site
+                    )
+                elif mode == "absent":
+                    plasmids = plasmids.exclude(
+                        sites__icontains=site
+                    )
+
+            plasmids = plasmids.distinct()
 
         context["plasmids"] = plasmids
         return context
-
 
 colors = {
     "tRNA": "#070087",
