@@ -29,17 +29,26 @@ class PlasmidSearchView(TemplateView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
 
+        # -----------------------------
+        # Formulaire
+        # -----------------------------
         form = PlasmidSearchForm(self.request.GET or None)
         context["form"] = form
 
+        # -----------------------------
+        # Contraintes annotations
+        # -----------------------------
         context["annotation_constraints"] = [
-        {"name": n, "mode": m}
-        for n, m in zip(
-            self.request.GET.getlist("annotation_name"),
-            self.request.GET.getlist("annotation_mode"),
-        )
-    ]
+            {"name": n, "mode": m}
+            for n, m in zip(
+                self.request.GET.getlist("annotation_name"),
+                self.request.GET.getlist("annotation_mode"),
+            )
+        ]
 
+        # -----------------------------
+        # Contraintes sites de restriction
+        # -----------------------------
         context["restriction_constraints"] = [
             {"name": n, "mode": m}
             for n, m in zip(
@@ -48,7 +57,12 @@ class PlasmidSearchView(TemplateView):
             )
         ]
 
-
+        context["annotation_constraints_json"] = json.dumps(
+            context["annotation_constraints"]
+        )
+        context["restriction_constraints_json"] = json.dumps(
+            context["restriction_constraints"]
+        )
 
         plasmids = None
 
@@ -66,8 +80,10 @@ class PlasmidSearchView(TemplateView):
                 plasmids = plasmids.filter(name__icontains=name)
 
             # --- Contraintes annotations ---
-            for ann_name, mode in context["annotation_constraints"]:
-                ann_name = ann_name.strip()
+            for c in context["annotation_constraints"]:
+                ann_name = c["name"].strip()
+                mode = c["mode"]
+
                 if not ann_name:
                     continue
 
@@ -81,8 +97,10 @@ class PlasmidSearchView(TemplateView):
                     )
 
             # --- Contraintes sites de restriction ---
-            for site, mode in context["restriction_constraints"]:
-                site = site.strip()
+            for c in context["restriction_constraints"]:
+                site = c["name"].strip()
+                mode = c["mode"]
+
                 if not site:
                     continue
 
@@ -99,6 +117,7 @@ class PlasmidSearchView(TemplateView):
 
         context["plasmids"] = plasmids
         return context
+
 
 colors = {
     "tRNA": "#070087",
@@ -185,13 +204,13 @@ def plasmid_detail(request, identifier):
         # -----------------------------
         f["external_link"] = generate_external_link(f)
 
-    # DÉTECTION DES CHEVAUCHEMENTS ET AJUSTEMENT DES NIVEAUX
+    # Chevauchement et niveaux
     features_above = [f for f in parsed["features"] if f.get("label_position") == "outside" and f.get("label_side") == "above"]
     features_below = [f for f in parsed["features"] if f.get("label_position") == "outside" and f.get("label_side") == "below"]
     
     def detect_overlaps_and_adjust(features_list):
         """Détecte les chevauchements et ajuste les niveaux (jusqu'à 3 niveaux)"""
-        # Trier par position pour un traitement séquentiel
+        # Trier par position
         features_sorted = sorted(features_list, key=lambda f: f["visual_center"])
         
         for current_feature in features_sorted:
@@ -215,7 +234,7 @@ def plasmid_detail(request, identifier):
                     other_left = other_feature["visual_center"] - other_feature["label_text_width"] / 2
                     other_right = other_feature["visual_center"] + other_feature["label_text_width"] / 2
                     
-                    # Vérifier le chevauchement (avec une petite marge de 5px)
+                    # Vérifier le chevauchement (avec une marge de 5px)
                     if not (current_right + 5 < other_left or other_right + 5 < current_left):
                         has_overlap = True
                         break
