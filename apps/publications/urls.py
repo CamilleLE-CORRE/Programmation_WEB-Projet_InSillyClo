@@ -4,19 +4,29 @@ from . import views
 app_name = "publications"
 
 urlpatterns = [
+    # User publication request views
+    path(
+        "request/<str:target_kind>/<int:target_id>/",
+        views.request_publication,
+        name="request_publication",
+    ),
+
+    path(
+        "my/",
+        views.my_publication_requests,
+        name="my_requests",
+    ),
+
+    # Admin publication review views
     path(
         "admin/requests/",
-        views.admin_requests_list,
-        name="admin_requests_list",
+        views.admin_publication_requests,
+        name="admin_requests",
     ),
+
     path(
-        "admin/requests/<int:pk>/",
-        views.admin_request_detail,
-        name="admin_request_detail",
+        "admin/review/<int:publication_id>/",
+        views.admin_review_publication_request,
+        name="admin_review",
     ),
-    path(
-    "request/plasmid-collection/<int:pk>/",
-    views.request_publication_collection,
-    name="request_create",
-),
 ]

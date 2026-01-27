@@ -1,0 +1,65 @@
+{% extends "core/base.html" %}
+{% load static %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/publications.css' %}">
+{% endblock %}
+
+{% block content %}
+<h1 class="page-title">My publication requests</h1>
+
+<div class="card">
+  <p class="muted">Here you can track the status of your publication requests.</p>
+
+  <div class="table-wrap">
+    <table class="nice-table">
+      <thead>
+        <tr>
+          <th>ID</th>
+          <th>Target</th>
+          <th>Status</th>
+          <th>Reviewed comment</th>
+          <th>Created</th>
+        </tr>
+      </thead>
+
+      <tbody>
+        {% for pub in publications %}
+        <tr>
+          <td>#{{ pub.id }}</td>
+
+          <td>
+            <div><strong>{{ pub.target }}</strong></div>
+            <div class="muted">
+              {{ pub.target_content_type.app_label }}/{{ pub.target_content_type.model }}
+              (id={{ pub.target_object_id }})
+            </div>
+          </td>
+
+          <td>
+            {% if pub.status == "PENDING" %}
+              <span class="badge pending">Pending</span>
+            {% elif pub.status == "APPROVED" %}
+              <span class="badge approved">Approved</span>
+            {% elif pub.status == "REJECTED" %}
+              <span class="badge rejected">Rejected</span>
+            {% else %}
+              <span class="badge">{{ pub.status }}</span>
+            {% endif %}
+          </td>
+
+          <td>{{ pub.reviewed_comment|default:"—" }}</td>
+
+          <td>{{ pub.created_at|date:"Y-m-d H:i" }}</td>
+        </tr>
+
+        {% empty %}
+        <tr>
+          <td colspan="5" class="empty">You have not submitted any publication request yet.</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

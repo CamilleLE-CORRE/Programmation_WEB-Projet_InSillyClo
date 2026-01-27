@@ -10,6 +10,9 @@ from .forms import CorrespondenceCreateForm, CorrespondenceUploadForm
 from .models import Correspondence, CorrespondenceEntry
 from apps.correspondences.parsers import parse_correspondence_text
 from collections import defaultdict
+from .parsers import parse_correspondence_text, parse_correspondence_xlsx
+from .models import Correspondence
+
 
 
 def correspondence_list(request):
@@ -77,8 +80,15 @@ def correspondence_upload(request, pk: int):
             f = form.cleaned_data["file"]
             replace_existing = form.cleaned_data["replace_existing"]
 
-            raw = f.read().decode("utf-8", errors="replace")
-            rows, errors = parse_correspondence_text(raw)
+            #raw = f.read().decode("utf-8", errors="replace")
+            #rows, errors = parse_correspondence_text(raw)
+            name = (f.name or "").lower()
+            if name.endswith(".xlsx"):
+                rows, errors = parse_correspondence_xlsx(f)
+            else:
+                raw = f.read().decode("utf-8", errors="replace")
+                rows, errors = parse_correspondence_text(raw)
+
 
             # ======= Conflits detection =======
             by_name = defaultdict(set)   # (display_name, entry_type) -> set(identifier)
@@ -147,3 +157,17 @@ def correspondence_upload(request, pk: int):
         form = CorrespondenceUploadForm()
 
     return render(request, "correspondences/correspondence_upload.html", {"form": form, "correspondence": corr})
+
+
+@login_required
+def correspondence_delete(request, pk: int):
+    corr = get_object_or_404(Correspondence, pk=pk, owner=request.user)
+
+    if request.method == "POST":
+        name = corr.name
+        corr.delete()
+        messages.success(request, f"Deleted correspondence '{name}'.")
+        return redirect("correspondences:list")
+
+    # GET: show confirmation page
+    return render(request, "correspondences/correspondence_confirm_delete.html", {"correspondence": corr})

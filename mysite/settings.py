@@ -48,8 +48,7 @@ INSTALLED_APPS = [
     "apps.simulations.apps.SimulationsConfig",
     "apps.correspondences.apps.CorrespondencesConfig",
     "apps.campaigns.apps.CampaignsConfig",
-    "apps.demo",
-    "apps.publications",
+    "apps.publications.apps.PublicationsConfig",
 ]
 
 MIDDLEWARE = [

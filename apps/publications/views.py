@@ -1,75 +1,135 @@
-from django.contrib.auth.decorators import login_required
-from django.shortcuts import render, get_object_or_404, redirect
+"""
+Function realization:
+- User: User can pull a publication request. And check it's result (Approved/Rejected/Pending).
+- Admin: Admin can approve or reject publication requests with comments if needed.
+"""
+
+from django.contrib import messages
+from django.contrib.auth.decorators import login_required, user_passes_test
 from django.contrib.contenttypes.models import ContentType
-from .models import PublicationRequest, PublicationStatus
-from .services import approve, reject
+from django.db import transaction
+from django.http import Http404
+from django.shortcuts import get_object_or_404, redirect, render
+from django.urls import reverse
+from django.views.decorators.http import require_http_methods
 
+from .models import Publication
+
+#-----------------
+# Permmision helpers
+#-----------------  
+def is_admin_user(user) -> bool:
+    """
+    Check if the user has admin privileges.
+    """
+    return user.is_authenticated and (user.is_staff or user.is_superuser)
+
+
+#-----------------
+# User Views
+#----------------
 @login_required
-def admin_requests_list(request):
-    # gate: role admin/superuser
-    qs = (PublicationRequest.objects
-          .select_related("requested_by","team","decided_by","team_validated_by","content_type")
-          .filter(status=PublicationStatus.PENDING_ADMIN)
-          .order_by("-created_at"))
-    return render(request, "publications/admin_requests_list.html", {"requests": qs})
+@require_http_methods(["POST"])
+def request_publication(request, target_kind:str, target_id:int):
+    """
+    Allow a user to request publication of a target object.
+    - target_kind: collection or correspondence
+    - target_id: ID of the target object.(PK)
+    """
+    kind_to_ct = {  # Map target kinds to ContentType (app_label, model name)
+        "collection":("plasmids","plasmidcollection"),
+        "correspondence":("correspondences","correspondence"),
+    }
 
-@login_required
-def admin_request_detail(request, pk: int):
-    req = get_object_or_404(
-        PublicationRequest.objects.select_related("requested_by","team","content_type"),
-        pk=pk
-    )
-    target = req.target
+    if target_kind not in kind_to_ct:
+        raise Http404("Invalid target kind.")
+    
+    app_label, model = kind_to_ct[target_kind]
+    ct = get_object_or_404(ContentType, app_label=app_label, model=model)
 
-    # enrichissement spécifique plasmides : afficher plasmides de la collection
-    plasmids = None
-    if req.content_type.model == "plasmidcollection":
-        # adapte selon votre relation réelle
-        plasmids = target.plasmids.all().order_by("id")
+    # Ensure target object exists
+    model_cls = ct.model_class()
+    if model_cls is None:
+        raise Http404("Target model does not exist.")
+    target_obj = get_object_or_404(model_cls, pk=target_id)
 
-    if request.method == "POST":
-        action = request.POST.get("action")
-        if action == "approve":
-            approve(req=req, user=request.user)
-            return redirect("publications:admin_requests_list")
-        if action == "reject":
-            reason = request.POST.get("reason", "")
-            reject(req=req, user=request.user, reason=reason)
-            return redirect("publications:admin_requests_list")
-
-    return render(request, "publications/admin_request_detail.html", {
-        "req": req, "target": target, "plasmids": plasmids
-    })
-
-# apps/publications/views_user.py
-from django.contrib.auth.decorators import login_required
-from django.shortcuts import get_object_or_404, redirect
-from django.contrib.contenttypes.models import ContentType
-
-from .models import PublicationRequest
-from .services import create_request
-from apps.plasmids.models import PlasmidCollection
-
-@login_required
-def request_publication_collection(request, pk):
-    collection = get_object_or_404(PlasmidCollection, pk=pk)
-
-    if collection.is_public:
-        return redirect("plasmids:collection_detail", pk=pk)
-
-    ct = ContentType.objects.get_for_model(collection)
-    exists = PublicationRequest.objects.filter(
-        content_type=ct,
-        object_id=collection.pk,
-        status__in=["PENDING_TEAM_LEAD", "PENDING_ADMIN"]
-    ).exists()
-
-    if not exists:
-        create_request(
-            target=collection,
-            user=request.user,
-            team=getattr(collection, "team", None),
-            require_team_lead=True,  # ou False selon règles
+    # Create publication request
+    try:
+        pub = Publication(
+            requested_by=request.user,
+            target_content_type=ct,
+            target_object_id=target_obj.pk,
         )
+        pub.full_clean()
+        pub.save()
+        messages.success(request, "Publication request submitted successfully.")
+    except Exception as e:
+        messages.error(request, f"Failed to submit publication request: {str(e)}")
+    
+    return redirect(request.META.get('HTTP_REFERER', '/'))
 
-    return redirect("plasmids:collection_detail", pk=pk)
+
+
+@login_required
+@require_http_methods(["GET"])
+def my_publication_requests(request):
+    """
+    List of publication requests made by the logged-in user.
+    """
+    pubs = Publication.objects.filter(requested_by=request.user).select_related('target_content_type').order_by('-created_at')
+    return render(request, 'publications/my_requests.html', {'publications': pubs})
+
+
+
+#-----------------
+# Admin Views
+#-----------------
+@user_passes_test(is_admin_user)
+@require_http_methods(["GET"])
+def admin_publication_requests(request):
+    """
+    Admin view to list all publication requests.
+    """
+    status = request.GET.get('status')
+    qs = Publication.objects.all().select_related('requested_by', 'reviewed_by', 'target_content_type').order_by('-created_at')
+    if status:
+        qs = qs.filter(status=status)
+    
+    qs = qs.order_by('-created_at')
+    return render(request, 'publications/admin_requests.html', {'publications': qs, "status":status})
+
+
+@user_passes_test(is_admin_user)
+@require_http_methods(["POST"])
+def admin_review_publication_request(request, publication_id:int):
+    """
+    Admin view to approve or reject a publication request.
+    Comments: required if rejecting.
+    """
+    action = (request.POST.get('action') or '').lower()
+    comment = request.POST.get('comment', '').strip()
+
+    if action not in ('approve', 'reject'):
+        messages.error(request, "Invalid action.")
+        return redirect("publications:admin_requests")
+    pub = get_object_or_404(Publication, pk=publication_id)
+
+    if pub.status != Publication.Status.PENDING:
+        messages.warning(request, "This publication request has already been reviewed.")
+        return redirect("publications:admin_requests")
+    
+    if action == "approve":
+        pub.approve(request.user)
+        target = pub.target
+        if hasattr(target, 'is_public'):
+            target.is_public = True
+            target.save()
+        messages.success(request, "Publication request approved.")
+    else:  # reject
+        if not comment:
+            messages.error(request, "Comment is required when rejecting a publication request.")
+            return redirect("publications:admin_requests")
+        pub.reject(request.user, comment)
+        messages.success(request, "Publication request rejected.")
+    
+    return redirect("publications:admin_requests")
