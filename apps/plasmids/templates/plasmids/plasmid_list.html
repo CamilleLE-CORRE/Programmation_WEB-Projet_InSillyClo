@@ -2,102 +2,57 @@
 {% block title %}Plasmids{% endblock %}
 
 {% block content %}
-<h1>Plasmid List</h1>
 
-<br>
-<a class="btn" href="{% url 'plasmids:search' %}">Search plasmids</a>
-<br><br>
+<div style="display:flex; justify-content:space-between; align-items:center;">
+    <h1>Plasmid List</h1>
+
+    <a class="btn" href="{% url 'plasmids:search' %}">
+        Search plasmids
+    </a>
+</div>
 
 {% if plasmids %}
     <p class="text-center">
         {{ plasmids|length }} plasmids available.
     </p>
 
-    <table class="table plasmid-table">
-        <thead>
-            <tr>
-                <th>Name</th>
-                <th>Length</th>
-                <th>Collection</th>
-            </tr>
-        </thead>
-        <tbody>
-            {% for plasmid in plasmids %}
-                <tr class="clickable-row" data-href="{% url 'plasmids:plasmid_detail' plasmid.identifier %}">
-                    <td>{{ plasmid.name }}</td>
-                    <td>{{ plasmid.length }} bp</td>
-                    <td>
-                        {{ plasmid.collection.name }}
-                        {% if plasmid.collection.is_public %}
-                            <span class="badge bg-success">Public</span>
-                        {% else %}
-                            <span class="badge bg-secondary">Private</span>
-                        {% endif %}
-                    </td>
+    <div class="card">
+        <table class="plasmid-table">
+            <thead>
+                <tr>
+                    <th>Name</th>
+                    <th>Length</th>
+                    <th>Collection</th>
                 </tr>
-            {% endfor %}
-        </tbody>
-    </table>
-
-    <style>
-    /* Tableau principal */
-    .plasmid-table {
-        width: 100%;
-        border-collapse: separate;
-        border-spacing: 0;
-        font-size: 15px;
-    }
-
-    /* En-têtes avec bandeau foncé */
-    .plasmid-table thead tr {
-        background-color: var(--primary);
-        color: #fff;
-        text-align: left;
-    }
-
-    .plasmid-table th, .plasmid-table td {
-        padding: 14px 12px;
-        border-bottom: 1px solid var(--border);
-    }
-
-    /* Lignes alternées */
-    .plasmid-table tbody tr:nth-child(odd) {
-        background-color: var(--card);
-    }
-
-    .plasmid-table tbody tr:nth-child(even) {
-        background-color: var(--primary-soft);
-    }
-
-    /* Curseur pointer */
-    .clickable-row {
-        cursor: pointer;
-        transition: background-color 0.2s;
-    }
-
-    /* Hover visible sur tous les td de la ligne */
-    .clickable-row:hover td {
-        background-color: var(--primary); /* bleu foncé ou couleur souhaitée */
-        color: #fff; /* texte blanc si nécessaire pour le contraste */
-    }
-
-    /* Badges restent visibles */
-    .clickable-row .badge {
-        transition: background-color 0.2s;
-    }
-    </style>
-
+            </thead>
+            <tbody>
+                {% for plasmid in plasmids %}
+                    <tr class="clickable-row"
+                        data-href="{% url 'plasmids:plasmid_detail' plasmid.id %}">
+                        <td>{{ plasmid.name }}</td>
+                        <td>{{ plasmid.length }} bp</td>
+                        <td>
+                            {{ plasmid.collection.name }}
+                            {% if plasmid.collection.is_public %}
+                                <span class="badge bg-success">Public</span>
+                            {% else %}
+                                <span class="badge bg-secondary">Private</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
 
     <script>
-        // Rendre chaque ligne cliquable
-        document.addEventListener("DOMContentLoaded", function() {
-            const rows = document.querySelectorAll(".clickable-row");
-            rows.forEach(row => {
-                row.addEventListener("click", () => {
-                    window.location = row.dataset.href;
-                });
+    document.addEventListener("DOMContentLoaded", function() {
+        document.querySelectorAll(".clickable-row").forEach(row => {
+            row.addEventListener("click", () => {
+                window.location = row.dataset.href;
             });
         });
+    });
     </script>
 
 {% else %}
