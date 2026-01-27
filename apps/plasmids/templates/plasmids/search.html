@@ -57,7 +57,7 @@
     <tbody>
         {% for plasmid in plasmids %}
         <tr class="clickable-row"
-            data-href="{% url 'plasmids:plasmid_detail' plasmid.identifier %}">
+            data-href="{% url 'plasmids:plasmid_detail' plasmid.id %}">
             <td>{{ plasmid.name }}</td>
             <td>{{ plasmid.length }} bp</td>
             <td>{{ plasmid.collection.name }}</td>

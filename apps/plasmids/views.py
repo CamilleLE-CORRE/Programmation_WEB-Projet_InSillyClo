@@ -16,11 +16,11 @@ def plasmid_list(request):
     })
 
 
-def plasmid_detail(request, identifier):
-    plasmid = get_object_or_404(Plasmid, identifier=identifier)
-    return render(request, "plasmids/plasmid_detail.html", {
-        "plasmid": plasmid
-    })
+# def plasmid_detail(request, id):
+#     plasmid = get_object_or_404(Plasmid, id=id)
+#     return render(request, "plasmids/plasmid_detail.html", {
+#         "plasmid": plasmid
+#     })
 
 
 class PlasmidSearchView(TemplateView):
@@ -148,8 +148,8 @@ def generate_external_link(feature):
     return ncbi_link or f"https://www.google.com/search?q={query}"
 
 
-def plasmid_detail(request, identifier):
-    plasmid = get_object_or_404(Plasmid, identifier=identifier)
+def plasmid_detail(request, id):
+    plasmid = get_object_or_404(Plasmid, id=id)
 
     # Parse features depuis genbank ou annotations
     if plasmid.genbank_data and plasmid.genbank_data.get("features"):
