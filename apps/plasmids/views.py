@@ -1,11 +1,9 @@
 from django.shortcuts import render, get_object_or_404
 from django.views.generic import TemplateView
 from .models import Plasmid
-from .forms import (
-    PlasmidSearchForm,
-    PLASMID_TYPE_CHOICES,
-    RESTRICTION_SITE_CHOICES
-)
+from .forms import PlasmidSearchForm
+import json
+
 
 def plasmid_list(request):
     if request.user.is_authenticated:
@@ -18,11 +16,11 @@ def plasmid_list(request):
     })
 
 
-def plasmid_detail(request, identifier):
-    plasmid = get_object_or_404(Plasmid, identifier=identifier)
-    return render(request, "plasmids/plasmid_detail.html", {
-        "plasmid": plasmid
-    })
+# def plasmid_detail(request, id):
+#     plasmid = get_object_or_404(Plasmid, id=id)
+#     return render(request, "plasmids/plasmid_detail.html", {
+#         "plasmid": plasmid
+#     })
 
 
 class PlasmidSearchView(TemplateView):
@@ -31,17 +29,47 @@ class PlasmidSearchView(TemplateView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
 
+        # -----------------------------
+        # Formulaire
+        # -----------------------------
         form = PlasmidSearchForm(self.request.GET or None)
         context["form"] = form
-        context["PLASMID_TYPE_CHOICES"] = PLASMID_TYPE_CHOICES
-        context["RESTRICTION_SITE_CHOICES"] = RESTRICTION_SITE_CHOICES
+
+        # -----------------------------
+        # Contraintes annotations
+        # -----------------------------
+        context["annotation_constraints"] = [
+            {"name": n, "mode": m}
+            for n, m in zip(
+                self.request.GET.getlist("annotation_name"),
+                self.request.GET.getlist("annotation_mode"),
+            )
+        ]
+
+        # -----------------------------
+        # Contraintes sites de restriction
+        # -----------------------------
+        context["restriction_constraints"] = [
+            {"name": n, "mode": m}
+            for n, m in zip(
+                self.request.GET.getlist("restriction_name"),
+                self.request.GET.getlist("restriction_mode"),
+            )
+        ]
+
+        context["annotation_constraints_json"] = json.dumps(
+            context["annotation_constraints"]
+        )
+        context["restriction_constraints_json"] = json.dumps(
+            context["restriction_constraints"]
+        )
 
         plasmids = None
 
         if self.request.GET and form.is_valid():
             plasmids = Plasmid.objects.all()
 
-            # Champs texte
+            # --- Champs texte ---
             sequence_pattern = form.cleaned_data.get("sequence_pattern")
             name = form.cleaned_data.get("name")
 
@@ -51,21 +79,41 @@ class PlasmidSearchView(TemplateView):
             if name:
                 plasmids = plasmids.filter(name__icontains=name)
 
-            # Types (tri-state)
-            for t, _ in PLASMID_TYPE_CHOICES:
-                choice = self.request.GET.get(f"type_{t}", "indifferent")
-                if choice == "yes":
-                    plasmids = plasmids.filter(type__icontains=t)
-                elif choice == "no":
-                    plasmids = plasmids.exclude(type__icontains=t)
+            # --- Contraintes annotations ---
+            for c in context["annotation_constraints"]:
+                ann_name = c["name"].strip()
+                mode = c["mode"]
 
-            # Sites de restriction (tri-state)
-            for s, _ in RESTRICTION_SITE_CHOICES:
-                choice = self.request.GET.get(f"site_{s}", "indifferent")
-                if choice == "yes":
-                    plasmids = plasmids.filter(sites__icontains=s)
-                elif choice == "no":
-                    plasmids = plasmids.exclude(sites__icontains=s)
+                if not ann_name:
+                    continue
+
+                if mode == "present":
+                    plasmids = plasmids.filter(
+                        annotations__label__icontains=ann_name
+                    )
+                elif mode == "absent":
+                    plasmids = plasmids.exclude(
+                        annotations__label__icontains=ann_name
+                    )
+
+            # --- Contraintes sites de restriction ---
+            for c in context["restriction_constraints"]:
+                site = c["name"].strip()
+                mode = c["mode"]
+
+                if not site:
+                    continue
+
+                if mode == "present":
+                    plasmids = plasmids.filter(
+                        sites__icontains=site
+                    )
+                elif mode == "absent":
+                    plasmids = plasmids.exclude(
+                        sites__icontains=site
+                    )
+
+            plasmids = plasmids.distinct()
 
         context["plasmids"] = plasmids
         return context
@@ -100,8 +148,8 @@ def generate_external_link(feature):
     return ncbi_link or f"https://www.google.com/search?q={query}"
 
 
-def plasmid_detail(request, identifier):
-    plasmid = get_object_or_404(Plasmid, identifier=identifier)
+def plasmid_detail(request, id):
+    plasmid = get_object_or_404(Plasmid, id=id)
 
     # Parse features depuis genbank ou annotations
     if plasmid.genbank_data and plasmid.genbank_data.get("features"):
@@ -156,13 +204,13 @@ def plasmid_detail(request, identifier):
         # -----------------------------
         f["external_link"] = generate_external_link(f)
 
-    # DÉTECTION DES CHEVAUCHEMENTS ET AJUSTEMENT DES NIVEAUX
+    # Chevauchement et niveaux
     features_above = [f for f in parsed["features"] if f.get("label_position") == "outside" and f.get("label_side") == "above"]
     features_below = [f for f in parsed["features"] if f.get("label_position") == "outside" and f.get("label_side") == "below"]
     
     def detect_overlaps_and_adjust(features_list):
         """Détecte les chevauchements et ajuste les niveaux (jusqu'à 3 niveaux)"""
-        # Trier par position pour un traitement séquentiel
+        # Trier par position
         features_sorted = sorted(features_list, key=lambda f: f["visual_center"])
         
         for current_feature in features_sorted:
@@ -186,7 +234,7 @@ def plasmid_detail(request, identifier):
                     other_left = other_feature["visual_center"] - other_feature["label_text_width"] / 2
                     other_right = other_feature["visual_center"] + other_feature["label_text_width"] / 2
                     
-                    # Vérifier le chevauchement (avec une petite marge de 5px)
+                    # Vérifier le chevauchement (avec une marge de 5px)
                     if not (current_right + 5 < other_left or other_right + 5 < current_left):
                         has_overlap = True
                         break
