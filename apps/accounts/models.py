@@ -1,29 +1,30 @@
-"""
-Accounts app models.
-Define database models for user accounts, including user profiles and account settings:
--id (Primary Key)
-- email (Unique)
--firstname
--lastname
--passeword
--date of birth
--role (administratrice, user)
-"""
-
 from django.contrib.auth.models import AbstractUser
 from django.contrib.auth.base_user import BaseUserManager
 from django.db import models
-from django.utils import timezone
 
 
 class UserManager(BaseUserManager):
     use_in_migrations = True
+
+    def _generate_unique_username(self, email: str) -> str:
+        base = (email.split("@")[0] or "user").lower()
+        candidate = base
+        i = 1
+        while self.model.objects.filter(username=candidate).exists():
+            i += 1
+            candidate = f"{base}{i}"
+        return candidate
 
     def _create_user(self, email, password, **extra_fields):
         if not email:
             raise ValueError("Email is required")
 
         email = self.normalize_email(email)
+
+        # si username pas fourni, on le génère (AbstractUser le garde UNIQUE)
+        if not extra_fields.get("username"):
+            extra_fields["username"] = self._generate_unique_username(email)
+
         user = self.model(email=email, **extra_fields)
         user.set_password(password)
         user.save(using=self._db)
@@ -51,9 +52,9 @@ class User(AbstractUser):
         ("administratrice", "Administratrice"),
         ("cheffe", "Cheffe"),
         ("user", "User"),
-        #   ("guest", "Guest"),
     ]
 
+    # on garde username car AbstractUser l'a, mais on ne s'en sert pas pour login
     email = models.EmailField(unique=True)
 
     date_of_birth = models.DateField(null=True, blank=True)
@@ -65,15 +66,8 @@ class User(AbstractUser):
         verbose_name="Role",
     )
 
-    #teams = models.ManyToManyField(
-     #   "teams.Team",
-     #   related_name="members",
-     #   blank=True,
-    #)
-
-
     USERNAME_FIELD = "email"
-    REQUIRED_FIELDS = ["username"] 
+    REQUIRED_FIELDS = []  # <-- important
 
     objects = UserManager()
 
@@ -84,5 +78,3 @@ class User(AbstractUser):
 
     def __str__(self):
         return f"{self.email} ({self.role})"
-
-
