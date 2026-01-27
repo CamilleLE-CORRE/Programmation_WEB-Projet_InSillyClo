@@ -6,11 +6,11 @@ from django.contrib.contenttypes.models import ContentType
 from django.core.exceptions import ValidationError
 
 
-class PublicationRequest(models.Model):
-    # cible (collection de plasmides OU table de correspondance)
-    content_type = models.ForeignKey(ContentType, on_delete=models.CASCADE)
-    object_id = models.PositiveIntegerField()
-    target = GenericForeignKey("content_type", "object_id")
+class Publication(models.Model):
+    class Status(models.TextChoices):
+        PENDING = 'PENDING', 'Pending'
+        APPROVED = 'APPROVED', 'Approved'
+        REJECTED = 'REJECTED', 'Rejected'
 
     requested_by = models.ForeignKey(
         'accounts.User',

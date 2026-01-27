@@ -1,7 +1,6 @@
 from django import forms
 from django.contrib.auth.forms import UserCreationForm, AuthenticationForm
 from django.contrib.auth import get_user_model
-from django.contrib.auth.models import Group 
 
 User = get_user_model()
 
@@ -34,22 +33,14 @@ class SignUpForm(UserCreationForm):
     def save(self, commit=True):
         user = super().save(commit=False)
 
-        # FIX: username unique requis -> le remplir
-        if hasattr(user, "username") and not user.username:
-            user.username = user.email
-
+        # rôle administratrice -> staff
         if user.role == "administratrice":
             user.is_staff = True
+            # user.is_superuser = True
 
         if commit:
             user.save()
-            if user.role == "administratrice":
-                group, _ = Group.objects.get_or_create(name="Administratrices")
-                user.groups.add(group)
-
         return user
-
-
 
 
 class EmailAuthenticationForm(AuthenticationForm):
@@ -64,8 +55,4 @@ class ProfileForm(forms.ModelForm):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.fields["email"].disabled = True
-
-
-
-
 

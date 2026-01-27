@@ -27,6 +27,7 @@
             <tr>
                 <th style="width:40px;"></th>
                 <th>Name</th>
+                <th>CSV</th>
                 <th>XLSX</th>
                 <th>Visibility</th>
                 <th>Type</th>
@@ -44,6 +45,13 @@
                     <td></td>
 
                     <td class="template-name">{{ template.name }}</td>
+
+                    <td>
+                        <a class="download-link"
+                           href="{% url 'campaigns:download_public_template' template.id %}?format=csv">
+                            CSV
+                        </a>
+                    </td>
 
                     <td>
                         <a class="download-link"
@@ -77,6 +85,13 @@
                     </td>
 
                     <td class="template-name">{{ template.name }}</td>
+
+                    <td>
+                        <a class="download-link"
+                           href="{% url 'campaigns:download_template' template.id %}?format=csv">
+                            CSV
+                        </a>
+                    </td>
 
                     <td>
                         <a class="download-link"
