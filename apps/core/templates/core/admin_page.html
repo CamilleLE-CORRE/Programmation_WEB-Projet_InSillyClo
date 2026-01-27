@@ -6,12 +6,10 @@
 <h1>Administration</h1>
 
 {% if user.is_authenticated %}
-  {% if user.is_superuser %}
     <h2>Accès</h2>
     <ul>
       <li><a href="{% url 'admin:index' %}">Admin Django</a></li>
     </ul>
-  {% endif %}
 
   {% if user.is_staff or user.is_superuser %}
     <h2>Gestion</h2>
