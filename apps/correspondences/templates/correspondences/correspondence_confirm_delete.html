@@ -1,0 +1,16 @@
+{% extends "core/base.html" %}
+
+{% block content %}
+<h1>Delete correspondence</h1>
+
+<p>
+  Are you sure you want to delete <strong>{{ correspondence.name }}</strong>?
+  This will also delete all its entries.
+</p>
+
+<form method="post">
+  {% csrf_token %}
+  <button type="submit">Yes, delete</button>
+  <a href="{% url 'correspondences:detail' correspondence.id %}">Cancel</a>
+</form>
+{% endblock %}

@@ -14,6 +14,21 @@
 
 
   <a href="{% url 'correspondences:upload' correspondence.id %}"> 📤Upload / Replace entries</a>
+  <a href="{% url 'correspondences:delete' correspondence.id %}">🗑️Delete</a>
+  <form method="post"
+      action="{% url 'publications:request_publication' 'correspondence' correspondence.id %}">
+  {% csrf_token %}
+  <button type="submit">Publicate</button>
+  {% if messages %}
+  <ul class="messages">
+    {% for message in messages %}
+      <li class="{{ message.tags }}">{{ message }}</li>
+    {% endfor %}
+  </ul>
+{% endif %}
+
+</form>
+
 
 </p>
 
