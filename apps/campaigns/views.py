@@ -1,5 +1,6 @@
 import csv
 import io
+from django.utils import timezone
 from django.shortcuts import render, get_object_or_404, redirect
 from django.http import HttpResponse
 from django.contrib.auth.decorators import login_required
@@ -145,59 +146,34 @@ def download_public_template(request, template_id):
     template = get_object_or_404(CampaignTemplate, id=template_id, is_public=True)
 
     fmt = (request.GET.get('format') or '').lower()
-    if fmt == 'csv':
-        # force CSV generation
-        response = HttpResponse(content_type='text/csv')
-        response['Content-Disposition'] = f'attachment; filename="template_{template.name}.csv"'
-        writer = csv.writer(response)
-        # reuse CSV generation from below
-        if template.template_type == 'simple':
-            rows = []
-            rows.append(["Assembly settings"])                                           # A1
-            rows.append(["Restriction enzyme", template.restriction_enzyme or ""])     # A2, B2
-            rows.append(["Name", template.name or ""])                                 # A3, B3
-            rows.append(["Output separator", template.separator or ""])               # A4, B4
-            rows.extend([[] for _ in range(4)])
-            header = ["Assembly composition", "Part name ->"] + [f"input Plasmid {i}" for i in range(1, 9)]
-            rows.append(header)
-            row10 = ["", "Part types ->"] + ["" for _ in range(8)]
-            rows.append(row10)
-            row11 = ["", "Is optional part ->"] + ["True" for _ in range(8)]
-            rows.append(row11)
-            row12 = ["", "Part name should be in output name ->"] + ["True" for _ in range(8)]
-            rows.append(row12)
-            row13 = ["", "Part separator ->"] + ["" for _ in range(8)]
-            rows.append(row13)
-            row14 = ["Output plasmid id ↓", "OutputType (optional) ↓"] + ["↓" for _ in range(8)]
-            rows.append(row14)
-            for r in rows:
-                writer.writerow(r)
-        else:
-            rows = []
-            rows.append(["Assembly settings"])                                           # A1
-            rows.append(["Restriction enzyme", template.restriction_enzyme or ""])     # A2, B2
-            rows.append(["Name", template.name or ""])                                 # A3, B3
-            rows.append(["Output separator", template.separator or ""])               # A4, B4
-            rows.extend([[] for _ in range(4)])
-            header = ["Assembly composition", "Part name ->"] + [
-                "ConL", "Promoter", "Gene", "Terminator", "ConR", "Backbone", "", ""
-            ]
-            rows.append(header)
-            row10 = ["", "Part types ->"] + [
-                "1", "2,[2a, 2b]", "3,[3a, 3b]", "4,[4a, 4b]", "5", "678,[6, 7, 8]", "", ""
-            ]
-            rows.append(row10)
-            row11 = ["", "Is optional part ->"] + ["True", "False", "False", "False", "True", "False", "", ""]
-            rows.append(row11)
-            row12 = ["", "Part name should be in output name ->"] + ["False", "True", "True", "True", "False", "False", "", ""]
-            rows.append(row12)
-            row13 = ["", "Part separator ->"] + ["" for _ in range(8)]
-            rows.append(row13)
-            row14 = ["Output plasmid id ↓", "OutputType (optional) ↓"] + ["↓" for _ in range(8)]
-            rows.append(row14)
-            for r in rows:
-                writer.writerow(r)
-        return response
+
+    rows = []
+    rows.append(["Assembly settings"])                                           # A1
+    rows.append(["Restriction enzyme", template.restriction_enzyme or ""])     # A2, B2
+    rows.append(["Name", template.name or ""])                                 # A3, B3
+    rows.append(["Output separator", template.separator or ""])               # A4, B4
+    rows.extend([[] for _ in range(4)])
+    header = ["Assembly composition", "Part name ->"] + [
+        "ConL", "Promoter", "Gene", "Terminator", "ConR", "Backbone", "", ""
+    ]
+    rows.append(header)
+    row10 = ["", "Part types ->"] + [
+        "1", "2,[2a, 2b]", "3,[3a, 3b]", "4,[4a, 4b]", "5", "678,[6, 7, 8]", "", ""
+    ]
+    rows.append(row10)
+    row11 = ["", "Is optional part ->"] + ["True", "False", "False", "False", "True", "False", "", ""]
+    rows.append(row11)
+    row12 = ["", "Part name should be in output name ->"] + ["False", "True", "True", "True", "False", "False", "", ""]
+    rows.append(row12)
+    row13 = ["", "Part separator ->"] + ["" for _ in range(8)]
+    rows.append(row13)
+    row14 = ["Output plasmid id ↓", "OutputType (optional) ↓"] + ["↓" for _ in range(8)]
+    rows.append(row14)
+    
+    for r in rows:
+        writer.writerow(r)
+
+    return response
 
     # Prefer building an XLSX with formatting when available
     xlsx_resp = build_excel_response(template, f"template_{template.name}")
@@ -498,3 +474,46 @@ def delete_template(request, template_id):
         messages.success(request, f"The template '{template_name}' has been deleted with sucess.")
     
     return redirect('campaigns:template_list')
+
+@login_required
+def edit_template(request, template_id):
+    template = get_object_or_404(
+        CampaignTemplate,
+        id=template_id,
+        owner=request.user
+    )
+
+    if request.method == 'POST':
+        form = CampaignTemplateForm(request.POST, instance=template)
+        if form.is_valid():
+            form.save()
+            messages.success(request, f'Template "{template.name}" updated.')
+            return redirect('campaigns:template_list')
+        else:
+            messages.error(request, 'Correct the errors below.')
+    else:
+        form = CampaignTemplateForm(instance=template)
+
+    return render(request, 'campaigns/edit_template.html', {
+        'form': form,
+        'template': template,
+    })
+
+@login_required
+def replace_template_xlsx(request, template_id):
+    template = get_object_or_404(
+        CampaignTemplate,
+        id=template_id,
+        owner=request.user
+    )
+
+    if request.method == 'POST' and request.FILES.get('xlsx'):
+        # TODO: parser le fichier si besoin
+        template.updated_at = timezone.now()
+        template.save()
+        messages.success(request, 'Template replaced using new XLSX file.')
+        return redirect('campaigns:template_list')
+
+    return render(request, 'campaigns/replace_template_xlsx.html', {
+        'template': template,
+    })

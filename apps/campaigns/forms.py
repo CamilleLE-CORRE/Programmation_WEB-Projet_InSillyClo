@@ -3,7 +3,6 @@ from .models import CampaignTemplate
 
 
 class CampaignTemplateForm(forms.ModelForm):
-    # explicit ChoiceField to avoid an empty "-----" choice
     template_type = forms.ChoiceField(
         choices=CampaignTemplate.TYPE_CHOICES,
         widget=forms.RadioSelect(attrs={'class': 'template-type'}),
@@ -12,12 +11,9 @@ class CampaignTemplateForm(forms.ModelForm):
     )
 
     DOWNLOAD_CHOICES = [
-        ('xlsx', 'Excel (.xlsx)'),
-        ('csv', 'CSV (.csv)'),
+        ('xlsx', 'Excel (.xlsx)')
     ]
 
-    # We no longer render a download-choice in the create form; make it optional
-    # and keep a hidden default value so POSTs without it still validate.
     download_format = forms.ChoiceField(
         choices=DOWNLOAD_CHOICES,
         widget=forms.HiddenInput,
@@ -43,7 +39,6 @@ class CampaignTemplateForm(forms.ModelForm):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        # Determine current template_type from bound data or initial/instance
         data = kwargs.get('data')
         template_type = None
         if data:
@@ -51,7 +46,6 @@ class CampaignTemplateForm(forms.ModelForm):
         else:
             template_type = self.initial.get('template_type') or (getattr(self.instance, 'template_type', None) if getattr(self, 'instance', None) else None)
 
-        # Separator should be present for all templates
         self.fields['separator'].required = True
 
     def clean_template_type(self):
@@ -72,7 +66,6 @@ class CampaignTemplateForm(forms.ModelForm):
         name = self.cleaned_data.get('name')
         if name:
             qs = CampaignTemplate.objects.filter(name__iexact=name)
-            # If editing, exclude the current instance
             if getattr(self.instance, 'pk', None):
                 qs = qs.exclude(pk=self.instance.pk)
             if qs.exists():
