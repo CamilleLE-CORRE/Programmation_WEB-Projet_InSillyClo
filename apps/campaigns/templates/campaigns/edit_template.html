@@ -1,11 +1,10 @@
 {% extends "core/base.html" %}
-{% block title %}Create Template{% endblock %}
+{% block title %}Edit Template{% endblock %}
 
 {% block content %}
 
 <div style="display:flex; justify-content:space-between; align-items:center;">
-    <h1>Create template</h1>
-
+    <h1>Edit template</h1>
     <a class="btn" href="{% url 'campaigns:template_list' %}">
         Back to template list
     </a>
@@ -24,7 +23,7 @@
     {{ form.non_field_errors }}
 
     <!-- ================= TEMPLATE NAME ================= -->
-    <div class="card">
+    <div class="card" style="padding:16px; margin-bottom:12px;">
         <div class="form-row">
             <div class="label-strong">
                 <strong>{{ form.name.label }}</strong><br><br>
@@ -35,44 +34,20 @@
     </div>
 
     <!-- ================= TEMPLATE TYPE ================= -->
-    <div class="card">
+    <div class="card" style="padding:16px; margin-bottom:12px;">
         <div class="form-row">
-
-            <!-- Label -->
             <div class="label-strong">
                 <strong>{{ form.template_type.label }}</strong><br><br>
             </div>
 
             <div class="radio-group">
-
-              {% for radio in form.template_type %}
-                  <label class="radio-item">
-                      {{ radio.tag }}
-                      <span>{{ radio.choice_label }}</span>
-                  </label>
-              {% endfor %}
-
-          </div>
-
-          <style>
-          .radio-group {
-              display: flex;
-              flex-direction: column;
-              align-items: flex-start;
-              width: 100%;
-          }
-
-          .radio-item {
-              display: flex;
-              align-items: center;
-              gap: 8px;
-              margin-bottom: 6px;
-          }
-
-          .radio-item span {
-              font-weight: 600;
-          }
-          </style>
+                {% for radio in form.template_type %}
+                    <label class="radio-item">
+                        {{ radio.tag }}
+                        <span>{{ radio.choice_label }}</span>
+                    </label>
+                {% endfor %}
+            </div>
 
             <button type="button"
                     id="type-info"
@@ -90,8 +65,7 @@
         </div>
     </div>
 
-    <!-- ================= RESTRICTION ENZYME ================= -->
-    <div class="card">
+    <div class="card" style="padding:16px; margin-bottom:12px;">
         <div class="form-row">
             <div class="label-strong">
                 <strong>{{ form.restriction_enzyme.label }}</strong><br><br>
@@ -99,10 +73,7 @@
             {{ form.restriction_enzyme }}
             {{ form.restriction_enzyme.errors }}
         </div>
-    </div>
 
-    <!-- ================= SEPARATOR ================= -->
-    <div class="card">
         <div class="form-row" id="separator-field">
             <div class="label-strong">
                 <strong>{{ form.separator.label }}</strong><br><br>
@@ -112,17 +83,59 @@
         </div>
     </div>
 
-    <div class="form-actions">
-        <button type="submit" class="btn">Create</button>
+    <div class="form-actions" style="margin-top:12px;">
+        <button type="submit" class="btn">Save changes</button>
     </div>
 </form>
 
+<hr>
+
+<!-- ================= XLSX REPLACEMENT ================= -->
+<div class="card" style="padding:16px; margin-bottom:12px;">
+    <h3>Replace template using XLSX</h3>
+    <p class="text-muted">
+        Uploading a new XLSX file will overwrite the current template structure.
+    </p>
+
+    <form method="post"
+          action="{% url 'campaigns:replace_template_xlsx' template.id %}"
+          enctype="multipart/form-data">
+        {% csrf_token %}
+        <input type="file" name="xlsx" accept=".xlsx" required>
+        <br><br>
+        <button type="submit" class="btn btn-secondary">Upload XLSX</button>
+    </form>
+</div>
+
+<style>
+.radio-group {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    width: 100%;
+}
+
+.radio-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 6px;
+}
+
+.radio-item span {
+    font-weight: 600;
+}
+</style>
+
 <script>
 document.addEventListener('DOMContentLoaded', function () {
-    document.getElementById('type-info').addEventListener('click', function () {
-        const t = document.getElementById('type-info-text');
-        t.style.display = (t.style.display === 'none') ? 'block' : 'none';
-    });
+    const infoBtn = document.getElementById('type-info');
+    if (infoBtn) {
+        infoBtn.addEventListener('click', function () {
+            const t = document.getElementById('type-info-text');
+            t.style.display = (t.style.display === 'none') ? 'block' : 'none';
+        });
+    }
 });
 </script>
 
