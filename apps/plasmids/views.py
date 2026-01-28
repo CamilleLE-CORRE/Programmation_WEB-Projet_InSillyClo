@@ -151,6 +151,13 @@ def generate_external_link(feature):
 def plasmid_detail(request, id):
     plasmid = get_object_or_404(Plasmid, id=id)
 
+    # Récupérer la séquence
+    sequence = plasmid.sequence
+
+    # Diviser la séquence en lignes de 50 caractères (pour l'affichage)
+    sequence_lines = [plasmid.sequence[i:i+100] for i in range(0, len(plasmid.sequence), 100)]
+    formatted_sequence = "\n".join(sequence_lines)
+
     # Parse features depuis genbank ou annotations
     if plasmid.genbank_data and plasmid.genbank_data.get("features"):
         parsed = parse_genbank(plasmid.genbank_data)
@@ -251,6 +258,7 @@ def plasmid_detail(request, id):
         "plasmid": plasmid,
         "parsed": parsed,
         "visual_width": VISUAL_WIDTH,
+        "sequence": formatted_sequence,
     }
 
     return render(request, "plasmids/plasmid_detail.html", context)
