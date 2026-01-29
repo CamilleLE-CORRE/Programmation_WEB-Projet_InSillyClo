@@ -51,19 +51,19 @@ def parse_correspondence_xlsx(uploaded_file) -> tuple[list[tuple[str, str, str]]
     seen = set()
 
     wb = load_workbook(uploaded_file, read_only=True, data_only=True)
-    ws = wb.active  # 默认取第一个 sheet
+    ws = wb.active  # Defautly chooce first sheet
 
     for lineno, row in enumerate(ws.iter_rows(values_only=True), start=1):
-        # 跳过空行
+        # skipt empty row
         if not row or all(cell is None or str(cell).strip() == "" for cell in row):
             continue
 
-        # 取前三列：identifier, display_name, type
+        # 3 first colomns：identifier, display_name, type
         identifier = str(row[0]).strip() if len(row) > 0 and row[0] is not None else ""
         display_name = str(row[1]).strip() if len(row) > 1 and row[1] is not None else ""
         entry_type = str(row[2]).strip() if len(row) > 2 and row[2] is not None else ""
 
-        # 跳过可能的表头
+        # skipt header
         if lineno == 1 and identifier.lower() in {"identifier", "id"} and display_name.lower() in {"display_name", "name"}:
             continue
 
@@ -71,7 +71,7 @@ def parse_correspondence_xlsx(uploaded_file) -> tuple[list[tuple[str, str, str]]
             errors.append(f"Line {lineno}: identifier and display_name are required.")
             continue
 
-        # 文件内重复 identifier（你当前规则）
+        # Duplicated identifier
         if identifier in seen:
             errors.append(f"Line {lineno}: duplicate identifier '{identifier}' in file.")
             continue

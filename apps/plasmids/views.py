@@ -1,7 +1,15 @@
-from django.shortcuts import render, get_object_or_404
-from django.views.generic import TemplateView
-from .models import Plasmid, PlasmidCollection
-from .forms import PlasmidSearchForm, PLASMID_TYPE_CHOICES, RESTRICTION_SITE_CHOICES
+from django.contrib import messages
+from django.shortcuts import redirect, render, get_object_or_404
+from django.views.generic import TemplateView, ListView, DetailView, CreateView, UpdateView, DeleteView
+from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
+from django.db.models import Q
+from django.urls import reverse, reverse_lazy
+
+from .forms import PlasmidSearchForm, PLASMID_TYPE_CHOICES, RESTRICTION_SITE_CHOICES,AddPlasmidsToCollectionForm
+from .models import PlasmidCollection, Plasmid
+
+
+
 
 # class PlasmidList(TemplateView):
 #     template_name = "plasmids/plasmid_list.html"
@@ -99,3 +107,120 @@ class PlasmidSearchResultsView(TemplateView):
         context['PLASMID_TYPE_CHOICES'] = PLASMID_TYPE_CHOICES
         context['RESTRICTION_SITE_CHOICES'] = RESTRICTION_SITE_CHOICES
         return context
+    
+
+# =================================================================================
+# Plasmid Collections Views
+
+class VisibleCollectionQuerysetMixin:
+    """Collections visible to current user (public + owned)."""
+    def get_queryset(self):
+        qs = PlasmidCollection.objects.all()
+        user = self.request.user
+        if user.is_authenticated:
+            return qs.filter(Q(is_public=True) | Q(owner=user)).distinct()
+        return qs.filter(is_public=True)
+
+# List Views  
+class CollectionListView(VisibleCollectionQuerysetMixin, ListView):
+    model = PlasmidCollection
+    template_name = "collections/collection_list.html"
+    context_object_name = "collections"
+    paginate_by = 20
+
+    def get_context_data(self, **kwargs):
+        ctx = super().get_context_data(**kwargs)
+        user = self.request.user
+        ctx["show_create"] = user.is_authenticated
+        return ctx
+
+
+class MyCollectionListView(LoginRequiredMixin, ListView):
+    model = PlasmidCollection
+    template_name = "collections/collection_list_mine.html"
+    context_object_name = "collections"
+
+    def get_queryset(self):
+        return PlasmidCollection.objects.filter(owner=self.request.user).order_by("id")
+
+    
+# Detail View
+class CollectionDetailView(VisibleCollectionQuerysetMixin, DetailView):
+    model = PlasmidCollection
+    template_name = "collections/collection_detail.html"
+    context_object_name = "collection"
+
+# Edit/Create/Delete Views
+class OwnerRequiredMixin(UserPassesTestMixin):
+    def test_func(self):
+        obj = self.get_object()
+        return self.request.user.is_authenticated and obj.owner_id == self.request.user.id
+
+
+class CollectionCreateView(LoginRequiredMixin, CreateView):
+    model = PlasmidCollection
+    template_name = "collections/collection_form.html"
+    fields = ["name", "is_public", "team"]  # team 可选：如果你允许用户选 team
+
+    def form_valid(self, form):
+        form.instance.owner = self.request.user
+
+        return super().form_valid(form)
+
+
+class CollectionUpdateView(LoginRequiredMixin, OwnerRequiredMixin, UpdateView):
+    model = PlasmidCollection
+    template_name = "collections/collection_form.html"
+    fields = ["name", "is_public", "team"]
+
+
+class CollectionDeleteView(LoginRequiredMixin, OwnerRequiredMixin, DeleteView):
+    model = PlasmidCollection
+    template_name = "collections/collection_confirm_delete.html"
+    success_url = reverse_lazy("plasmids:collection_list")
+
+
+class CollectionAddPlasmidsView(LoginRequiredMixin, UserPassesTestMixin, DetailView):
+    """
+    GET: show collection detail + add form
+    POST: move selected plasmids into this collection
+    """
+    model = PlasmidCollection
+    template_name = "collections/collection_detail.html"
+    context_object_name = "collection"
+
+    def test_func(self):
+        collection = self.get_object()
+        return collection.owner_id == self.request.user.id
+
+    def get_context_data(self, **kwargs):
+        ctx = super().get_context_data(**kwargs)
+
+        collection = self.object
+        # Plasmides already in this collection
+        ctx["plasmids"] = collection.plasmids.all().order_by("identifier")
+
+        # Plasmides not in this collection (to add)
+        selectable = Plasmid.objects.exclude(collection=collection).order_by("identifier")
+
+        ctx["add_form"] = AddPlasmidsToCollectionForm(queryset=selectable)
+        ctx["can_edit"] = True
+        return ctx
+
+    def post(self, request, *args, **kwargs):
+        self.object = self.get_object()
+        collection = self.object
+
+        selectable = Plasmid.objects.exclude(collection=collection).order_by("identifier")
+        form = AddPlasmidsToCollectionForm(request.POST, queryset=selectable)
+
+        if form.is_valid():
+            selected = form.cleaned_data["plasmids"]
+            count = selected.update(collection=collection)  # Bulk update
+            messages.success(request, f"{count} plasmid(s) added to this collection.")
+            return redirect(reverse("plasmids:collection_detail", args=[collection.pk]))
+
+    
+        ctx = self.get_context_data()
+        ctx["add_form"] = form
+        return self.render_to_response(ctx)

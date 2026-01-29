@@ -1,0 +1,110 @@
+{% extends "core/base.html" %}
+{% load static %}
+
+{% block title %}Collection: {{ collection.name }}{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/plasmids.css' %}">
+{% endblock %}
+
+{% block content %}
+<h1>{{ collection.name }}</h1>
+
+<p>
+  Visibility:
+  {% if collection.is_public %}
+    <span class="badge bg-success">Public</span>
+  {% else %}
+    <span class="badge bg-secondary">Private</span>
+  {% endif %}
+</p>
+
+  <form method="post"
+      action="{% url 'publications:request_publication' 'collection' collection.id %}">
+  {% csrf_token %}
+  <button type="submit">Publicate</button>
+  {% if messages %}
+  <ul class="messages">
+    {% for message in messages %}
+      <li class="{{ message.tags }}">{{ message }}</li>
+    {% endfor %}
+  </ul>
+{% endif %}
+</form>
+
+
+<p>
+    Owner / Team:
+    {% if collection.team %}
+        Team: {{ collection.team.name }}
+    {% elif collection.owner %}
+        {{ collection.owner }}
+    {% else %}
+        -
+    {% endif %}
+</p>
+
+<br>
+
+{# Actions: only owner can edit/delete #}
+{% if request.user.is_authenticated and collection.owner_id == request.user.id %}
+    <a class="btn" href="{% url 'plasmids:collection_edit' collection.id %}">Edit</a>
+    <a class="btn btn-secondary" href="{% url 'plasmids:collection_delete' collection.id %}">Delete</a>
+{% endif %}
+<a class="btn btn-secondary" href="{% url 'plasmids:collection_list' %}">Back to collections</a>
+
+<hr>
+
+<h2>Plasmids in this collection</h2>
+<br>
+
+{# Prefer 'plasmids' provided by view, fallback to reverse relation if exists #}
+{% if plasmids is not None %}
+    {% with plasmids as plasmid_list %}
+        {% include "collections/_collection_plasmid_table.html" with plasmids=plasmid_list %}
+    {% endwith %}
+{% else %}
+    {# Fallback if your Plasmid has FK: collection and related_name is default 'plasmid_set' or 'plasmids' #}
+    {% if collection.plasmids.all %}
+        {% include "collections/_collection_plasmid_table.html" with plasmids=collection.plasmids.all %}
+    {% elif collection.plasmid_set.all %}
+        {% include "collections/_collection_plasmid_table.html" with plasmids=collection.plasmid_set.all %}
+    {% else %}
+        <p class="text-center text-muted">No plasmids found for this collection.</p>
+    {% endif %}
+{% endif %}
+
+<script>
+document.addEventListener("DOMContentLoaded", function() {
+    const rows = document.querySelectorAll(".clickable-row");
+    rows.forEach(row => {
+        row.addEventListener("click", () => {
+            window.location = row.dataset.href;
+        });
+    });
+});
+</script>
+
+<hr>
+<h2>Add plasmids to this collection</h2>
+<br>
+
+{% if request.user.is_authenticated and collection.owner_id == request.user.id %}
+    <form method="post" action="{% url 'plasmids:collection_add_plasmids' collection.id %}">
+        {% csrf_token %}
+
+        <table class="form-table">
+            {{ add_form.as_table }}
+        </table>
+
+        <br>
+        <button type="submit" class="btn">Add / Move selected plasmids</button>
+    </form>
+{% else %}
+    <p class="text-center text-muted">
+        You do not have permission to modify this collection.
+    </p>
+{% endif %}
+
+
+{% endblock %}

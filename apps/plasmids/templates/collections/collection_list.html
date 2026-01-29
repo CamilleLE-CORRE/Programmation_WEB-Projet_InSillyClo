@@ -1,0 +1,75 @@
+{% extends "core/base.html" %}
+{% load static %}
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/plasmids.css' %}">
+{% endblock %}
+
+{% block title %}Plasmid Collections{% endblock %}
+
+{% block content %}
+<h1>Plasmid Collection List</h1>
+
+<br>
+{% if request.user.is_authenticated %}
+    <a class="btn" href="{% url 'plasmids:collection_create' %}">Create collection</a>
+{% endif %}
+<br><br>
+
+{% if collections %}
+    <p class="text-center">
+        {{ collections|length }} collections available.
+    </p>
+
+    <table class="table collection-table">
+        <thead>
+            <tr>
+                <th>Name</th>
+                <th>Owner / Team</th>
+                <th>Visibility</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for collection in collections %}
+            
+                <tr class="clickable-row" data-href="{% url 'plasmids:collection_detail' collection.id %}">
+                    <td>{{ collection.name }}</td>
+                    <td>
+                        {% if collection.team %}
+                            Team: {{ collection.team.name }}
+                        {% elif collection.owner %}
+                            {{ collection.owner }}
+                        {% else %}
+                            -
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% if collection.is_public %}
+                            <span class="badge bg-success">Public</span>
+                        {% else %}
+                            <span class="badge bg-secondary">Private</span>
+                        {% endif %}
+                    </td>
+                </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+
+    <script>
+        document.addEventListener("DOMContentLoaded", function() {
+            const rows = document.querySelectorAll(".clickable-row");
+            rows.forEach(row => {
+                row.addEventListener("click", () => {
+                    window.location = row.dataset.href;
+                });
+            });
+        });
+    </script>
+
+{% else %}
+    <p class="text-center text-muted">
+        Aucune collection trouvée
+    </p>
+{% endif %}
+
+{% endblock %}

@@ -1,6 +1,8 @@
 # forms.py
 from django import forms
 
+from apps.plasmids.models import Plasmid
+
 PLASMID_TYPE_CHOICES = [
     ('conl', 'ConL'),
     ('promoter', 'Promoter'),
@@ -71,3 +73,18 @@ class PlasmidSearchForm(forms.Form):
     #         required=False,
     #         widget=forms.Select(attrs={'class': 'form-select'})
     #     )
+
+
+# Form to add plasmids to a collection
+class AddPlasmidsToCollectionForm(forms.Form):
+    plasmids = forms.ModelMultipleChoiceField(
+        queryset=Plasmid.objects.none(),
+        widget=forms.CheckboxSelectMultiple,
+        required=True,
+        label="Select plasmids to add"
+    )
+
+    def __init__(self, *args, **kwargs):
+        queryset = kwargs.pop("queryset", Plasmid.objects.none())
+        super().__init__(*args, **kwargs)
+        self.fields["plasmids"].queryset = queryset
