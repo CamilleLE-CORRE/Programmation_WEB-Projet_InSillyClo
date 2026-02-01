@@ -1,12 +1,18 @@
 from django.contrib import messages
+from django import forms
+from django.forms import ValidationError
 from django.shortcuts import redirect, render, get_object_or_404
 from django.views.generic import TemplateView, ListView, DetailView, CreateView, UpdateView, DeleteView
 from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
 from django.db.models import Q
 from django.urls import reverse, reverse_lazy
+from django.views import View
 
-from .forms import PlasmidSearchForm, PLASMID_TYPE_CHOICES, RESTRICTION_SITE_CHOICES,AddPlasmidsToCollectionForm
+from apps.correspondences import forms
+
+from .forms import PlasmidSearchForm, PLASMID_TYPE_CHOICES, RESTRICTION_SITE_CHOICES,AddPlasmidsToCollectionForm, ImportPlasmidsForm
 from .models import PlasmidCollection, Plasmid
+from .service import import_plasmids_from_upload, get_or_create_target_collection
 
 
 
@@ -160,7 +166,7 @@ class OwnerRequiredMixin(UserPassesTestMixin):
 class CollectionCreateView(LoginRequiredMixin, CreateView):
     model = PlasmidCollection
     template_name = "collections/collection_form.html"
-    fields = ["name", "is_public", "team"]  # team 可选：如果你允许用户选 team
+    fields = ["name", "is_public", "team"]  
 
     def form_valid(self, form):
         form.instance.owner = self.request.user
@@ -224,3 +230,49 @@ class CollectionAddPlasmidsView(LoginRequiredMixin, UserPassesTestMixin, DetailV
         ctx = self.get_context_data()
         ctx["add_form"] = form
         return self.render_to_response(ctx)
+    
+
+
+    
+
+class PlasmidImportView(LoginRequiredMixin, View):
+    template_name = "collections/plasmid_import.html"
+
+    def get(self, request):
+        form = ImportPlasmidsForm(user=request.user)
+        return render(request, self.template_name, {"form": form})
+
+    def post(self, request):
+        form = ImportPlasmidsForm(request.POST, request.FILES, user=request.user)
+        if not form.is_valid():
+            return render(request, self.template_name, {"form": form})
+
+        uploaded_file = form.cleaned_data["file"]
+        target_collection = form.cleaned_data["target_collection"]
+        new_collection_name = form.cleaned_data["new_collection_name"]
+
+        collection = get_or_create_target_collection(
+            owner=request.user,
+            target_collection=target_collection,
+            new_collection_name=new_collection_name
+        )
+
+        result = import_plasmids_from_upload(
+            uploaded_file=uploaded_file,
+            owner=request.user,
+            collection=collection
+        )
+
+        # messages
+        messages.success(
+            request,
+            f"Upload complete: {result.created} created, {result.skipped} skipped."
+        )
+        if result.errors:
+            preview = ";".join(result.errors[:3])
+            messages.warning(request, f"Some errors occurred during import: {preview}")
+
+        # redirect
+        if collection:
+            return redirect(reverse("plasmids:collection_detail", args=[collection.pk]))
+        return redirect(reverse("plasmids:plasmid_list"))

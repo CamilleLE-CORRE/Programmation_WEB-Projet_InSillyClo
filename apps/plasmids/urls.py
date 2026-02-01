@@ -1,7 +1,8 @@
 from django.urls import path
-from .views import PlasmidSearchView, PlasmidSearchResultsView, plasmid_list, plasmid_detail
+from .views import PlasmidSearchView, PlasmidSearchResultsView, plasmid_list, plasmid_detail,PlasmidImportView
 #from .views import CollectionListView,MyCollectionListView,CollectionCreateView,CollectionDetailView,CollectionUpdateView,CollectionDeleteView
 from . import views
+
 
 app_name = "plasmids"
 urlpatterns = [
@@ -14,6 +15,7 @@ urlpatterns = [
     path("collections/<int:pk>/edit/", views.CollectionUpdateView.as_view(), name="collection_edit"),
     path("collections/<int:pk>/delete/", views.CollectionDeleteView.as_view(), name="collection_delete"),
     path("collections/<int:pk>/add-plasmids/", views.CollectionAddPlasmidsView.as_view(), name="collection_add_plasmids"),
+    path("plasmids/import/", views.PlasmidImportView.as_view(), name="plasmid_import"),
 
     # Plasmide
     path("plasmid_list/", plasmid_list, name="plasmid_list"),

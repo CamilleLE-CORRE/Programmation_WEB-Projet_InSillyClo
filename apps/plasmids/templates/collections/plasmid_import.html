@@ -1,0 +1,22 @@
+{% extends "core/base.html" %}
+{% block content %}
+  <h1>Import plasmids</h1>
+
+  {% if messages %}
+    <ul class="messages">
+      {% for message in messages %}
+        <li class="{{ message.tags }}">{{ message }}</li>
+      {% endfor %}
+    </ul>
+  {% endif %}
+
+  <form method="post" enctype="multipart/form-data">
+    {% csrf_token %}
+    {{ form.as_p }}
+    <button class="btn btn-primary" type="submit">Import</button>
+  </form>
+
+  <p style="margin-top: 1rem;">
+    Upload allow: <code>.gb</code> / <code>.gbk</code> or <code>.zip</code> files.
+  </p>
+{% endblock %}

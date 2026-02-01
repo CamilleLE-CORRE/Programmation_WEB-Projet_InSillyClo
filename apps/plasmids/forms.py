@@ -2,6 +2,7 @@
 from django import forms
 
 from apps.plasmids.models import Plasmid
+from .models import PlasmidCollection
 
 PLASMID_TYPE_CHOICES = [
     ('conl', 'ConL'),
@@ -88,3 +89,46 @@ class AddPlasmidsToCollectionForm(forms.Form):
         queryset = kwargs.pop("queryset", Plasmid.objects.none())
         super().__init__(*args, **kwargs)
         self.fields["plasmids"].queryset = queryset
+
+
+class ImportPlasmidsForm(forms.Form):
+    file = forms.FileField(
+        help_text="Upload a .gb/.gbk file or a .zip containing multiple .gb/.gbk files."
+    )
+
+    target_collection = forms.ModelChoiceField(
+        queryset=PlasmidCollection.objects.none(),
+        required=False,
+        help_text="Choose an existing collection (optional)."
+    )
+
+    new_collection_name = forms.CharField(
+        max_length=255,
+        required=False,
+        help_text="Or create a new collection with this name (optional)."
+    )
+
+    def __init__(self, *args, user=None, **kwargs):
+        super().__init__(*args, **kwargs)
+        # Limit collections to those owned by the user
+        if user is not None:
+            self.fields["target_collection"].queryset = PlasmidCollection.objects.filter(owner=user)
+
+    def clean(self):
+        cleaned = super().clean()
+        target = cleaned.get("target_collection")
+        new_name = (cleaned.get("new_collection_name") or "").strip()
+
+        if target and new_name:
+            raise ValidationError("Please choose only one way: either select an existing collection or provide a new collection name.")
+        return cleaned
+
+    def clean_file(self):
+        f = self.cleaned_data["file"]
+        name = (f.name or "").lower()
+
+        if not (name.endswith(".gb") or name.endswith(".gbk") or name.endswith(".zip")):
+            raise forms.ValidationError("Only .gb/.gbk or .zip files are allowed.")
+
+
+        return f
