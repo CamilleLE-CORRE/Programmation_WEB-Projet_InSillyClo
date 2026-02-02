@@ -26,6 +26,7 @@
                 <th>Name</th>
                 <th>Owner / Team</th>
                 <th>Visibility</th>
+                <th>Actions</th>
             </tr>
         </thead>
         <tbody>
@@ -48,6 +49,9 @@
                         {% else %}
                             <span class="badge bg-secondary">Private</span>
                         {% endif %}
+                    </td>
+                    <td>
+                        <a href="{% url 'plasmids:collection_delete' collection.id %}">🗑️</a>
                     </td>
                 </tr>
             {% endfor %}

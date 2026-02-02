@@ -183,6 +183,7 @@ class CollectionUpdateView(LoginRequiredMixin, OwnerRequiredMixin, UpdateView):
 class CollectionDeleteView(LoginRequiredMixin, OwnerRequiredMixin, DeleteView):
     model = PlasmidCollection
     template_name = "collections/collection_confirm_delete.html"
+    context_object_name = "collection"
     success_url = reverse_lazy("plasmids:collection_list")
 
 

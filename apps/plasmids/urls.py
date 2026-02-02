@@ -17,6 +17,7 @@ urlpatterns = [
     path("collections/<int:pk>/add-plasmids/", views.CollectionAddPlasmidsView.as_view(), name="collection_add_plasmids"),
     path("plasmids/import/", views.PlasmidImportView.as_view(), name="plasmid_import"),
 
+
     # Plasmide
     path("plasmid_list/", plasmid_list, name="plasmid_list"),
     path("search/", PlasmidSearchView.as_view(), name="search"),
