@@ -12,7 +12,7 @@
       {{ user.email }}
       {% if is_owner and user.id != team.owner_id %}
         <form method="post"
-              action="{% url 'teams:remove_member' team.id %}"
+              action="{% url 'accounts:remove_member' team.id %}"
               style="display:inline;">
           {% csrf_token %}
           <input type="hidden" name="user_id" value="{{ user.id }}">
@@ -26,14 +26,14 @@
 
 {% if is_owner %}
   <h2>Add member</h2>
-  <form method="post" action="{% url 'teams:add_member' team.id %}">
+  <form method="post" action="{% url 'accounts:add_member' team.id %}">
     {% csrf_token %}
     {{ add_member_form.as_p }}
     <button type="submit">Add</button>
   </form>
 
   <h2>Transfer ownership</h2>
-  <form method="post" action="{% url 'teams:transfer_owner' team.id %}">
+  <form method="post" action="{% url 'accounts:transfer_owner' team.id %}">
     {% csrf_token %}
     {{ transfer_owner_form.as_p }}
     <button type="submit">Transfer</button>

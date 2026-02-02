@@ -22,7 +22,7 @@ class PublicationRequest(models.Model):
         max_length=32, choices=PublicationStatus.choices, default=PublicationStatus.PENDING_ADMIN
     )
 
-    team = models.ForeignKey("teams.Team", null=True, blank=True, on_delete=models.SET_NULL)
+    team = models.ForeignKey("accounts.Team", null=True, blank=True, on_delete=models.SET_NULL)
     team_validated_by = models.ForeignKey(
         settings.AUTH_USER_MODEL, null=True, blank=True, on_delete=models.SET_NULL,
         related_name="publication_team_validations"
