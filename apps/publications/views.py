@@ -4,6 +4,7 @@ Function realization:
 - Admin: Admin can approve or reject publication requests with comments if needed.
 """
 
+from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required, user_passes_test
 from django.contrib.contenttypes.models import ContentType
@@ -12,6 +13,8 @@ from django.http import Http404
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
 from django.views.decorators.http import require_http_methods
+
+from apps.accounts.models import User
 
 from .models import Publication
 
@@ -60,6 +63,7 @@ def request_publication(request, target_kind:str, target_id:int):
             target_content_type=ct,
             target_object_id=target_obj.pk,
         )
+        notify_admins_new_publication(pub, request) # Send email to admins
         pub.full_clean()
         pub.save()
         messages.success(request, "Publication request submitted successfully.")
@@ -133,3 +137,58 @@ def admin_review_publication_request(request, publication_id:int):
         messages.success(request, "Publication request rejected.")
     
     return redirect("publications:admin_requests")
+
+
+@user_passes_test(is_admin_user)
+def admin_detail(request, pk):
+    pub = get_object_or_404(Publication, pk=pk)
+
+    target = pub.target  
+
+
+    context = {
+        "pub": pub,
+        "target": target,
+        "target_ct": pub.target_content_type,  
+    }
+
+    if pub.target_content_type.app_label == "plasmids" and pub.target_content_type.model in ("plasmidcollection", "collection"):
+        context["entries"] = getattr(target, "entries", None).all() if hasattr(target, "entries") else None
+
+    return render(request, "publications/admin_detail.html", context)
+
+
+def notify_admins_new_publication(pub: Publication, request):
+    # 1) Search for admin emails
+    admin_emails = list(
+        User.objects.filter(is_admin=True).values_list("email", flat=True)  # ←按你们字段改
+    )
+    admin_emails = [e for e in admin_emails if e]  # 防御式
+
+    if not admin_emails:
+        return  
+    # 2) Send email notification
+    admin_url = request.build_absolute_uri(
+        reverse("publications:admin_detail", args=[pub.id])  # ←如果你还没 admin_detail，就换成 admin_requests
+    )
+
+    subject = f"[InSillyClo] New publication request #{pub.id}"
+
+    message = (
+        f"A new publication request has been submitted.\n\n"
+        f"Request ID: {pub.id}\n"
+        f"Requested by: {pub.requested_by.email}\n"
+        f"Target: {pub.target_content_type.app_label}/{pub.target_content_type.model} "
+        f"(id={pub.target_object_id})\n"
+        f"Status: {pub.status}\n"
+        f"Created at: {pub.created_at}\n\n"
+        f"Review it here:\n{admin_url}\n"
+    )
+
+    send_mail(
+        subject=subject,
+        message=message,
+        from_email=getattr(settings, "DEFAULT_FROM_EMAIL", None),
+        recipient_list=admin_emails,
+        fail_silently=True,  
+    )

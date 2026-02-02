@@ -29,4 +29,5 @@ urlpatterns = [
         views.admin_review_publication_request,
         name="admin_review",
     ),
+    path("admin/<int:pk>/", views.admin_detail, name="admin_detail"),
 ]
