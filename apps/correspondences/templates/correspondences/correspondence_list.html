@@ -7,8 +7,11 @@
 {% block title %}My correspondence Table{% endblock %}
 
 {% block content %}
+{% if request.user.is_authenticated %}
 <h1> My correspondence Table</h1>
-<a href="{% url 'correspondences:create' %}">📤Create New Correspondence Table📤</a>
+<a class="btn" href="{% url 'correspondences:create' %}">Create collection</a>
+{% endif %}
+<br><br>
 
 {% if correspondences %}
   <p class="text-center">
