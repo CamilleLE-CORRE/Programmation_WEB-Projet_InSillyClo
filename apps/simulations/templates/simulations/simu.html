@@ -3,335 +3,220 @@
 {% block title %}Campaign Simulation · InSillyClo{% endblock %}
 
 {% block content %}
-<div class="container mt-4">
-    <h1 class="mb-4">Campaign Simulation</h1>
-    
+
+<div class="container">
+
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px;">
+        <h1>Campaign Simulation</h1>
+        
+        {% if user.is_authenticated %}
+        <a href="{% url 'simulations:history' %}" class="btn btn-secondary">
+            <i class="bi bi-clock-history"></i> History
+        </a>
+        {% endif %}
+    </div>
+
     {% if messages %}
+    <ul class="messages">
         {% for message in messages %}
-        <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+        <li class="{{ message.tags }}">
             {{ message }}
-            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-        </div>
+        </li>
         {% endfor %}
+    </ul>
     {% endif %}
 
-    <form method="post" enctype="multipart/form-data" id="simulationForm">
+    <form method="post" enctype="multipart/form-data" id="simulationForm" novalidate>
         {% csrf_token %}
         
-        <!-- Required Fields Section -->
-        <div class="card mb-4">
-            <div class="card-header bg-primary text-white">
-                <h5 class="mb-0">Required Information</h5>
-            </div>
-            <div class="card-body">
-                <!-- Template File -->
-                <div class="mb-3">
-                    <label for="template_file" class="form-label">
-                        Campaign Template <span class="text-danger">*</span>
-                    </label>
-                    <input type="file" class="form-control" id="template_file" name="template_file" 
-                           accept=".xlsx,.csv" required>
-                    <div class="form-text">
-                        Upload a filled campaign template (XLSX or CSV format)
-                    </div>
-                </div>
-
-                <!-- Plasmid Sequences Archive -->
-                <div class="mb-3">
-                    <label for="sequences_archive" class="form-label">
-                        Plasmid Sequences <span class="text-danger">*</span>
-                    </label>
-                    <input type="file" class="form-control" id="sequences_archive" name="sequences_archive" 
-                           accept=".zip" required>
-                    <div class="form-text">
-                        Upload a ZIP archive containing GenBank files (.gb) for all input plasmids
-                    </div>
-                </div>
-
-                <!-- Correspondence File -->
-                <div class="mb-3">
-                    <label for="correspondence_file" class="form-label">
-                        Correspondence Table <span class="text-danger">*</span>
-                    </label>
-                    <input type="file" class="form-control" id="correspondence_file" name="correspondence_file" 
-                           accept=".csv">
-                    <div class="form-text">
-                        Upload a CSV file mapping plasmid identifiers to names (and optionally types)
-                    </div>
-                </div>
-
-                {% if user.is_authenticated %}
-                <!-- Use existing collections -->
-                <div class="mb-3">
-                    <label class="form-label">Use Existing Collections</label>
-                    <div class="form-check">
-                        <input class="form-check-input" type="checkbox" id="use_collections" name="use_collections">
-                        <label class="form-check-label" for="use_collections">
-                            Select from my collections and/or public collections
-                        </label>
-                    </div>
-                    
-                    <div id="collections_selector" class="mt-3" style="display: none;">
-                        <label class="form-label">Select Collections:</label>
-                        {% if user_collections %}
-                        <div class="mb-2">
-                            <strong>My Collections:</strong>
-                            {% for collection in user_collections %}
-                            <div class="form-check">
-                                <input class="form-check-input" type="checkbox" name="selected_collections" 
-                                       value="{{ collection.id }}" id="coll_{{ collection.id }}">
-                                <label class="form-check-label" for="coll_{{ collection.id }}">
-                                    {{ collection.name }} ({{ collection.plasmid_count }} plasmids)
-                                </label>
-                            </div>
-                            {% endfor %}
-                        </div>
-                        {% endif %}
-                        
-                        {% if public_collections %}
-                        <div>
-                            <strong>Public Collections:</strong>
-                            {% for collection in public_collections %}
-                            <div class="form-check">
-                                <input class="form-check-input" type="checkbox" name="selected_collections" 
-                                       value="{{ collection.id }}" id="coll_{{ collection.id }}">
-                                <label class="form-check-label" for="coll_{{ collection.id }}">
-                                    {{ collection.name }} ({{ collection.plasmid_count }} plasmids)
-                                </label>
-                            </div>
-                            {% endfor %}
-                        </div>
-                        {% endif %}
-                    </div>
-                </div>
-                {% endif %}
-            </div>
-        </div>
-
-        <!-- Optional Parameters Section -->
-        <div class="card mb-4">
-            <div class="card-header bg-secondary text-white">
-                <h5 class="mb-0">
-                    Optional Parameters
-                    <button type="button" class="btn btn-sm btn-light float-end" data-bs-toggle="collapse" 
-                            data-bs-target="#optionalParams">
-                        Toggle
-                    </button>
-                </h5>
-            </div>
-            <div class="card-body collapse" id="optionalParams">
-                
-                <!-- PCR Primers -->
-                <div class="mb-3">
-                    <label for="pcr_primers" class="form-label">PCR Primers</label>
-                    <textarea class="form-control" id="pcr_primers" name="pcr_primers" rows="3" 
-                              placeholder="Enter primer sequences, one per line"></textarea>
-                    <div class="form-text">
-                        Optional: Provide PCR primers for gel simulation
-                    </div>
-                </div>
-
-                <!-- Digestion Enzymes -->
-                <div class="mb-3">
-                    <label for="digestion_enzymes" class="form-label">Digestion Enzymes</label>
-                    <input type="text" class="form-control" id="digestion_enzymes" name="digestion_enzymes" 
-                           placeholder="e.g., BsaI, NotI, EcoRI">
-                    <div class="form-text">
-                        Optional: Comma-separated list of restriction enzymes for gel simulation
-                    </div>
-                </div>
-
-                <!-- Plasmid Concentrations File -->
-                <div class="mb-3">
-                    <label for="concentrations_file" class="form-label">Plasmid Concentrations</label>
-                    <input type="file" class="form-control" id="concentrations_file" name="concentrations_file" 
-                           accept=".csv">
-                    <div class="form-text">
-                        Optional: CSV file with specific plasmid concentrations
-                    </div>
-                </div>
-
-                <!-- Default Concentration -->
-                <div class="mb-3">
-                    <label for="default_concentration" class="form-label">Default Concentration</label>
-                    <div class="input-group">
-                        <input type="number" class="form-control" id="default_concentration" 
-                               name="default_concentration" step="0.01" min="0" placeholder="100">
-                        <select class="form-select" name="concentration_unit" style="max-width: 150px;">
-                            <option value="ng/µL" selected>ng/µL</option>
-                            <option value="µg/mL">µg/mL</option>
-                            <option value="nM">nM</option>
-                        </select>
-                    </div>
-                    <div class="form-text">
-                        Optional: Default concentration for plasmids without specific values
-                    </div>
-                </div>
-
-                <!-- Dilution Parameters -->
-                <div class="mb-3">
-                    <label class="form-label">Dilution Calculation Parameters</label>
-                    
-                    <div class="row">
-                        <div class="col-md-6 mb-2">
-                            <label for="target_volume" class="form-label small">Target Volume (µL)</label>
-                            <input type="number" class="form-control form-control-sm" id="target_volume" 
-                                   name="target_volume" step="0.1" min="0" placeholder="20">
-                        </div>
-                        <div class="col-md-6 mb-2">
-                            <label for="target_concentration" class="form-label small">Target Concentration (nM)</label>
-                            <input type="number" class="form-control form-control-sm" id="target_concentration" 
-                                   name="target_concentration" step="0.1" min="0" placeholder="10">
-                        </div>
-                    </div>
-                    
-                    <div class="form-check mt-2">
-                        <input class="form-check-input" type="checkbox" id="equimolar_mix" 
-                               name="equimolar_mix" checked>
-                        <label class="form-check-label" for="equimolar_mix">
-                            Calculate equimolar mixture
-                        </label>
-                    </div>
-                </div>
-
-                <!-- Additional Notes -->
-                <div class="mb-3">
-                    <label for="notes" class="form-label">Notes</label>
-                    <textarea class="form-control" id="notes" name="notes" rows="2" 
-                              placeholder="Any additional notes for this simulation"></textarea>
-                </div>
-            </div>
-        </div>
-
-        {% if user.is_authenticated %}
-        <!-- Save Options -->
-        <div class="card mb-4">
-            <div class="card-body">
-                <div class="form-check">
-                    <input class="form-check-input" type="checkbox" id="save_results" name="save_results">
-                    <label class="form-check-label" for="save_results">
-                        Save simulation results to my account
-                    </label>
-                </div>
-                
-                <div id="save_options" class="mt-3" style="display: none;">
-                    <label for="simulation_name" class="form-label">Simulation Name</label>
-                    <input type="text" class="form-control" id="simulation_name" name="simulation_name" 
-                           placeholder="Enter a name for this simulation">
-                </div>
-            </div>
-        </div>
+        {% if prefill.old_sim_id %}
+            <input type="hidden" name="old_sim_id" value="{{ prefill.old_sim_id }}">
         {% endif %}
 
-        <!-- Submit Button -->
-        <div class="d-grid gap-2 mb-4">
-            <button type="submit" class="btn btn-primary btn-lg">
-                <i class="bi bi-play-circle"></i> Run Simulation
+        <div class="card" style="margin-bottom: 24px;">
+            <h2>Identification</h2>
+            <label for="simulation_name">Campaign Name (Optional)</label>
+            <input type="text" 
+                   id="simulation_name" 
+                   name="simulation_name" 
+                   value="{{ prefill.name|default:'' }}"
+                   placeholder="Ex: Golden Gate Assembly - Batch 1">
+            <p style="font-size: 0.9em; color: var(--muted); margin-top: 6px;">
+                Give a name to easily find this simulation in your history.
+            </p>
+        </div>
+
+        <div class="card" style="margin-bottom: 24px;">
+            <h2>Required files</h2>
+            
+            <div class="row"> <div class="col-md-12" style="margin-bottom: 24px;"> 
+                    <label for="template_file">Campaign Template (Excel/CSV)</label>
+                    
+                    {% if prefill.prev_template %}
+                        <div class="messages">
+                            <li class="success">
+                                Previous file detected: <strong>{{ prefill.prev_template }}</strong>
+                            </li>
+                        </div>
+                    {% endif %}
+                    
+                    <input type="file" id="template_file" name="template_file" accept=".xlsx,.csv" 
+                           {% if not prefill.prev_template %}required{% endif %}>
+                    <p style="font-size: 0.85em; color: var(--muted); margin-top: 4px;">
+                        File describing the assemblies to be made.
+                    </p>
+                </div>
+
+                <div class="col-md-6" style="margin-bottom: 24px;">
+                    <label for="sequences_archive">Sequence Archive (ZIP)</label>
+
+                    {% if prefill.prev_zip %}
+                        <div class="messages">
+                            <li class="success">
+                                Previous archive: <strong>{{ prefill.prev_zip }}</strong>
+                            </li>
+                        </div>
+                    {% endif %}
+                    
+                    <input type="file" id="sequences_archive" name="sequences_archive" accept=".zip"
+                           {% if not prefill.prev_zip and not prefill.use_collections %}required{% endif %}>
+                    <p style="font-size: 0.85em; color: var(--muted); margin-top: 4px;">
+                        A .zip archive containing all .gb files.
+                    </p>
+
+                    {% if user.is_authenticated %}
+                    <div style="margin-top: 12px; padding: 12px; border: 1px solid var(--border); border-radius: 12px; background: var(--bg);">
+                        <div style="display: flex; align-items: center; gap: 8px;">
+                            <input type="checkbox" id="use_collections" name="use_collections" 
+                                   style="width: auto;"
+                                   {% if prefill.use_collections %}checked{% endif %}>
+                            <label for="use_collections" style="margin:0; cursor:pointer;">Use my collections</label>
+                        </div>
+
+                        <div id="collections_selector" style="margin-top: 10px; display: {% if prefill.use_collections %}block{% else %}none{% endif %};">
+                            {% if user_collections %}
+                                <div style="max-height: 150px; overflow-y: auto;">
+                                    {% for collection in user_collections %}
+                                    <div style="display: flex; align-items: center; gap: 6px; margin-bottom: 4px;">
+                                        <input type="checkbox" name="selected_collections" value="{{ collection.id }}" id="c{{ collection.id }}" style="width: auto;"
+                                        {% if collection.id in prefill.selected_collection_ids %}checked{% endif %}>
+                                        <label for="c{{ collection.id }}" style="margin:0; font-weight: normal;">{{ collection.name }}</label>
+                                    </div>
+                                    {% endfor %}
+                                </div>
+                            {% else %}
+                                <p style="color: var(--danger); font-size: 0.9em;">No collection found.</p>
+                            {% endif %}
+                        </div>
+                    </div>
+                    {% endif %}
+                </div>
+
+                <div class="col-md-6" style="margin-bottom: 24px;">
+                    <label for="correspondence_file">Correspondence Table (CSV) <span style="color: var(--danger);">*</span></label>
+                    
+                    {% if prefill.prev_correspondence %}
+                        <div class="messages">
+                            <li class="success">
+                                Previous table: <strong>{{ prefill.prev_correspondence }}</strong>
+                            </li>
+                        </div>
+                    {% endif %}
+
+                    <input type="file" id="correspondence_file" name="correspondence_file" accept=".csv"
+                           {% if not prefill.prev_correspondence %}required{% endif %}>
+                    <p style="font-size: 0.85em; color: var(--muted); margin-top: 4px;">
+                        File for linking plasmid identifiers.
+                    </p>
+                </div>
+            </div>
+        </div>
+
+        <div style="margin-bottom: 24px;">
+            <button type="button" id="btn-options-toggle" class="btn btn-secondary" style="width: 100%; text-align: left; display: flex; justify-content: space-between; align-items: center;">
+                <span><i class="bi bi-sliders"></i> Advanced Parameters</span>
+                <i class="bi bi-chevron-down" id="chevron-icon"></i>
+            </button>
+            
+            <div id="options-content" class="card" style="display: {% if prefill.pcr_primers or prefill.digestion_enzymes %}block{% else %}none{% endif %}; border-top-left-radius: 0; border-top-right-radius: 0; margin-top: -10px; padding-top: 20px;">
+                <div class="row">
+                    <div class="col-md-6" style="margin-bottom: 16px;">
+                        <label>Primer Pairs (IDs)</label>
+                        <textarea name="pcr_primers" rows="2" placeholder="Ex: P29, P30">{{ prefill.pcr_primers|default:'' }}</textarea>
+                        
+                        <label style="margin-top: 10px; font-weight: normal; font-size: 0.9em;">Primers Database (CSV)</label>
+                        <input type="file" name="primers_file" accept=".csv">
+                    </div>
+
+                    <div class="col-md-6" style="margin-bottom: 16px;">
+                        <label for="digestion_enzymes">Digestion Enzymes</label>
+                        <input type="text" id="digestion_enzymes" name="digestion_enzymes" value="{{ prefill.digestion_enzymes|default:'' }}" placeholder="Ex: BsmBI, NotI">
+                        
+                        <label style="margin-top: 10px; font-weight: normal; font-size: 0.9em;">Specific Concentrations (CSV)</label>
+                        <input type="file" name="concentrations_file" accept=".csv">
+                    </div>
+                    
+                    <div class="col-md-6">
+                        <label>Default Concentration (ng/µL)</label>
+                        <input type="number" name="default_concentration" placeholder="200" value="{{ prefill.default_concentration|default:'200' }}">
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div style="margin-top: 32px;">
+            <button type="submit" class="btn" style="width: 100%; padding: 16px; font-size: 1.1em;">
+                START SIMULATION
             </button>
         </div>
-    </form>
 
-    <!-- Help Section -->
-    <div class="card border-info mb-4">
-        <div class="card-header bg-info text-white">
-            <h5 class="mb-0">Help & Information</h5>
-        </div>
-        <div class="card-body">
-            <h6>File Format Requirements:</h6>
-            <ul>
-                <li><strong>Campaign Template:</strong> XLSX or CSV file with filled campaign information</li>
-                <li><strong>Sequences Archive:</strong> ZIP file containing GenBank (.gb) files named by plasmid ID</li>
-                <li><strong>Correspondence Table:</strong> CSV with columns: ID, Name, and optionally Type</li>
-                <li><strong>Concentrations:</strong> CSV with columns: Plasmid ID/Name, Concentration, Unit</li>
-            </ul>
-            
-            <h6 class="mt-3">What happens during simulation?</h6>
-            <ol>
-                <li>Parse and validate the campaign template</li>
-                <li>Match plasmid names to sequences using correspondence tables</li>
-                <li>Calculate required dilutions for equimolar mixing</li>
-                <li>Simulate expected gel electrophoresis results (if primers/enzymes provided)</li>
-                <li>Generate a detailed report with protocols and expected results</li>
-            </ol>
-            
-            {% if not user.is_authenticated %}
-            <div class="alert alert-warning mt-3">
-                <strong>Tip:</strong> <a href="{% url 'accounts:signup' %}">Create an account</a> to save your collections, 
-                correspondence tables, and simulation results for future use!
-            </div>
-            {% endif %}
-        </div>
-    </div>
+    </form>
 </div>
 
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-    // Toggle collections selector
     const useCollections = document.getElementById('use_collections');
     const collectionsSelector = document.getElementById('collections_selector');
-    if (useCollections) {
-        useCollections.addEventListener('change', function() {
-            collectionsSelector.style.display = this.checked ? 'block' : 'none';
-            // Make sequence archive optional when using collections
-            const seqArchive = document.getElementById('sequences_archive');
-            if (this.checked) {
-                seqArchive.removeAttribute('required');
-            } else {
-                seqArchive.setAttribute('required', 'required');
+    const seqArchive = document.getElementById('sequences_archive');
+
+    function updateCollectionsState() {
+        if (!useCollections) return;
+        if (useCollections.checked) {
+            collectionsSelector.style.display = 'block';
+            seqArchive.removeAttribute('required');
+            seqArchive.disabled = true;
+        } else {
+            collectionsSelector.style.display = 'none';
+            if (!seqArchive.getAttribute('data-prev-exists')) {
+                 // logique simple
             }
-        });
-    }
-    
-    // Toggle save options
-    const saveResults = document.getElementById('save_results');
-    const saveOptions = document.getElementById('save_options');
-    if (saveResults) {
-        saveResults.addEventListener('change', function() {
-            saveOptions.style.display = this.checked ? 'block' : 'none';
-            const simName = document.getElementById('simulation_name');
-            if (this.checked) {
-                simName.setAttribute('required', 'required');
-            } else {
-                simName.removeAttribute('required');
-            }
-        });
-    }
-    
-    // Form validation feedback
-    const form = document.getElementById('simulationForm');
-    form.addEventListener('submit', function(event) {
-        if (!form.checkValidity()) {
-            event.preventDefault();
-            event.stopPropagation();
+            seqArchive.disabled = false;
         }
-        form.classList.add('was-validated');
-    });
+    }
+
+    if (useCollections) {
+        useCollections.addEventListener('change', updateCollectionsState);
+        updateCollectionsState();
+    }
+
+    const btnToggle = document.getElementById('btn-options-toggle');
+    const contentDiv = document.getElementById('options-content');
+    const chevron = document.getElementById('chevron-icon');
+
+    if (btnToggle && contentDiv) {
+        if(contentDiv.style.display !== 'none' && chevron) {
+             chevron.className = 'bi bi-chevron-up';
+        }
+        btnToggle.addEventListener('click', function() {
+            if (contentDiv.style.display === 'none') {
+                contentDiv.style.display = 'block';
+                if(chevron) chevron.className = 'bi bi-chevron-up';
+            } else {
+                contentDiv.style.display = 'none';
+                if(chevron) chevron.className = 'bi bi-chevron-down';
+            }
+        });
+    }
 });
 </script>
-
-<style>
-.card-header h5 {
-    margin-bottom: 0;
-}
-
-.form-text {
-    font-size: 0.875rem;
-}
-
-.alert {
-    border-radius: 0.375rem;
-}
-
-#optionalParams {
-    transition: all 0.3s ease;
-}
-
-.was-validated .form-control:invalid {
-    border-color: #dc3545;
-}
-
-.was-validated .form-control:valid {
-    border-color: #198754;
-}
-</style>
 {% endblock %}
