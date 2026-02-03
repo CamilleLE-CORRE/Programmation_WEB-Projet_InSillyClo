@@ -23,7 +23,7 @@
             </thead>
             <tbody>
                 {% for campaign in campaigns %}
-                <tr class="clickable-row" onclick="window.location='{% url 'simulations:simulation_detail' campaign.run_id %}';" style="cursor: pointer;">
+                <tr class="clickable-row" data-href="{% url 'simulations:simulation_detail' campaign.run_id %}" style="cursor: pointer;">
                     <td style="padding-left: 20px;">
                         <strong>{{ campaign.name|default:"Untitled" }}</strong>
                         <div style="font-size: 0.85em; color: var(--muted);">ID: {{ campaign.run_id }}</div>
@@ -79,8 +79,6 @@
     }
     .plasmid-table tbody tr:hover td {
         background-color: var(--primary-soft); 
-        /* Note: j'ai mis primary-soft au survol pour rester lisible, 
-           car le bleu foncé du modèle cache parfois le texte noir */
     }
     </style>
 
@@ -92,4 +90,17 @@
     {% endif %}
 
 </div>
+
+<script>
+document.addEventListener("DOMContentLoaded", function() {
+    const rows = document.querySelectorAll(".clickable-row");
+    rows.forEach(row => {
+        row.addEventListener("click", () => {
+            if (row.dataset.href) {
+                window.location = row.dataset.href;
+            }
+        });
+    });
+});
+</script>
 {% endblock %}
