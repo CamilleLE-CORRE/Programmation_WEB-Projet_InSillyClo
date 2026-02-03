@@ -1,85 +1,99 @@
-from django.core.management.base import BaseCommand
-from Bio import SeqIO
-import os
-from apps.plasmids.models import Plasmid, PlasmidCollection, PlasmidAnnotation
+def parse_genbank(source):
+    """
+    Parse a GenBank file (or dict) into a dict ready for visualization.
 
-class Command(BaseCommand):
-    help = 'Import GenBank files into database'
+    Returns:
+    {
+        "length": int,
+        "features": [
+            {
+                "start": int,
+                "end": int,
+                "length": int,
+                "label": str,
+                "type": str,
+                "strand": int,
+                "color": str,
+                "linked_plasmid": str or None
+            },
+            ...
+        ]
+    }
+    """
 
-    def add_arguments(self, parser):
-        parser.add_argument('directory', type=str, help='Directory containing .gb files')
-        parser.add_argument('--collection', type=str, default='Default Collection', help='Collection name')
-        parser.add_argument('--public', action='store_true', help='Make collection public')
+    # Initialisation
+    parsed = {
+        "length": 1,
+        "features": []
+    }
 
-    def handle(self, *args, **options):
-        directory = options['directory']
-        collection_name = options['collection']
-        is_public = options.get('public', False)
-        
-        # Créer ou récupérer la collection
-        collection, created = PlasmidCollection.objects.get_or_create(
-            name=collection_name,
-            defaults={'is_public': is_public}
-        )
-        
-        if created:
-            self.stdout.write(self.style.SUCCESS(f'Collection "{collection_name}" créée'))
-        else:
-            self.stdout.write(f'Collection "{collection_name}" existe déjà')
-        
-        # Parcourir les fichiers .gb
-        count = 0
-        for filename in os.listdir(directory):
-            if filename.endswith('.gb') or filename.endswith('.genbank'):
-                filepath = os.path.join(directory, filename)
+    # Si source est un dict
+    if isinstance(source, dict):
+        parsed["length"] = source.get("length", 1)
+        features = source.get("features", [])
+        for f in features:
+            # Assurer les clés essentielles
+            f.setdefault("start", 0)
+            f.setdefault("end", 1)
+            f.setdefault("length", f["end"] - f["start"] + 1)
+            f.setdefault("strand", 1)
+            f.setdefault("label", "")
+            f.setdefault("color", "#CCCCCC")
+            f.setdefault("linked_plasmid", None)
+            parsed["features"].append(f)
+        # recalculer length si features existent
+        if features:
+            parsed["length"] = max(f.get("end", 1) for f in features)
+        return parsed
+
+    # Sinon, parser un fichier GenBank
+    with open(source, "r") as f:
+        lines = f.readlines()
+
+    feature = None
+    for line in lines:
+        # détecter LOCUS
+        if line.startswith("LOCUS") and parsed["length"] == 1:
+            parts = line.split()
+            try:
+                parsed["length"] = int(parts[2])
+            except (IndexError, ValueError):
+                parsed["length"] = 1
+        # features
+        if line.startswith("     "):
+            parts = line.split()
+            if len(parts) < 2:
+                continue
+            ftype = parts[0].strip()
+            loc = parts[1].strip()
+            feature = {"type": ftype}
+
+            # strand
+            if "complement" in loc:
+                loc = loc.replace("complement(", "").replace(")", "")
+                feature["strand"] = -1
+            else:
+                feature["strand"] = 1
+
+            # join
+            if "join" in loc:
+                loc = loc.replace("join(", "").replace(")", "")
+                start = min(int(x.split("..")[0]) for x in loc.split(","))
+                end = max(int(x.split("..")[1]) for x in loc.split(","))
+            else:
                 try:
-                    self.import_genbank_file(filepath, collection)
-                    count += 1
-                except Exception as e:
-                    self.stdout.write(self.style.ERROR(f'Error with {filename}: {str(e)}'))
-        
-        self.stdout.write(self.style.SUCCESS(f'Successfully imported {count} plasmids into {collection_name}'))
+                    start, end = map(int, loc.split(".."))
+                except:
+                    start, end = 0, 1
 
-    def import_genbank_file(self, filepath, collection):
-        # Le nom du fichier sans extension est l'identifiant
-        identifier = os.path.splitext(os.path.basename(filepath))[0]
-        
-        # Parser le fichier GenBank
-        record = SeqIO.read(filepath, "genbank")
-        
-        # Créer le plasmide
-        plasmid, created = Plasmid.objects.update_or_create(
-            identifier=identifier,
-            collection=collection,
-            defaults={
-                'name': record.name or identifier,
-                'sequence': str(record.seq),
-                'length': len(record.seq),
-                'description': record.description,
-                'genbank_data': {
-                    'topology': record.annotations.get('topology', 'linear'),
-                    'molecule_type': record.annotations.get('molecule_type', ''),
-                    'date': record.annotations.get('date', ''),
-                }
-            }
-        )
-        
-        # Supprimer les anciennes annotations si mise à jour
-        if not created:
-            plasmid.annotations.all().delete()
-        
-        # Importer les annotations/features
-        for feature in record.features:
-            PlasmidAnnotation.objects.create(
-                plasmid=plasmid,
-                feature_type=feature.type,
-                start=int(feature.location.start),
-                end=int(feature.location.end),
-                strand=feature.location.strand or 1,
-                label=feature.qualifiers.get('label', [''])[0] or 
-                      feature.qualifiers.get('gene', [''])[0] or '',
-                qualifiers=dict(feature.qualifiers)
-            )
-        
-        action = "Imported" if created else "Updated"
-        self.stdout.write(f'  {action} {identifier}')
+            feature["start"] = start
+            feature["end"] = end
+            feature["length"] = end - start + 1
+            feature["label"] = ""
+            feature["color"] = "#CCCCCC"
+            feature["linked_plasmid"] = None
+            parsed["features"].append(feature)
+        elif line.strip().startswith("/label=") and feature is not None:
+            feature["label"] = line.strip().split("=")[1].strip()
+
+    return parsed

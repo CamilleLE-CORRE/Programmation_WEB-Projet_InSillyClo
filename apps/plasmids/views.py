@@ -1,18 +1,13 @@
 from django.shortcuts import render, get_object_or_404
 from django.views.generic import TemplateView
-from .models import Plasmid, PlasmidCollection
-from .forms import PlasmidSearchForm, PLASMID_TYPE_CHOICES, RESTRICTION_SITE_CHOICES
+from .models import Plasmid
+from .forms import PlasmidSearchForm
+import json
 
-# class PlasmidList(TemplateView):
-#     template_name = "plasmids/plasmid_list.html"
 
 def plasmid_list(request):
-
-    # A connected user can see both public and private plasmid collections
     if request.user.is_authenticated:
         plasmids = Plasmid.objects.all()
-
-    # An unregistered user can only see public plasmid collections
     else:
         plasmids = Plasmid.objects.filter(collection__is_public=True)
 
@@ -20,55 +15,125 @@ def plasmid_list(request):
         'plasmids': plasmids
     })
 
-def plasmid_detail(request, identifier):
-    
-    # Get plasmid and verify it exists
-    plasmid = get_object_or_404(Plasmid, identifier=identifier)
-    
-    return render(request, "plasmids/plasmid_detail.html", {
-        "plasmid": plasmid
-    })
+
+# def plasmid_detail(request, id):
+#     plasmid = get_object_or_404(Plasmid, id=id)
+#     return render(request, "plasmids/plasmid_detail.html", {
+#         "plasmid": plasmid
+#     })
+
 
 class PlasmidSearchView(TemplateView):
     template_name = "plasmids/search.html"
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        form = PlasmidSearchForm(self.request.GET or None)
-        context['form'] = form
-        context['PLASMID_TYPE_CHOICES'] = PLASMID_TYPE_CHOICES
-        context['RESTRICTION_SITE_CHOICES'] = RESTRICTION_SITE_CHOICES
-        plasmids = Plasmid.objects.all()
 
-        if form.is_valid():
+        # -----------------------------
+        # Formulaire
+        # -----------------------------
+        form = PlasmidSearchForm(self.request.GET or None)
+        context["form"] = form
+
+        # -----------------------------
+        # Contraintes annotations
+        # -----------------------------
+        context["annotation_constraints"] = [
+            {"name": n, "mode": m}
+            for n, m in zip(
+                self.request.GET.getlist("annotation_name"),
+                self.request.GET.getlist("annotation_mode"),
+            )
+        ]
+
+        # -----------------------------
+        # Contraintes sites de restriction
+        # -----------------------------
+        context["restriction_constraints"] = [
+            {"name": n, "mode": m}
+            for n, m in zip(
+                self.request.GET.getlist("restriction_name"),
+                self.request.GET.getlist("restriction_mode"),
+            )
+        ]
+
+        context["annotation_constraints_json"] = json.dumps(
+            context["annotation_constraints"]
+        )
+        context["restriction_constraints_json"] = json.dumps(
+            context["restriction_constraints"]
+        )
+
+        plasmids = None
+
+        if self.request.GET and form.is_valid():
+            plasmids = Plasmid.objects.all()
+
+            # --- Champs texte ---
             sequence_pattern = form.cleaned_data.get("sequence_pattern")
             name = form.cleaned_data.get("name")
-            types = form.cleaned_data.get("types")
-            sites = form.cleaned_data.get("sites")
 
             if sequence_pattern:
                 plasmids = plasmids.filter(sequence__icontains=sequence_pattern)
+
             if name:
                 plasmids = plasmids.filter(name__icontains=name)
-            if types:
-                plasmids = plasmids.filter(type__in=types)
-            if sites:
-                for site in sites:
-                    plasmids = plasmids.filter(sites__icontains=site)
 
-        context['plasmids'] = plasmids
+            # --- Contraintes annotations ---
+            for c in context["annotation_constraints"]:
+                ann_name = c["name"].strip()
+                mode = c["mode"]
+
+                if not ann_name:
+                    continue
+
+                if mode == "present":
+                    plasmids = plasmids.filter(
+                        annotations__label__icontains=ann_name
+                    )
+                elif mode == "absent":
+                    plasmids = plasmids.exclude(
+                        annotations__label__icontains=ann_name
+                    )
+
+            # --- Contraintes sites de restriction ---
+            for c in context["restriction_constraints"]:
+                site = c["name"].strip()
+                mode = c["mode"]
+
+                if not site:
+                    continue
+
+                if mode == "present":
+                    plasmids = plasmids.filter(
+                        sites__icontains=site
+                    )
+                elif mode == "absent":
+                    plasmids = plasmids.exclude(
+                        sites__icontains=site
+                    )
+
+            plasmids = plasmids.distinct()
+
+        context["plasmids"] = plasmids
         return context
 
 
-class PlasmidSearchResultsView(TemplateView):
-    template_name = "plasmids/search_results.html"
+colors = {
+    "tRNA": "#070087",
+    "CDS": "#0000FF",
+    "rep_origin": "#1C9BFF",
+    "promoter": "#66CCFF",
+    "misc_feature": "#C2E0FF",
+    "misc_RNA": "#C2E0FF",
+    "protein_bind": "#FF9900",
+    "RBS": "#F8B409",
+    "terminator": "#FFCD36",
+}
 
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
-        form = PlasmidSearchForm(self.request.GET or None)
-        context['form'] = form
 
-        plasmids = Plasmid.objects.all()
+def generate_external_link(feature):
+    import urllib.parse
 
     label = feature.get("label", "").strip()
     feature_type = feature.get("type", "").strip().lower()
