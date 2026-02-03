@@ -9,7 +9,7 @@ class CampaignTemplate(models.Model):
     name = models.CharField(max_length=200, verbose_name="Nom du Template")
     description = models.TextField(blank=True, verbose_name="Description")
     
-    # C'est ici qu'on stocke le fichier Excel du template
+    # Stocke le fichier Excel du template
     file = models.FileField(
         upload_to='campaign_templates/', 
         verbose_name="Fichier Excel",
@@ -30,7 +30,7 @@ class Campaign(models.Model):
     name = models.CharField(max_length=200, verbose_name="Nom de la Campagne")
     
     owner = models.ForeignKey(
-        settings.AUTH_USER_MODEL,  # Référence propre à ton modèle User personnalisé
+        settings.AUTH_USER_MODEL,
         on_delete=models.CASCADE,
         related_name='campaigns'
     )
@@ -40,17 +40,16 @@ class Campaign(models.Model):
     # blank=True : permet de laisser le champ vide dans l'admin/formulaire
     template = models.ForeignKey(
         CampaignTemplate,
-        on_delete=models.SET_NULL, # Si le template est supprimé, on garde la campagne
+        on_delete=models.SET_NULL,
         related_name='campaigns',
         null=True,
         blank=True,
         verbose_name="Template utilisé (Optionnel)"
     )
 
-    # 2. Le fichier Excel spécifique utilisé pour CETTE simulation
-    # (Indispensable pour l'historique si l'utilisateur a uploadé son propre fichier)
+    # 2. Le fichier Excel spécifique utilisé pour cette simulation
     input_file = models.FileField(
-        upload_to='campaign_inputs/%Y/%m/', # Range par année/mois
+        upload_to='campaign_inputs/%Y/%m/',
         null=True,
         blank=True,
         verbose_name="Fichier d'entrée utilisé"
@@ -98,8 +97,11 @@ class Campaign(models.Model):
 
 class CampaignResult(models.Model):
     """
-    Modèle optionnel si tu veux stocker des résultats détaillés séparément.
-    (Peut être redondant avec Campaign.results_data, mais je le laisse pour compatibilité)
+    Représente les résultats d'exécution d'une campagne de simulation.
+    
+    Ce modèle permet d'archiver les données de sortie (fichiers générés, 
+    statistiques d'assemblage) de manière distincte des paramètres de configuration
+    de la campagne, facilitant la traçabilité et l'historique.
     """
     id = models.AutoField(primary_key=True)
     campaign = models.ForeignKey(
