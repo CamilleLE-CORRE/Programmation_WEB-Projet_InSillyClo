@@ -1,5 +1,5 @@
 """
-Comprehensive demo data loader for InSillyClo web application
+demo data loader for InSillyClo web application
 
 ⚠️ SECURITY NOTE:
 All credentials defined in this file are INTENTIONALLY FAKE.
@@ -7,9 +7,9 @@ They are demo-only, non-sensitive, and safe to commit.
 No real passwords, secrets, or production credentials are used here.
 
 Usage:
-  python manage.py load_demo_data_comprehensive
-  python manage.py load_demo_data_comprehensive --skip-genbank
-  python manage.py load_demo_data_comprehensive --minimal
+  python manage.py loaddemo
+  python manage.py loaddemo --skip-genbank
+  python manage.py loaddemo --minimal
 """
 
 from __future__ import annotations
@@ -68,7 +68,7 @@ def pick_field(model, candidates: list[str]) -> str | None:
 # Command
 # -----------------------------------------------------------------------------
 class Command(BaseCommand):
-    help = "Load comprehensive demo data for InSillyClo (best-effort across schemas)"
+    help = "Load demo data for InSillyClo"
 
     def add_arguments(self, parser):
         parser.add_argument(
@@ -84,7 +84,7 @@ class Command(BaseCommand):
 
     @transaction.atomic
     def handle(self, *args, **options):
-        self.stdout.write(self.style.SUCCESS("Starting comprehensive demo data load..."))
+        self.stdout.write(self.style.SUCCESS("Starting demo data load..."))
         self.minimal = bool(options.get("minimal", False))
 
         # Cache models (use installed app labels, not import paths)
@@ -102,7 +102,6 @@ class Command(BaseCommand):
         self.PublicationRequest = get_model("publications", "PublicationRequest")
         self.PublicationStatus = get_model("publications", "PublicationStatus")
 
-        # IMPORTANT FIX: campaigns live in simulations in your project
         self.Campaign = get_model("simulations", "Campaign")
         self.CampaignResult = get_model("simulations", "CampaignResult")
 
@@ -129,7 +128,7 @@ class Command(BaseCommand):
         self.create_publication_requests()
 
         self.stdout.write(self.style.SUCCESS("\n" + "=" * 80))
-        self.stdout.write(self.style.SUCCESS("COMPREHENSIVE DEMO DATA LOADED SUCCESSFULLY"))
+        self.stdout.write(self.style.SUCCESS("DEMO DATA LOADED SUCCESSFULLY"))
         self.stdout.write(self.style.SUCCESS("=" * 80))
         self.print_summary()
 
@@ -331,9 +330,6 @@ class Command(BaseCommand):
                 ]
             )
 
-        # Determine how to add members:
-        # - Either Team.members is M2M to User
-        # - Or TeamMembership exists (through model)
         has_members_m2m = has_field(self.Team, "members")
         owner_field = pick_field(self.Team, ["owner", "created_by", "leader"])
 
@@ -529,12 +525,11 @@ class Command(BaseCommand):
             self.collections[name] = obj
 
     # =====================================================================
-    # GENBANK IMPORT (delegates to the management command if present)
+    # GENBANK IMPORT
     # =====================================================================
     def import_genbank_files(self):
         self.stdout.write("\n>>> Importing GenBank files...")
 
-        # If the import_genbank command is broken/missing Command class, this will raise.
         genbank_imports = [
             ("data/pYTK", "pYTK Collection", True),
             ("data/pYS", "pYS Collection", True),
@@ -564,7 +559,7 @@ class Command(BaseCommand):
                 self.stdout.write(self.style.WARNING("  ⚠ Fix import_genbank.py (must define class Command(BaseCommand))."))
 
     # =====================================================================
-    # DEMO PLASMIDS (manual insertion)
+    # DEMO PLASMIDS 
     # =====================================================================
     def create_demo_plasmids(self):
         self.stdout.write("\n>>> Creating demo plasmids...")
@@ -799,7 +794,7 @@ class Command(BaseCommand):
             self.correspondences[name] = corr
 
     # =====================================================================
-    # CAMPAIGNS (best-effort; skips if schema mismatch)
+    # CAMPAIGNS 
     # =====================================================================
     def create_campaigns(self):
         self.stdout.write("\n>>> Creating campaigns...")
@@ -886,7 +881,6 @@ class Command(BaseCommand):
                 self.stdout.write(self.style.WARNING("  ⚠ Your simulations.Campaign fields differ. Align keys with the model."))
                 continue
 
-            # Link collections_used
             if has_collections_used:
                 try:
                     for coll_name in data.get("collections_used", []):
@@ -895,7 +889,6 @@ class Command(BaseCommand):
                 except Exception:
                     pass
 
-            # Link produced_plasmids
             if has_produced_plasmids:
                 try:
                     for pid in data.get("produced_plasmids", []):
@@ -917,7 +910,6 @@ class Command(BaseCommand):
             self.stdout.write(self.style.WARNING("  ⚠ publications.PublicationRequest missing. Skipping publication requests."))
             return
 
-        # Determine the team field name on PublicationRequest (likely "team")
         team_field = pick_field(self.PublicationRequest, ["team"])
         requested_by_field = pick_field(self.PublicationRequest, ["requested_by"])
         status_field = pick_field(self.PublicationRequest, ["status"])
@@ -927,7 +919,6 @@ class Command(BaseCommand):
 
         # Status values
         def status_value(key: str, fallback: str):
-            # If it's a TextChoices class, values live on PublicationStatus.<KEY>
             ps = self.PublicationStatus
             if ps is None:
                 return fallback
@@ -941,7 +932,6 @@ class Command(BaseCommand):
         APPROVED = status_value("APPROVED", "APPROVED")
         REJECTED = status_value("REJECTED", "REJECTED")
 
-        # Need at least one target to attach (collection/correspondence)
         targets = []
         if "Collection Personnelle Sophie" in self.collections:
             targets.append(("Collection Personnelle Sophie", self.collections["Collection Personnelle Sophie"]))
