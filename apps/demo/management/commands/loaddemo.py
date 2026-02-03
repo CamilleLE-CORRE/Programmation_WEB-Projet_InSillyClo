@@ -15,6 +15,7 @@ Usage:
 from __future__ import annotations
 
 import os
+import random
 from datetime import timedelta
 
 from django.apps import apps as django_apps
@@ -99,7 +100,7 @@ class Command(BaseCommand):
         self.Correspondence = get_model("correspondences", "Correspondence")
         self.CorrespondenceEntry = get_model("correspondences", "CorrespondenceEntry")
 
-        self.PublicationRequest = get_model("publications", "PublicationRequest")
+        self.Publication = get_model("publications", "Publication")
         self.PublicationStatus = get_model("publications", "PublicationStatus")
 
         self.Campaign = get_model("simulations", "Campaign")
@@ -119,10 +120,13 @@ class Command(BaseCommand):
         self.create_campaign_templates()
         self.create_plasmid_collections()
 
+        # Optional: import existing GenBank libraries if your import command fills genbank_data["features"].
         if not options.get("skip_genbank", False):
             self.import_genbank_files()
 
+        # Create realistic plasmids even without GenBank import (annotations-driven visual map).
         self.create_demo_plasmids()
+
         self.create_correspondences()
         self.create_campaigns()
         self.create_publication_requests()
@@ -131,6 +135,65 @@ class Command(BaseCommand):
         self.stdout.write(self.style.SUCCESS("DEMO DATA LOADED SUCCESSFULLY"))
         self.stdout.write(self.style.SUCCESS("=" * 80))
         self.print_summary()
+
+    # =====================================================================
+    # DNA + annotation helpers (to get a realistic plasmid map)
+    # =====================================================================
+    def _dna(self, n: int) -> str:
+        return "".join(random.choice("ACGT") for _ in range(int(n)))
+
+    def _mk_plasmid_seq(self, backbone_len: int = 2600, insert_len: int = 900) -> str:
+        # "Plausible" plasmid: backbone + insert (no external dependencies)
+        return self._dna(backbone_len) + self._dna(insert_len)
+
+    def add_annotation(self, plasmid, feature_type, start, end, label=None, strand=1, qualifiers=None):
+        if self.PlasmidAnnotation is None:
+            return
+        seq_len = len(plasmid.sequence or "")
+        start = max(0, int(start))
+        end = min(seq_len, int(end))
+        if end <= start:
+            return
+
+        try:
+            self.PlasmidAnnotation.objects.create(
+                plasmid=plasmid,
+                feature_type=feature_type,     # promoter / RBS / CDS / terminator / rep_origin, etc.
+                start=start,                   # 0-based (the view will convert as needed)
+                end=end,
+                strand=int(strand),
+                label=(label or feature_type),
+                qualifiers=qualifiers or {},
+            )
+        except Exception:
+            pass
+
+    def annotate_expression_plasmid(self, plasmid, gene_label: str):
+        """
+        Creates multi-block annotations so plasmid_detail displays a readable circular map.
+        """
+        L = len(plasmid.sequence or "")
+        if L < 1200:
+            return
+
+        # ori
+        self.add_annotation(plasmid, "rep_origin", 0, 220, "ori")
+
+        # marker (ampR)
+        m1 = int(L * 0.35)
+        m2 = min(m1 + 750, L - 400)
+        self.add_annotation(plasmid, "CDS", m1, m2, "ampR", qualifiers={"product": ["beta-lactamase"]})
+
+        # expression cassette
+        p1, p2 = int(L * 0.55), int(L * 0.60)
+        self.add_annotation(plasmid, "promoter", p1, p2, "pTEF1")
+        self.add_annotation(plasmid, "RBS", p2, p2 + 35, "RBS")
+
+        cds1 = p2 + 35
+        cds2 = min(cds1 + 720, L - 260)
+        self.add_annotation(plasmid, "CDS", cds1, cds2, gene_label, qualifiers={"product": [gene_label]})
+
+        self.add_annotation(plasmid, "terminator", max(L - 220, cds2 + 1), L, "tCYC1")
 
     # =====================================================================
     # USERS
@@ -242,18 +305,20 @@ class Command(BaseCommand):
             if user:
                 self.stdout.write(self.style.WARNING(f"  ⚠ User {email} already exists"))
             else:
+                # Ensure username uniqueness if the field exists
+                if has_field(User, "username") and "username" not in data:
+                    base = email.split("@")[0]
+                    username = base
+                    i = 1
+                    while User.objects.filter(username=username).exists():
+                        i += 1
+                        username = f"{base}{i}"
+                    data["username"] = username
+
                 if is_superuser:
-                    user = User.objects.create_superuser(
-                        email=email,
-                        password=password,
-                        **data,
-                    )
+                    user = User.objects.create_superuser(email=email, password=password, **data)
                 else:
-                    user = User.objects.create_user(
-                        email=email,
-                        password=password,
-                        **data,
-                    )
+                    user = User.objects.create_user(email=email, password=password, **data)
 
                 if hasattr(user, "is_staff"):
                     user.is_staff = bool(is_staff)
@@ -262,7 +327,6 @@ class Command(BaseCommand):
                 self.stdout.write(self.style.SUCCESS(f"  ✓ Created {email}"))
 
             self.users[email] = user
-
 
     # =====================================================================
     # TEAMS
@@ -356,7 +420,6 @@ class Command(BaseCommand):
                 except Exception:
                     pass
             elif self.TeamMembership is not None:
-                # Best-effort: create memberships
                 role_field = pick_field(self.TeamMembership, ["role"])
                 for u in members:
                     m = self.TeamMembership.objects.filter(team=team, user=u).first()
@@ -447,7 +510,7 @@ class Command(BaseCommand):
                 self.templates[name] = template
                 continue
 
-            owner = self.users[data.pop("owner")]
+            owner = self.users[data["owner"]]
             create_kwargs = {
                 "name": data["name"],
                 "template_type": data.get("template_type"),
@@ -459,7 +522,6 @@ class Command(BaseCommand):
             if public_field:
                 create_kwargs[public_field] = bool(data.get("is_public", False))
 
-            # Filter only existing fields
             create_kwargs = {k: v for k, v in create_kwargs.items() if has_field(self.CampaignTemplate, k)}
             template = self.CampaignTemplate.objects.create(**create_kwargs)
 
@@ -476,26 +538,26 @@ class Command(BaseCommand):
             self.stdout.write(self.style.WARNING("  ⚠ PlasmidCollection model not found. Skipping collections."))
             return
 
-        public_field = pick_field(self.PlasmidCollection, ["is_public", "public"])
         owner_field = pick_field(self.PlasmidCollection, ["owner", "created_by"])
         team_field = pick_field(self.PlasmidCollection, ["team"])
+        public_field = pick_field(self.PlasmidCollection, ["is_public", "public"])
 
         collections_data = [
-            {"name": "pYTK Collection", "owner": None, "team": None, "is_public": True},
-            {"name": "pYS Collection", "owner": None, "team": None, "is_public": True},
-            {"name": "Équipe Synthèse - Plasmides Privés", "owner": "marie.dupont@insillyclo.com", "team": "Équipe Synthèse Génomique", "is_public": False},
-            {"name": "Équipe Biologie - Collection Levure", "owner": "jean.martin@insillyclo.com", "team": "Équipe Biologie Synthétique", "is_public": False},
-            {"name": "CRISPR Toolkit", "owner": "marie.dupont@insillyclo.com", "team": "Équipe Plasmides & Assemblage", "is_public": False},
-            {"name": "Collection Personnelle Sophie", "owner": "sophie.rousseau@insillyclo.com", "team": None, "is_public": False},
+            # Public (guest sees them)
+            {"name": "pYTK Public Library", "owner": None, "team": None, "is_public": True},
+            {"name": "Yeast Toolkit Public", "owner": None, "team": None, "is_public": True},
+
+            # Private team collections
+            {"name": "Team Synthèse - Private", "owner": "marie.dupont@insillyclo.com", "team": "Équipe Synthèse Génomique", "is_public": False},
+            {"name": "Team BioSyn - Private", "owner": "jean.martin@insillyclo.com", "team": "Équipe Biologie Synthétique", "is_public": False},
+
+            # Private personal
+            {"name": "Sophie - Personal", "owner": "sophie.rousseau@insillyclo.com", "team": None, "is_public": False},
         ]
 
         if not self.minimal:
-            collections_data.extend(
-                [
-                    {"name": "pMISC Collection", "owner": None, "team": None, "is_public": True},
-                    {"name": "Promoters Library", "owner": "jean.martin@insillyclo.com", "team": "Équipe Biologie Synthétique", "is_public": False},
-                    {"name": "Fluorescent Reporters", "owner": "claire.bernard@insillyclo.com", "team": None, "is_public": False},
-                ]
+            collections_data.append(
+                {"name": "Plasmid Assembly - Sandbox", "owner": "claire.bernard@insillyclo.com", "team": "Équipe Plasmides & Assemblage", "is_public": False}
             )
 
         for data in collections_data:
@@ -507,17 +569,15 @@ class Command(BaseCommand):
                 continue
 
             create_kwargs = {"name": name}
-
             if owner_field and data["owner"]:
-                create_kwargs[owner_field] = self.users[data["owner"]]
-
-            if team_field and data["team"] and data["team"] in self.teams:
-                create_kwargs[team_field] = self.teams[data["team"]]
-
+                create_kwargs[owner_field] = self.users.get(data["owner"])
+            if team_field and data["team"]:
+                t = self.teams.get(data["team"])
+                if t:
+                    create_kwargs[team_field] = t
             if public_field:
                 create_kwargs[public_field] = bool(data["is_public"])
 
-            # Filter
             create_kwargs = {k: v for k, v in create_kwargs.items() if has_field(self.PlasmidCollection, k)}
             obj = self.PlasmidCollection.objects.create(**create_kwargs)
 
@@ -525,22 +585,15 @@ class Command(BaseCommand):
             self.collections[name] = obj
 
     # =====================================================================
-    # GENBANK IMPORT
+    # GENBANK IMPORT (optional)
     # =====================================================================
     def import_genbank_files(self):
         self.stdout.write("\n>>> Importing GenBank files...")
 
         genbank_imports = [
-            ("data/pYTK", "pYTK Collection", True),
-            ("data/pYS", "pYS Collection", True),
+            ("data/pYTK", "pYTK Public Library", True),
+            ("data/pYS", "Yeast Toolkit Public", True),
         ]
-        if not self.minimal:
-            genbank_imports.extend(
-                [
-                    ("data/pMISC", "pMISC Collection", False),
-                    ("data/pMYTK", "pMYTK Collection", False),
-                ]
-            )
 
         for path, collection, is_public in genbank_imports:
             if not os.path.exists(path):
@@ -556,10 +609,10 @@ class Command(BaseCommand):
                 self.stdout.write(self.style.SUCCESS(f"  ✓ {collection} imported"))
             except Exception as e:
                 self.stdout.write(self.style.ERROR(f"  ✗ Import error {collection}: {e}"))
-                self.stdout.write(self.style.WARNING("  ⚠ Fix import_genbank.py (must define class Command(BaseCommand))."))
+                self.stdout.write(self.style.WARNING("  ⚠ import_genbank command failed; demo will still work via annotations."))
 
     # =====================================================================
-    # DEMO PLASMIDS 
+    # DEMO PLASMIDS
     # =====================================================================
     def create_demo_plasmids(self):
         self.stdout.write("\n>>> Creating demo plasmids...")
@@ -568,73 +621,68 @@ class Command(BaseCommand):
             self.stdout.write(self.style.WARNING("  ⚠ Plasmid / PlasmidCollection model missing. Skipping plasmids."))
             return
 
-        # Field mapping
-        id_field = pick_field(self.Plasmid, ["identifier", "genbank_id", "accession", "name", "slug"])
+        # If schema differs, pick_field can be used; here we assume standard fields exist.
+        id_field = pick_field(self.Plasmid, ["identifier"])
         name_field = pick_field(self.Plasmid, ["name"])
         seq_field = pick_field(self.Plasmid, ["sequence", "seq"])
         length_field = pick_field(self.Plasmid, ["length", "len"])
         desc_field = pick_field(self.Plasmid, ["description"])
-        type_field = pick_field(self.Plasmid, ["type", "part_type"])
+        type_field = pick_field(self.Plasmid, ["type", "plasmid_type", "part_type"])
         public_field = pick_field(self.Plasmid, ["is_public", "public"])
-        collection_field = pick_field(self.Plasmid, ["collection", "plasmid_collection"])
-
-        # Fake sequences
-        sequences = {
-            "Venus": "ATGGTGAGCAAGGGCGAGGAGCTGTTCACCGGGGTGGTGCCCATCCTGGTCGAGCTGGACGGCGACGTAAACGGCCACAAGTTCAGCGTGTCCGGCGAGGGCGAGGGCGATGCCACCTACGGCAAGCTGACCCTGAAGTTCATCTGCACCACCGGCAAGCTGCCCGTGCCCTGGCCCACCCTCGTGACCACCTTCGGCTACGGCCTGCAGTGCTTCGCCCGCTACCCCGACCACATGAAGCAGCACGACTTCTTCAAGTCCGCCATGCCCGAAGGCTACGTCCAGGAGCGCACCATCTTCTTCAAGGACGACGGCAACTACAAGACCCGCGCCGAGGTGAAGTTCGAGGGCGACACCCTGGTGAACCGCATCGAGCTGAAGGGCATCGACTTCAAGGAGGACGGCAACATCCTGGGGCACAAGCTGGAGTACAACTACAACAGCCACAACGTCTATATCATGGCCGACAAGCAGAAGAACGGCATCAAGGTGAACTTCAAGATCCGCCACAACATCGAGGACGGCAGCGTGCAGCTCGCCGACCACTACCAGCAGAACACCCCCATCGGCGACGGCCCCGTGCTGCTGCCCGACAACCACTACCTGAGCTACCAGTCCGCCCTGAGCAAAGACCCCAACGAGAAGCGCGATCACATGGTCCTGCTGGAGTTCGTGACCGCCGCCGGGATCACTCTCGGCATGGACGAGCTGTACAAGTAA",
-            "mCherry": "ATGGTGAGCAAGGGCGAGGAGGATAACATGGCCATCATCAAGGAGTTCATGCGCTTCAAGGTGCACATGGAGGGCTCCGTGAACGGCCACGAGTTCGAGATCGAGGGCGAGGGCGAGGGCCGCCCCTACGAGGGCACCCAGACCGCCAAGCTGAAGGTGACCAAGGGTGGCCCCCTGCCCTTCGCCTGGGACATCCTGTCCCCTCAGTTCATGTACGGCTCCAAGGCCTACGTGAAGCACCCCGCCGACATCCCCGACTACTTGAAGCTGTCCTTCCCCGAGGGCTTCAAGTGGGAGCGCGTGATGAACTTCGAGGACGGCGGCGTGGTGACCGTGACCCAGGACTCCTCCCTGCAGGACGGCGAGTTCATCTACAAGGTGAAGCTGCGCGGCACCAACTTCCCCTCCGACGGCCCCGTAATGCAGAAGAAGACCATGGGCTGGGAGGCCTCCTCCGAGCGGATGTACCCCGAGGACGGCGCCCTGAAGGGCGAGATCAAGCAGAGGCTGAAGCTGAAGGACGGCGGCCACTACGACGCTGAGGTCAAGACCACCTACAAGGCCAAGAAGCCCGTGCAGCTGCCCGGCGCCTACAACGTCAACATCAAGTTGGACATCACCTCCCACAACGAGGACTACACCATCGTGGAACAGTACGAACGCGCCGAGGGCCGCCACTCCACCGGCGGCATGGACGAGCTGTACAAGTAA",
-            "AmpR": "ATGAGTATTCAACATTTCCGTGTCGCCCTTATTCCCTTTTTTGCGGCATTTTGCCTTCCTGTTTTTGCTCACCCAGAAACGCTGGTGAAAGTAAAAGATGCTGAAGATCAGTTGGGTGCACGAGTGGGTTACATCGAACTGGATCTCAACAGCGGTAAGATCCTTGAGAGTTTTCGCCCCGAAGAACGTTTTCCAATGATGAGCACTTTTAAAGTTCTGCTATGTGGCGCGGTATTATCCCGTATTGACGCCGGGCAAGAGCAACTCGGTCGCCGCATACACTATTCTCAGAATGACTTGGTTGAGTACTCACCAGTCACAGAAAAGCATCTTACGGATGGCATGACAGTAAGAGAATTATGCAGTGCTGCCATAACCATGAGTGATAACACTGCGGCCAACTTACTTCTGACAACGATCGGAGGACCGAAGGAGCTAACCGCTTTTTTGCACAACATGGGGGATCATGTAACTCGCCTTGATCGTTGGGAACCGGAGCTGAATGAAGCCATACCAAACGACGAGCGTGACACCACGATGCCTGTAGCAATGGCAACAACGTTGCGCAAACTATTAACTGGCGAACTACTTACTCTAGCTTCCCGGCAACAATTAATAGACTGGATGGAGGCGGATAAAGTTGCAGGACCACTTCTGCGCTCGGCCCTTCCGGCTGGCTGGTTTATTGCTGATAAATCTGGAGCCGGTGAGCGTGGGTCTCGCGGTATCATTGCAGCACTGGGGCCAGATGGTAAGCCCTCCCGTATCGTAGTTATCTACACGACGGGGAGTCAGGCAACTATGGATGAACGAAATAGACAGATCGCTGAGATAGGTGCCTCACTGATTAAGCATTGGTAA",
-        }
+        collection_field = pick_field(self.Plasmid, ["collection", "plasmid_collection", "plasmidCollection"])
 
         plasmids_data = [
-            {
-                "identifier": "pYTK003",
-                "name": "Venus",
-                "type": "3a",
-                "sequence": sequences["Venus"],
-                "collection": "pYTK Collection",
-                "description": "Yellow fluorescent protein",
-            },
-            {
-                "identifier": "pYTK008",
-                "name": "mCherry",
-                "type": "3b",
-                "sequence": sequences["mCherry"],
-                "collection": "pYTK Collection",
-                "description": "Red fluorescent protein",
-            },
+            # Public
+            {"identifier": "pYTK008", "name": "mCherry", "type": "3b", "collection": "pYTK Public Library", "desc": "RFP reporter cassette"},
+            {"identifier": "pYTK100", "name": "GFP", "type": "3a", "collection": "Yeast Toolkit Public", "desc": "GFP reporter cassette"},
+
+            # Private team
+            # {"identifier": "pSA001", "name": "Venus-Expression", "type": "TU1", "collection": "Team Synthèse - Private", "desc": "Expression construct for screening"},
+            # {"identifier": "pBIO001", "name": "GAL1-Venus", "type": "TU2", "collection": "Team BioSyn - Private", "desc": "GAL1 promoter driving Venus"},
+
+            # Personal
+            
+            {"identifier": "pSR001", "name": "Sophie-TagTest", "type": "misc", "collection": "Sophie - Personal", "desc": "Personal test plasmid"},
+        # --- Personal / test / experimental plasmids ---
+            {"identifier": "pSR002", "name": "Tag-Linker-Test",        "type": "misc", "collection": "Sophie - Personal",               "desc": "Flexible linker length comparison"},
+            {"identifier": "pSR003", "name": "FLAG-HA-Swap",          "type": "misc", "collection": "Sophie - Personal",               "desc": "Epitope tag replacement construct"},
+            {"identifier": "pSR004", "name": "NLS-Screen",            "type": "misc", "collection": "Team Synthèse - Private",           "desc": "Nuclear localization signal screening"},
+            {"identifier": "pSR005", "name": "NES-Export-Test",       "type": "misc", "collection": "Team Synthèse - Private",           "desc": "Nuclear export signal validation"},
+            {"identifier": "pSR006", "name": "GFP-Fusion-Test",       "type": "misc", "collection": "Team BioSyn - Private",             "desc": "GFP fusion for subcellular localization"},
+            {"identifier": "pSR007", "name": "Promoter-Strength-Test","type": "misc", "collection": "Team BioSyn - Private",             "desc": "Relative promoter activity assay"},
+            {"identifier": "pSR008", "name": "Terminator-Variant-A",  "type": "misc", "collection": "Team BioSyn - Private",             "desc": "Terminator efficiency comparison"},
+            {"identifier": "pSR009", "name": "MCS-Variant-Short",     "type": "misc", "collection": "Team BioSyn - Private",             "desc": "Alternative short multiple cloning site"},
+            {"identifier": "pSR010", "name": "Reporter-Control-ON",   "type": "misc", "collection": "pYTK Public Library",               "desc": "Positive control reporter plasmid"},
+            {"identifier": "pSR011", "name": "Reporter-Control-OFF",  "type": "misc", "collection": "pYTK Public Library",               "desc": "Negative control reporter plasmid"},
+            {"identifier": "pSR012", "name": "Domain-Deletion-Test",  "type": "misc", "collection": "Sophie - Personal",               "desc": "Protein domain deletion mutant"},
+            {"identifier": "pSR013", "name": "Orientation-Switch",   "type": "misc", "collection": "Team Synthèse - Private",           "desc": "Insert orientation inversion test"},
+            {"identifier": "pSR014", "name": "Spacer-Length-Test",    "type": "misc", "collection": "Team Synthèse - Private",           "desc": "Inter-part spacer length evaluation"},
+            {"identifier": "pSR015", "name": "Low-Copy-Backbone",     "type": "misc", "collection": "Yeast Toolkit Public",             "desc": "Low copy number backbone test"},
+            {"identifier": "pSR016", "name": "High-Copy-Backbone",    "type": "misc", "collection": "Yeast Toolkit Public",             "desc": "High copy number backbone control"},
+            {"identifier": "pSR017", "name": "Inducible-System-Test", "type": "misc", "collection": "Team BioSyn - Private",             "desc": "Inducible expression system validation"},
+            {"identifier": "pSR018", "name": "StopCodon-Readthrough", "type": "misc", "collection": "Sophie - Personal",               "desc": "Stop codon readthrough assessment"},
+            {"identifier": "pSR019", "name": "Codon-Usage-Test",      "type": "misc", "collection": "Team BioSyn - Private",             "desc": "Codon optimization comparison"},
+            {"identifier": "pSR020", "name": "Minimal-Backbone",     "type": "misc", "collection": "pYTK Public Library",               "desc": "Minimal backbone construct"},
+
         ]
+
+
 
         if not self.minimal:
             plasmids_data.extend(
                 [
-                    {
-                        "identifier": "pSA001",
-                        "name": "Venus-Expression",
-                        "type": "",
-                        "sequence": sequences["Venus"] + "GCATGC" * 50,
-                        "collection": "Équipe Synthèse - Plasmides Privés",
-                        "description": "Venus expression construct",
-                    },
-                    {
-                        "identifier": "pBIO001",
-                        "name": "GAL1-Venus",
-                        "type": "TU1",
-                        "sequence": "GCGGCCGC" * 20 + sequences["Venus"],
-                        "collection": "Équipe Biologie - Collection Levure",
-                        "description": "GAL1 promoter driving Venus",
-                    },
+                    {"identifier": "pCR001", "name": "CRISPR-gRNA-Backbone", "type": "misc", "collection": "Plasmid Assembly - Sandbox", "desc": "gRNA backbone demo plasmid"},
+                    {"identifier": "pCR002", "name": "Cas9-Expression", "type": "TU3", "collection": "Plasmid Assembly - Sandbox", "desc": "Cas9 expression demo plasmid"},
                 ]
             )
 
-        for data in plasmids_data:
-            uniq = data.get("identifier")
-            coll_name = data.get("collection")
-
+        for d in plasmids_data:
+            coll_name = d["collection"]
             if coll_name not in self.collections:
-                self.stdout.write(self.style.WARNING(f"  ⚠ Missing collection '{coll_name}', skipping plasmid {uniq}"))
+                self.stdout.write(self.style.WARNING(f"  ⚠ Missing collection '{coll_name}', skip {d['identifier']}"))
                 continue
 
-            # Lookup existing
+            uniq = d.get("identifier")
             existing = None
             if id_field and uniq:
                 existing = self.Plasmid.objects.filter(**{id_field: uniq}).first()
@@ -644,61 +692,37 @@ class Command(BaseCommand):
                 self.plasmids[uniq] = existing
                 continue
 
+            seq = self._mk_plasmid_seq()
+
             create_kwargs = {}
             if id_field:
                 create_kwargs[id_field] = uniq
             if name_field:
-                create_kwargs[name_field] = data.get("name")
-            if seq_field:
-                create_kwargs[seq_field] = data.get("sequence")
-            if length_field and data.get("sequence"):
-                create_kwargs[length_field] = len(data["sequence"])
-            if desc_field:
-                create_kwargs[desc_field] = data.get("description")
+                create_kwargs[name_field] = d.get("name")
             if type_field:
-                create_kwargs[type_field] = data.get("type")
-            if public_field:
-                coll_public = None
-                # Try to read is_public/public from collection
-                cp = self.collections[coll_name]
-                if hasattr(cp, "is_public"):
-                    coll_public = getattr(cp, "is_public")
-                elif hasattr(cp, "public"):
-                    coll_public = getattr(cp, "public")
-                create_kwargs[public_field] = bool(coll_public) if coll_public is not None else False
+                create_kwargs[type_field] = d.get("type", "")
+            if seq_field:
+                create_kwargs[seq_field] = seq
+            if length_field:
+                create_kwargs[length_field] = len(seq)
+            if desc_field:
+                create_kwargs[desc_field] = d.get("desc", "")
+
             if collection_field:
                 create_kwargs[collection_field] = self.collections[coll_name]
 
-            # Filter
+            if public_field:
+                coll_obj = self.collections[coll_name]
+                coll_public = getattr(coll_obj, "is_public", None)
+                if coll_public is None:
+                    coll_public = getattr(coll_obj, "public", None)
+                create_kwargs[public_field] = bool(coll_public) if coll_public is not None else False
+
             create_kwargs = {k: v for k, v in create_kwargs.items() if has_field(self.Plasmid, k)}
             plasmid = self.Plasmid.objects.create(**create_kwargs)
 
-            # Optional annotation
-            if self.PlasmidAnnotation is not None:
-                label = data.get("name")
-                if label in {"Venus", "mCherry"}:
-                    ann_kwargs = {}
-                    if has_field(self.PlasmidAnnotation, "plasmid"):
-                        ann_kwargs["plasmid"] = plasmid
-                    if has_field(self.PlasmidAnnotation, "feature_type"):
-                        ann_kwargs["feature_type"] = "CDS"
-                    if has_field(self.PlasmidAnnotation, "start"):
-                        ann_kwargs["start"] = 1
-                    if has_field(self.PlasmidAnnotation, "end"):
-                        ann_kwargs["end"] = len(data["sequence"])
-                    if has_field(self.PlasmidAnnotation, "strand"):
-                        ann_kwargs["strand"] = 1
-                    if has_field(self.PlasmidAnnotation, "label"):
-                        ann_kwargs["label"] = label
-                    if has_field(self.PlasmidAnnotation, "qualifiers"):
-                        ann_kwargs["qualifiers"] = {"product": [label]}
-
-                    # Only create if minimal fields exist
-                    if ann_kwargs.get("plasmid") is not None:
-                        try:
-                            self.PlasmidAnnotation.objects.create(**ann_kwargs)
-                        except Exception:
-                            pass
+            # Ensure readable plasmid map even without GenBank import
+            self.annotate_expression_plasmid(plasmid, d.get("name") or uniq)
 
             self.stdout.write(self.style.SUCCESS(f"  ✓ Created plasmid {uniq}"))
             self.plasmids[uniq] = plasmid
@@ -742,20 +766,16 @@ class Command(BaseCommand):
                     {"identifier": "pBIO001", "display_name": "YEAST-001", "entry_type": "Yeast"},
                 ],
             },
+            {
+                "name": "Freezer Location Mapping",
+                "owner": "sophie.rousseau@insillyclo.com",
+                "is_public": False,
+                "entries": [
+                    {"identifier": "pYTK003", "display_name": "Freezer A / Box 1 / Pos 3", "entry_type": "Stock"},
+                    {"identifier": "pYTK008", "display_name": "Freezer A / Box 1 / Pos 8", "entry_type": "Stock"},
+                ],
+            },
         ]
-
-        if not self.minimal:
-            correspondences_data.append(
-                {
-                    "name": "Freezer Location Mapping",
-                    "owner": "sophie.rousseau@insillyclo.com",
-                    "is_public": False,
-                    "entries": [
-                        {"identifier": "pYTK001", "display_name": "Box A1, Position 1", "entry_type": ""},
-                        {"identifier": "pYTK002", "display_name": "Box A1, Position 2", "entry_type": ""},
-                    ],
-                }
-            )
 
         for data in correspondences_data:
             name = data["name"]
@@ -774,7 +794,6 @@ class Command(BaseCommand):
             create_kwargs = {k: v for k, v in create_kwargs.items() if has_field(self.Correspondence, k)}
             corr = self.Correspondence.objects.create(**create_kwargs)
 
-            # Create entries
             for entry in data["entries"]:
                 e_kwargs = {"correspondence": corr}
                 if entry_identifier_field:
@@ -794,7 +813,7 @@ class Command(BaseCommand):
             self.correspondences[name] = corr
 
     # =====================================================================
-    # CAMPAIGNS 
+    # CAMPAIGNS
     # =====================================================================
     def create_campaigns(self):
         self.stdout.write("\n>>> Creating campaigns...")
@@ -810,44 +829,41 @@ class Command(BaseCommand):
         template_field = pick_field(self.Campaign, ["template", "campaign_template"])
         name_field = pick_field(self.Campaign, ["name", "title"])
 
-        # Optional JSON-ish fields
         parameters_field = pick_field(self.Campaign, ["parameters", "params", "config"])
         results_field = pick_field(self.Campaign, ["results_data", "results", "data"])
         output_files_field = pick_field(self.Campaign, ["output_files", "files"])
 
-        # Optional M2M names (as in your DB)
-        has_collections_used = hasattr(self.Campaign, "collections_used") or has_field(self.Campaign, "collections_used")
-        has_produced_plasmids = hasattr(self.Campaign, "produced_plasmids") or has_field(self.Campaign, "produced_plasmids")
+        has_collections_used = has_field(self.Campaign, "collections_used")
+        has_produced_plasmids = has_field(self.Campaign, "produced_plasmids")
 
         campaigns_data = [
             {
-                "name": "Venus Expression Screen",
+                "name": "Fluorescent reporter assembly",
                 "owner": "marie.dupont@insillyclo.com",
                 "template": "YTK Standard Assembly",
                 "parameters": {"restriction_enzyme": "BsaI", "output_separator": "-"},
-                "results_data": {"assemblies": [{"output_id": "pIB001"}]},
-                "output_files": {"xlsx": "Campaign_Venus.xlsx", "generated_at": "2024-12-15T10:30:00"},
-                "collections_used": ["pYTK Collection"],
-                "produced_plasmids": [],
+                "results_data": {"assemblies": [{"output_id": "pSA001"}]},
+                "output_files": {"xlsx": "Fluo_Assembly.xlsx"},
+                "collections_used": ["pYTK Public Library"],
+                "produced_plasmids": ["pSA001"],
             },
             {
-                "name": "Raw Assembly Test",
+                "name": "Yeast promoter swap",
                 "owner": "jean.martin@insillyclo.com",
                 "template": "Raw BsaI Assembly",
-                "parameters": {"restriction_enzyme": "BsaI", "output_separator": "-"},
-                "results_data": {"assemblies": [{"output_id": "pSA001"}]},
+                "parameters": {"restriction_enzyme": "BsaI"},
+                "results_data": {"assemblies": [{"output_id": "pBIO001"}]},
                 "output_files": {},
-                "collections_used": ["pYTK Collection", "Équipe Synthèse - Plasmides Privés"],
-                "produced_plasmids": ["pSA001"],
+                "collections_used": ["Yeast Toolkit Public"],
+                "produced_plasmids": ["pBIO001"],
             },
         ]
 
         for data in campaigns_data:
             cname = data["name"]
+            existing = None
             if name_field:
                 existing = self.Campaign.objects.filter(**{name_field: cname}).first()
-            else:
-                existing = self.Campaign.objects.filter(pk=-1).first()
 
             if existing:
                 self.stdout.write(self.style.WARNING(f"  ⚠ Campaign '{cname}' already exists"))
@@ -864,8 +880,27 @@ class Command(BaseCommand):
                 create_kwargs[name_field] = cname
             if owner_field:
                 create_kwargs[owner_field] = self.users[data["owner"]]
+
+            # IMPORTANT: Campaign.template FK may not target campaigns.CampaignTemplate.
             if template_field:
-                create_kwargs[template_field] = self.templates[template_name]
+                expected_model = self.Campaign._meta.get_field(template_field).remote_field.model
+                src = self.templates[template_name]
+
+                dst = None
+                if has_field(expected_model, "name") and hasattr(src, "name"):
+                    try:
+                        dst = expected_model.objects.filter(name=src.name).first()
+                    except Exception:
+                        dst = None
+
+                if dst is None:
+                    self.stdout.write(self.style.WARNING(
+                        f"  ⚠ Campaign.template expects {expected_model._meta.label}; no matching template '{getattr(src,'name',template_name)}' -> skipping '{cname}'"
+                    ))
+                    continue
+
+                create_kwargs[template_field] = dst
+
             if parameters_field:
                 create_kwargs[parameters_field] = data.get("parameters", {})
             if results_field:
@@ -876,9 +911,8 @@ class Command(BaseCommand):
             create_kwargs = {k: v for k, v in create_kwargs.items() if has_field(self.Campaign, k)}
             try:
                 campaign = self.Campaign.objects.create(**create_kwargs)
-            except TypeError as e:
+            except Exception as e:
                 self.stdout.write(self.style.ERROR(f"  ✗ Could not create campaign '{cname}': {e}"))
-                self.stdout.write(self.style.WARNING("  ⚠ Your simulations.Campaign fields differ. Align keys with the model."))
                 continue
 
             if has_collections_used:
@@ -906,115 +940,159 @@ class Command(BaseCommand):
     def create_publication_requests(self):
         self.stdout.write("\n>>> Creating publication requests...")
 
-        if self.PublicationRequest is None:
-            self.stdout.write(self.style.WARNING("  ⚠ publications.PublicationRequest missing. Skipping publication requests."))
+        if self.Publication is None:
+            self.stdout.write(self.style.WARNING(
+                "  ⚠ publications.Publication model not available. Skipping publication requests."
+            ))
             return
 
-        team_field = pick_field(self.PublicationRequest, ["team"])
-        requested_by_field = pick_field(self.PublicationRequest, ["requested_by"])
-        status_field = pick_field(self.PublicationRequest, ["status"])
-        decided_by_field = pick_field(self.PublicationRequest, ["decided_by"])
-        decided_at_field = pick_field(self.PublicationRequest, ["decided_at"])
-        rejection_reason_field = pick_field(self.PublicationRequest, ["rejection_reason"])
-
-        # Status values
-        def status_value(key: str, fallback: str):
-            ps = self.PublicationStatus
-            if ps is None:
-                return fallback
-            try:
-                return getattr(ps, key)
-            except Exception:
-                return fallback
-
-        PENDING_ADMIN = status_value("PENDING_ADMIN", "PENDING_ADMIN")
-        PENDING_TEAM_LEAD = status_value("PENDING_TEAM_LEAD", "PENDING_TEAM_LEAD")
-        APPROVED = status_value("APPROVED", "APPROVED")
-        REJECTED = status_value("REJECTED", "REJECTED")
-
+        # On crée des requêtes sur des objets EXISTANTS
         targets = []
-        if "Collection Personnelle Sophie" in self.collections:
-            targets.append(("Collection Personnelle Sophie", self.collections["Collection Personnelle Sophie"]))
-        if "Internal Lab Codes" in self.correspondences:
-            targets.append(("Internal Lab Codes", self.correspondences["Internal Lab Codes"]))
+
+        # 1) Collections
+        for name, coll in self.collections.items():
+            if coll is not None:
+                targets.append(coll)
+
+        # 2) Correspondences
+        for name, corr in self.correspondences.items():
+            if corr is not None:
+                targets.append(corr)
 
         if not targets:
-            self.stdout.write(self.style.WARNING("  ⚠ No targets (collections/correspondences) available. Skipping publication requests."))
+            self.stdout.write(self.style.WARNING("  ⚠ No valid targets for publication requests."))
             return
 
-        requests_data = [
+        from django.contrib.contenttypes.models import ContentType
+        from django.utils import timezone
+
+        demo_requests = [
+            # Pending (user request)
             {
-                "target": self.collections.get("Collection Personnelle Sophie"),
+                "target": targets[0],
                 "requested_by": "sophie.rousseau@insillyclo.com",
-                "status": PENDING_ADMIN,
+                "status": self.Publication.Status.PENDING,
                 "team": None,
             },
+            # Approved
             {
-                "target": self.collections.get("CRISPR Toolkit"),
+                "target": targets[1],
                 "requested_by": "marie.dupont@insillyclo.com",
-                "status": PENDING_TEAM_LEAD,
-                "team": self.teams.get("Équipe Plasmides & Assemblage"),
+                "status": self.Publication.Status.APPROVED,
+                "decided_by": "admin@insillyclo.com",
+                "decided_at": timezone.now(),
             },
+            # Rejected
+            {
+                "target": targets[2] if len(targets) > 2 else targets[0],
+                "requested_by": "jean.martin@insillyclo.com",
+                "status": self.Publication.Status.REJECTED,
+                "decided_by": "admin@insillyclo.com",
+                "decided_at": timezone.now(),
+                "rejection_reason": "Data incomplete or not validated",
+            },
+            
+            {
+                "target": self.collections.get("Sophie - Personal"),
+                "requested_by": "sophie.rousseau@insillyclo.com",
+                "status": self.Publication.Status.PENDING,
+                "team": None,
+            },
+
+            # Pending – demande liée à une équipe
+            {
+                "target": self.collections.get("Team BioSyn - Private"),
+                "requested_by": "emma.moreau@insillyclo.com",
+                "status": self.Publication.Status.PENDING,
+                "team": self.teams.get("Équipe Biologie Synthétique"),
+            },
+
+            # Approved – collection d’équipe validée
+            {
+                "target": self.collections.get("Team Synthèse - Private"),
+                "requested_by": "marie.dupont@insillyclo.com",
+                "status": self.Publication.Status.APPROVED,
+                "decided_by": "admin@insillyclo.com",
+                "decided_at": timezone.now() - timedelta(days=3),
+            },
+
+            # Approved – correspondence rendue publique
+            {
+                "target": self.correspondences.get("YTK to Addgene IDs"),
+                "requested_by": "claire.bernard@insillyclo.com",
+                "status": self.Publication.Status.APPROVED,
+                "decided_by": "admin@insillyclo.com",
+                "decided_at": timezone.now() - timedelta(days=1),
+            },
+
+            # Rejected – données incomplètes
+            {
+                "target": self.collections.get("Sophie - Personal"),
+                "requested_by": "sophie.rousseau@insillyclo.com",
+                "status": self.Publication.Status.REJECTED,
+                "decided_by": "admin@insillyclo.com",
+                "decided_at": timezone.now() - timedelta(days=7),
+                "rejection_reason": "Missing annotations and metadata",
+            },
+
+            # Rejected – trop spécifique / non généralisable
+            {
+                "target": self.correspondences.get("Freezer Location Mapping"),
+                "requested_by": "lucas.petit@insillyclo.com",
+                "status": self.Publication.Status.REJECTED,
+                "decided_by": "admin@insillyclo.com",
+                "decided_at": timezone.now() - timedelta(days=10),
+                "rejection_reason": "Internal lab-only information",
+            },
+
+            # Pending – correspondence en attente de validation
             {
                 "target": self.correspondences.get("Internal Lab Codes"),
                 "requested_by": "jean.martin@insillyclo.com",
-                "status": APPROVED,
+                "status": self.Publication.Status.PENDING,
                 "team": None,
-                "decided_by": "admin@insillyclo.com",
-                "decided_at": timezone.now() - timedelta(days=5),
             },
         ]
 
-        if not self.minimal:
-            requests_data.append(
-                {
-                    "target": self.correspondences.get("Freezer Location Mapping"),
-                    "requested_by": "sophie.rousseau@insillyclo.com",
-                    "status": REJECTED,
-                    "team": None,
-                    "decided_by": "admin@insillyclo.com",
-                    "decided_at": timezone.now() - timedelta(days=10),
-                    "rejection_reason": "Information trop spécifique au laboratoire",
-                }
-            )
+        for data in demo_requests:
+            target = data["target"]
+            ct = ContentType.objects.get_for_model(target)
 
-        for data in requests_data:
-            target = data.get("target")
-            if target is None:
-                continue
-
-            content_type = ContentType.objects.get_for_model(target)
-            object_id = target.id
-
-            # Respect unique constraint on (content_type, object_id) if present
-            exists = self.PublicationRequest.objects.filter(content_type=content_type, object_id=object_id).exists()
+            # Respect de la contrainte UNIQUE sur les PENDING
+            exists = self.Publication.objects.filter(
+                target_content_type=ct,
+                target_object_id=target.id,
+                status=self.Publication.Status.PENDING,
+            ).exists()
             if exists:
-                self.stdout.write(self.style.WARNING(f"  ⚠ Publication request for {target} already exists"))
                 continue
 
-            create_kwargs = {"content_type": content_type, "object_id": object_id}
+            kwargs = {
+                "requested_by": self.users[data["requested_by"]],
+                "target_content_type": ct,
+                "target_object_id": target.id,
+                "status": data["status"],
+            }
 
-            if requested_by_field:
-                create_kwargs[requested_by_field] = self.users[data["requested_by"]]
-            if status_field:
-                create_kwargs[status_field] = data.get("status")
+            if "team" in data and data["team"]:
+                kwargs["team"] = data["team"]
 
-            if team_field and data.get("team") is not None:
-                create_kwargs[team_field] = data["team"]
+            if "decided_by" in data:
+                kwargs["decided_by"] = self.users[data["decided_by"]]
+                kwargs["decided_at"] = data.get("decided_at")
 
-            if decided_by_field and data.get("decided_by"):
-                create_kwargs[decided_by_field] = self.users[data["decided_by"]]
-            if decided_at_field and data.get("decided_at"):
-                create_kwargs[decided_at_field] = data["decided_at"]
-            if rejection_reason_field and data.get("rejection_reason"):
-                create_kwargs[rejection_reason_field] = data["rejection_reason"]
+            if "rejection_reason" in data:
+                kwargs["rejection_reason"] = data["rejection_reason"]
 
-            create_kwargs = {k: v for k, v in create_kwargs.items() if k in {"content_type", "object_id"} or has_field(self.PublicationRequest, k)}
             try:
-                pr = self.PublicationRequest.objects.create(**create_kwargs)
-                self.stdout.write(self.style.SUCCESS(f"  ✓ Created publication request for {target}"))
+                pub = self.Publication.objects.create(**kwargs)
+                self.stdout.write(self.style.SUCCESS(
+                    f"  ✓ Created publication request for {target}"
+                ))
             except Exception as e:
-                self.stdout.write(self.style.ERROR(f"  ✗ Could not create publication request for {target}: {e}"))
+                self.stdout.write(self.style.ERROR(
+                    f"  ✗ Failed to create publication request for {target}: {e}"
+                ))
 
     # =====================================================================
     # SUMMARY

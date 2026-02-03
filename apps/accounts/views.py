@@ -8,6 +8,11 @@ from django.contrib.auth import get_user_model
 from django.http import Http404, HttpResponseForbidden
 from django.shortcuts import get_object_or_404, redirect, render
 from django.db import transaction
+from apps.simulations.models import Campaign
+from apps.plasmids.models import PlasmidCollection
+from apps.correspondences.models import Correspondence
+from apps.publications.models import Publication
+
 
 from .forms import (
     SignUpForm,
@@ -161,7 +166,7 @@ class TeamCreateView(LoginRequiredMixin, CreateView):
 
 class TeamDetailView(TeamMemberRequiredMixin, DetailView):
     model = Team
-    template_name = "accounts/team_detail.html" 
+    template_name = "accounts/team_detail.html"
     context_object_name = "team"
 
     def get_queryset(self):
@@ -170,13 +175,36 @@ class TeamDetailView(TeamMemberRequiredMixin, DetailView):
     def get_context_data(self, **kwargs):
         ctx = super().get_context_data(**kwargs)
         team = self.object
-        ctx.update({
-            "is_owner": team.owner_id == self.request.user.id,
-            "add_member_form": TeamAddMemberForm(team=team),
-            "transfer_owner_form": TeamTransferOwnerForm(team=team),
-            "members": team.members.all().order_by("email"),
-        })
+
+        ctx["is_owner"] = team.owner_id == self.request.user.id
+        ctx["add_member_form"] = TeamAddMemberForm(team=team)
+        ctx["transfer_owner_form"] = TeamTransferOwnerForm(team=team)
+        ctx["members"] = team.members.all().order_by("email")
+
+        # === NOUVEAU ===
+
+        ctx["campaigns"] = Campaign.objects.filter(
+            owner__in=team.members.all()
+        ).select_related("template").distinct()
+
+        ctx["collections"] = PlasmidCollection.objects.filter(
+            team=team
+        )
+
+        ctx["correspondences"] = (
+            Correspondence.objects
+            .filter(owner__in=team.members.all())
+            .select_related("owner")
+            .distinct()
+        )
+
+
+        ctx["publication_requests"] = Publication.objects.filter(
+            team=team
+        ).select_related("requested_by")
+
         return ctx
+
 
 
 class TeamAddMemberView(TeamOwnerRequiredMixin, View):
