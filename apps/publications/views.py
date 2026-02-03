@@ -13,6 +13,7 @@ from django.http import Http404
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
 from django.views.decorators.http import require_http_methods
+from django.core.mail import send_mail
 
 from apps.accounts.models import User
 
@@ -22,10 +23,10 @@ from .models import Publication
 # Permmision helpers
 #-----------------  
 def is_admin_user(user) -> bool:
-    """
-    Check if the user has admin privileges.
-    """
-    return user.is_authenticated and (user.is_staff or user.is_superuser)
+    return (
+        user.is_authenticated
+        and user.role == "administratrice"
+    )
 
 
 #-----------------
@@ -63,9 +64,10 @@ def request_publication(request, target_kind:str, target_id:int):
             target_content_type=ct,
             target_object_id=target_obj.pk,
         )
-        notify_admins_new_publication(pub, request) # Send email to admins
         pub.full_clean()
         pub.save()
+        # Send a eamil notification to admins
+        notify_admins_new_publication(pub, request)
         messages.success(request, "Publication request submitted successfully.")
     except Exception as e:
         messages.error(request, f"Failed to submit publication request: {str(e)}")
@@ -161,15 +163,15 @@ def admin_detail(request, pk):
 def notify_admins_new_publication(pub: Publication, request):
     # 1) Search for admin emails
     admin_emails = list(
-        User.objects.filter(is_admin=True).values_list("email", flat=True)  # ←按你们字段改
+        User.objects.filter(role="administratrice").values_list("email", flat=True) 
     )
-    admin_emails = [e for e in admin_emails if e]  # 防御式
+    admin_emails = [e for e in admin_emails if e] 
 
     if not admin_emails:
         return  
     # 2) Send email notification
     admin_url = request.build_absolute_uri(
-        reverse("publications:admin_detail", args=[pub.id])  # ←如果你还没 admin_detail，就换成 admin_requests
+        reverse("publications:admin_detail", args=[pub.id])  
     )
 
     subject = f"[InSillyClo] New publication request #{pub.id}"
