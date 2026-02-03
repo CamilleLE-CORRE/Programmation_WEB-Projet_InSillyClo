@@ -48,6 +48,7 @@ INSTALLED_APPS = [
     "apps.simulations.apps.SimulationsConfig",
     "apps.correspondences.apps.CorrespondencesConfig",
     "apps.campaigns.apps.CampaignsConfig",
+    "apps.publications.apps.PublicationsConfig",
 ]
 
 MIDDLEWARE = [
@@ -146,3 +147,6 @@ DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 LOGIN_URL = "/accounts/login/"
 LOGIN_REDIRECT_URL = "/"
 LOGOUT_REDIRECT_URL = "/"
+
+MEDIA_URL = '/media/'
+MEDIA_ROOT = BASE_DIR / 'media'

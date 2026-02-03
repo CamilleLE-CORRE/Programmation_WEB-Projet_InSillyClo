@@ -1,22 +1,12 @@
 {% extends "core/base.html" %}
-{% load static %}
 
 {% block title %}Plasmid detail{% endblock %}
 
-{% block extra_css %}
-<link rel="stylesheet" href="{% static 'css/plasmid.css' %}">
-{% endblock %}
-
 {% block content %}
 
-<!-- Header -->
-<div class="plasmid-header">
-    <div style="display:flex; justify-content:space-between; align-items:center;">
-        <h1>{{ plasmid.identifier }}</h1>
-        <a class="btn" href="{% if request.META.HTTP_REFERER %}{{ request.META.HTTP_REFERER }}{% else %}{% url 'plasmid_list' %}{% endif %}">
-            Back
-        </a>    
-    </div>
+<div style="display: flex; justify-content: space-between; align-items: center;">
+    <h1>{{ plasmid.identifier }}</h1>
+    <a class="btn" href="{% url 'plasmids:plasmid_list' %}">Back to Plasmid List</a>
 </div>
 
 <br>

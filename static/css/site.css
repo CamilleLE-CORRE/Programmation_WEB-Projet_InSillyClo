@@ -1,101 +1,100 @@
 /* ===== Design tokens ===== */
-:root {
-    --bg: #f4f6fb;
-    --card: #ffffff;
-    --primary: #4f46e5;      /* indigo */
-    --primary-soft: #eef2ff;
-    --text: #1f2937;
-    --muted: #6b7280;
-    --border: #e5e7eb;
-    --danger: #b91c1c;
+:root{
+    --bg:#f4f6fb;
+    --card:#ffffff;
+    --primary:#4f46e5;      /* indigo */
+    --primary-soft:#eef2ff;
+    --text:#1f2937;
+    --muted:#6b7280;
+    --border:#e5e7eb;
+    --danger:#b91c1c;
 }
 
 /* ===== Reset / base ===== */
-* { box-sizing: border-box; }
-body {
-    margin: 0;
+*{ box-sizing:border-box; }
+body{
+    margin:0;
     font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
-    background: var(--bg);
-    color: var(--text);
+    background:var(--bg);
+    color:var(--text);
 }
-a {
-    color: var(--primary);
-    text-decoration: none;
+a{
+    color:var(--primary);
+    text-decoration:none;
 }
-a:hover { text-decoration: underline; }
+a:hover{ text-decoration:underline; }
 
 /* ===== Layout ===== */
-.container {
+.container{
     max-width: 980px;
     margin: 0 auto;
     padding: 18px;
 }
 
 /* ===== Header ===== */
-header {
-    background: var(--card);
-    border-bottom: 1px solid var(--border);
+header{
+    background:var(--card);
+    border-bottom:1px solid var(--border);
 }
-.top {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 16px;
-    flex-wrap: wrap;
+.top{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:16px;
+    flex-wrap:wrap;
 }
-.brand {
-    font-weight: 800;
-    font-size: 20px;
-    letter-spacing: 0.3px;
+.brand{
+    font-weight:800;
+    font-size:20px;
+    letter-spacing:.3px;
 }
 
 /* ===== Navigation ===== */
-.nav {
-    display: flex;
-    gap: 6px;
-    flex-wrap: wrap;
+.nav{
+    display:flex;
+    gap:6px;
+    flex-wrap:wrap;
 }
-.nav a {
-    padding: 8px 12px;
-    border-radius: 10px;
-    font-weight: 500;
+.nav a{
+    padding:8px 12px;
+    border-radius:10px;
+    font-weight:500;
 }
-.nav a:hover {
-    background: var(--primary-soft);
-    text-decoration: none;
+.nav a:hover{
+    background:var(--primary-soft);
+    text-decoration:none;
 }
 
 /* ===== Auth ===== */
-.auth {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    flex-wrap: wrap;
-    font-size: 14px;
+.auth{
+    display:flex;
+    align-items:center;
+    gap:10px;
+    flex-wrap:wrap;
+    font-size:14px;
 }
-.pill {
-    padding: 6px 12px;
-    border: 1px solid var(--border);
-    border-radius: 999px;
-    background: #fafafa;
-    color: var(--muted);
+.pill{
+    padding:6px 12px;
+    border:1px solid var(--border);
+    border-radius:999px;
+    background:#fafafa;
+    color:var(--muted);
 }
 
 /* ===== Page ===== */
-main { padding: 24px 0; }
+main{ padding:24px 0; }
 
-.card {
-    background: var(--card);
-    border: 1px solid var(--border);
-    border-radius: 16px;
-    padding: 22px;
-    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.04);
-    margin-bottom: 16px;
+.card{
+    background:var(--card);
+    border:1px solid var(--border);
+    border-radius:16px;
+    padding:22px;
+    box-shadow:0 8px 20px rgba(0,0,0,.04);
 }
 
-h1 {
-    margin: 0 0 12px 0;
-    font-size: 26px;
+h1{
+    margin:0 0 12px 0;
+    font-size:26px;
 }
 h2 {
     margin: 2px 0 12px 0;
@@ -106,137 +105,107 @@ h2 {
 p { margin: 0 0 12px 0; }
 
 /* ===== Lists ===== */
-ul { padding-left: 18px; }
-li { margin-bottom: 6px; }
+ul{ padding-left:18px; }
+li{ margin-bottom:6px; }
 
 /* ===== Buttons ===== */
-button, .btn {
-    border: none;
-    background: var(--primary);
-    color: #fff;
-    padding: 10px 14px;
-    border-radius: 12px;
-    cursor: pointer;
-    font-weight: 600;
+button, .btn{
+    border:none;
+    background:var(--primary);
+    color:#fff;
+    padding:10px 14px;
+    border-radius:12px;
+    cursor:pointer;
+    font-weight:600;
 }
-button:hover, .btn:hover {
-    opacity: 0.92;
+button:hover, .btn:hover{
+    opacity:.92;
 }
-.btn-secondary {
-    background: #fff;
-    color: var(--text);
-    border: 1px solid var(--border);
+.btn-secondary{
+    background:#fff;
+    color:var(--text);
+    border:1px solid var(--border);
 }
 
 /* ===== Forms ===== */
-label {
-    font-weight: 600;
-    margin-bottom: 6px;
-    display: block;
+label{
+    font-weight:600;
+    margin-bottom:6px;
+    display:block;
 }
-input, select, textarea {
-    width: 100%;
-    padding: 10px 12px;
-    border: 1px solid var(--border);
-    border-radius: 12px;
-    background: #fff;
+input, select, textarea{
+    width:100%;
+    padding:10px 12px;
+    border:1px solid var(--border);
+    border-radius:12px;
+    background:#fff;
 }
-input:focus, select:focus, textarea:focus {
-    outline: none;
-    border-color: var(--primary);
+input:focus, select:focus, textarea:focus{
+    outline:none;
+    border-color:var(--primary);
 }
 
 /* ===== Messages ===== */
-.message.error {
-    color: var(--danger);
-    font-weight: 600;
+.message.error{
+    color:var(--danger);
+    font-weight:600;
 }
-.field-error { color: var(--danger); }
+.field-error{ color:var(--danger); }
 
 /* ===== Footer ===== */
-footer {
-    margin-top: 32px;
-    background: var(--card);
-    border-top: 1px solid var(--border);
-    font-size: 13px;
-    color: var(--muted);
+footer{
+    margin-top:32px;
+    background:var(--card);
+    border-top:1px solid var(--border);
+    font-size:13px;
+    color:var(--muted);
 }
 
 /* Django messages */
 .messages {
-    margin: 1em 0;
-    padding: 0;
+  margin: 1em 0;
+  padding: 0;
 }
+
 .messages li {
-    list-style: none;
-    padding: 8px 12px;
-    margin-bottom: 6px;
-    border-radius: 4px;
+  list-style: none;
+  padding: 8px 12px;
+  margin-bottom: 6px;
+  border-radius: 4px;
 }
+
+/* Error messages (red) */
 .messages .error {
-    color: #a40000;
-    background-color: #fdecea;
-    border: 1px solid #f5c2c7;
+  color: #a40000;
+  background-color: #fdecea;
+  border: 1px solid #f5c2c7;
 }
+
+/* success messages (green) */
 .messages .success {
-    color: #0f5132;
-    background-color: #d1e7dd;
-    border: 1px solid #badbcc;
+  color: #0f5132;
+  background-color: #d1e7dd;
+  border: 1px solid #badbcc;
 }
 
-/* =========================
-   TABLES GLOBALES
-   ========================= */
-
-.plasmid-table {
-    width: 100%;
-    border-collapse: separate;
-    border-spacing: 0;
-    font-size: 15px;
-    border-radius: 12px;
-    overflow: hidden; /* arrondi sur header et body */
-    border: 1px solid var(--border);
+ul.messages li.error {
+  color: #b00020 !important;
+  background: #fdecea !important;
+  border: 1px solid #f5c2c7 !important;
+  padding: 8px 12px !important;
+  border-radius: 6px !important;
+  margin: 6px 0 !important;
 }
 
-/* Header */
-.plasmid-table thead tr {
-    background-color: var(--primary);
-    color: #fff;
-    text-align: left;
+/* .page-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
 }
 
-/* cellules */
-.plasmid-table th,
-.plasmid-table td {
-    padding: 14px 12px;
-    border-bottom: 1px solid var(--border);
-}
-
-/* lignes alternées */
-.plasmid-table tbody tr:nth-child(odd) {
-    background-color: var(--card);
-}
-.plasmid-table tbody tr:nth-child(even) {
-    background-color: var(--primary-soft);
-}
-
-/* Hover plus foncé pour lignes cliquables */
-.clickable-row {
-    cursor: pointer;
-    transition: background-color 0.2s;
-}
-.clickable-row:hover td {
-    background-color: #5e4ffd;
-    color: #fff;
-}
-.clickable-row .badge {
-    transition: background-color 0.2s;
-}
-
-/* Hover simple pour tableaux non cliquables */
-.plasmid-table tbody tr:hover td:not(.clickable-row) {
-    background-color: #7f98fc;
-}
+.page-header h1 {
+    margin: 0;
+} */
 
 /* =========================
    TABLE ICONS
@@ -274,33 +243,3 @@ footer {
    TRI-STATE
    ========================= */
 
-.tri-state-cell {
-    width: 30px;
-    height: 30px;
-    border: 1px solid var(--border);
-    border-radius: 6px;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    background-color: white;
-    font-size: 18px;
-    transition: all 0.2s;
-}
-.tri-state-cell.present {
-    background-color: #d1fae5;
-    color: #065f46;
-}
-.tri-state-cell.absent {
-    background-color: #fee2e2;
-    color: #991b1b;
-}
-.tri-state-table {
-    border-collapse: separate;
-    border-spacing: 20px 5px;
-}
-.tri-state-table th,
-.tri-state-table td {
-    text-align: center;
-    vertical-align: middle;
-}
