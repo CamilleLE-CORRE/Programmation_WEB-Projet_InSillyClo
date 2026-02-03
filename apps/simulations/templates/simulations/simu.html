@@ -49,7 +49,8 @@
         <div class="card" style="margin-bottom: 24px;">
             <h2>Required files</h2>
             
-            <div class="row"> <div class="col-md-12" style="margin-bottom: 24px;"> 
+            <div class="row">
+                <div class="col-md-12" style="margin-bottom: 24px;"> 
                     <label for="template_file">Campaign Template (Excel/CSV)</label>
                     
                     {% if prefill.prev_template %}
@@ -93,7 +94,7 @@
                             <label for="use_collections" style="margin:0; cursor:pointer;">Use my collections</label>
                         </div>
 
-                        <div id="collections_selector" style="margin-top: 10px; display: {% if prefill.use_collections %}block{% else %}none{% endif %};">
+                        <div id="collections_selector" style="margin-top: 10px;" {% if not prefill.use_collections %}hidden{% endif %}>
                             {% if user_collections %}
                                 <div style="max-height: 150px; overflow-y: auto;">
                                     {% for collection in user_collections %}
@@ -138,7 +139,7 @@
                 <i class="bi bi-chevron-down" id="chevron-icon"></i>
             </button>
             
-            <div id="options-content" class="card" style="display: {% if prefill.pcr_primers or prefill.digestion_enzymes %}block{% else %}none{% endif %}; border-top-left-radius: 0; border-top-right-radius: 0; margin-top: -10px; padding-top: 20px;">
+            <div id="options-content" class="card" {% if not prefill.pcr_primers and not prefill.digestion_enzymes %}hidden{% endif %} style="border-top-left-radius: 0; border-top-right-radius: 0; margin-top: -10px; padding-top: 20px;">
                 <div class="row">
                     <div class="col-md-6" style="margin-bottom: 16px;">
                         <label>Primer Pairs (IDs)</label>
@@ -182,13 +183,14 @@ document.addEventListener('DOMContentLoaded', function() {
     function updateCollectionsState() {
         if (!useCollections) return;
         if (useCollections.checked) {
-            collectionsSelector.style.display = 'block';
+            collectionsSelector.hidden = false;
+            collectionsSelector.style.display = 'block'; 
             seqArchive.removeAttribute('required');
             seqArchive.disabled = true;
         } else {
+            collectionsSelector.hidden = true;
             collectionsSelector.style.display = 'none';
             if (!seqArchive.getAttribute('data-prev-exists')) {
-                 // logique simple
             }
             seqArchive.disabled = false;
         }
@@ -196,7 +198,9 @@ document.addEventListener('DOMContentLoaded', function() {
 
     if (useCollections) {
         useCollections.addEventListener('change', updateCollectionsState);
-        updateCollectionsState();
+        // On ne lance pas updateCollectionsState() tout de suite au chargement
+        // pour laisser le template gérer l'état initial via 'hidden' et 'checked'
+        if(useCollections.checked) updateCollectionsState();
     }
 
     const btnToggle = document.getElementById('btn-options-toggle');
@@ -204,11 +208,17 @@ document.addEventListener('DOMContentLoaded', function() {
     const chevron = document.getElementById('chevron-icon');
 
     if (btnToggle && contentDiv) {
-        if(contentDiv.style.display !== 'none' && chevron) {
+        // Initialisation de l'icône selon l'état 'hidden'
+        if (!contentDiv.hidden && chevron) {
              chevron.className = 'bi bi-chevron-up';
         }
+
         btnToggle.addEventListener('click', function() {
-            if (contentDiv.style.display === 'none') {
+            // On vérifie si c'est caché
+            const isHidden = contentDiv.style.display === 'none' || contentDiv.hidden;
+
+            if (isHidden) {
+                contentDiv.hidden = false;
                 contentDiv.style.display = 'block';
                 if(chevron) chevron.className = 'bi bi-chevron-up';
             } else {
