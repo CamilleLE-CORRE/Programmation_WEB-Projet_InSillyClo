@@ -96,12 +96,13 @@ h1{
     margin:0 0 12px 0;
     font-size:26px;
 }
-h2{
-    margin:24px 0 10px 0;
-    font-size:18px;
-    color:var(--muted);
+h2 {
+    margin: 2px 0 12px 0;
+    font-size: 18px;
+    color: var(--muted);
 }
-p{ margin:0 0 12px 0; }
+
+p { margin: 0 0 12px 0; }
 
 /* ===== Lists ===== */
 ul{ padding-left:18px; }
