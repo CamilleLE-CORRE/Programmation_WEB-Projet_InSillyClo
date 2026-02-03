@@ -136,16 +136,39 @@ def generate_external_link(feature):
     import urllib.parse
 
     label = feature.get("label", "").strip()
+    feature_type = feature.get("type", "").strip().lower()
+
     if not label:
         return None
 
-    query = urllib.parse.quote_plus(label)
+    # NCBI nuccore
+    base_url = "https://www.ncbi.nlm.nih.gov/nuccore/?term="
 
-    # Lien de recherche NCBI Gene
-    ncbi_link = f"https://www.ncbi.nlm.nih.gov/gene/?term={query}"
+    # Gene name
+    gene_query = f"({label.split()[0]}[Gene Name])"
 
-    # Google si nécessaire
-    return ncbi_link or f"https://www.google.com/search?q={query}"
+    if feature_type in ("cds", "gene"):
+        query = gene_query
+
+    elif feature_type == "promoter" or feature_type == "promotor":
+        query = f"{gene_query} AND {feature_type}[Feature key]"
+
+    else:
+        query = label
+
+    encoded_query = urllib.parse.quote_plus(query)
+
+    return base_url + encoded_query
+
+
+# Example for CDS :
+# https://www.ncbi.nlm.nih.gov/nuccore?term=(camR%5BGene%20Name%5D)
+
+# Example for promoter :
+# https://www.ncbi.nlm.nih.gov/nuccore?term=(camR%5BGene%20Name%5D)%20AND%20promoter%5BFeature%20key%5D
+
+# Example for terminator :
+# https://www.ncbi.nlm.nih.gov/nuccore/?term=(camR%5BGene+Name%5D)+AND+terminator%5BFeature+key%5D
 
 
 def plasmid_detail(request, id):
