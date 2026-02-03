@@ -26,7 +26,7 @@
   
       <a href="{% url 'plasmids:plasmid_list' %}">Plasmids</a>
       
-      <a href="{% url 'teams:teams' %}">Teams</a>
+      <a href="{% url 'accounts:teams' %}">Teams</a>
 
       {% if request.user.is_staff %}
         <a href="{% url 'core:admin_dashboard' %}">Admin</a>

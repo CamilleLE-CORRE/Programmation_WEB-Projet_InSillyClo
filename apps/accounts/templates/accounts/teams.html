@@ -4,14 +4,14 @@
 
 {% block content %}
 <h1>Your teams</h1>
-
-<a class="btn" href="{% url 'teams:create_team' %}">Create a team</a>
-
+<br>
+<a class="btn" href="{% url 'accounts:create_team' %}">Create a team</a>
+<br><br>
 {% if teams %}
   <ul>
     {% for team in teams %}
       <li>
-        <a href="{% url 'teams:team_detail' team.pk %}">
+        <a href="{% url 'accounts:team_detail' team.pk %}">
           {{ team.name }}
         </a>
         {% if team.owner == request.user %}

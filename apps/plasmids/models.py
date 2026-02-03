@@ -18,7 +18,7 @@ Define database model for plasmidecollections:
 
 from django.db import models
 from apps.accounts.models import User
-from apps.teams.models import Team
+from apps.accounts.models import Team
 
 
 class PlasmidCollection(models.Model):

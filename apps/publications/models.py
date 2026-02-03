@@ -23,22 +23,25 @@ class Publication(models.Model):
     target = GenericForeignKey('target_content_type', 'target_object_id')
 
     status = models.CharField(
-        max_length=20,
-        choices=Status.choices,
-        default=Status.PENDING,
-        db_index=True,
+        max_length=32, choices=PublicationStatus.choices, default=PublicationStatus.PENDING_ADMIN
     )
 
-    reviewed_by = models.ForeignKey(
-        'accounts.User',
-        on_delete=models.SET_NULL,
-        related_name='reviewed_publications',
-        null=True,
-        blank=True
+    team = models.ForeignKey("teams.Team", null=True, blank=True, on_delete=models.SET_NULL)
+    team_validated_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL, null=True, blank=True, on_delete=models.SET_NULL,
+        related_name="publication_team_validations"
     )
-    reviewed_comment = models.TextField(blank=True)
-    created_at = models.DateTimeField(default=timezone.now)
-    reviewed_at = models.DateTimeField(null=True, blank=True)
+    team_validated_at = models.DateTimeField(null=True, blank=True)
+
+    decided_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL, null=True, blank=True, on_delete=models.SET_NULL,
+        related_name="publication_decisions"
+    )
+    decided_at = models.DateTimeField(null=True, blank=True)
+    rejection_reason = models.TextField(blank=True)
+
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:
         ordering = ('-created_at',)
