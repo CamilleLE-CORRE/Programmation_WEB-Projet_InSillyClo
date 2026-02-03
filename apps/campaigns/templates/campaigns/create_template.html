@@ -1,81 +1,129 @@
 {% extends "core/base.html" %}
-
 {% block title %}Create Template{% endblock %}
 
 {% block content %}
-  <style>
-    /* Error and field styling for the create form */
-    .message.error { color: red; font-weight: bold; }
-    .field-error-left { color: red; margin-right: 12px; white-space: nowrap; }
-    .field-error-right { color: red; margin-left: 12px; white-space: nowrap; }
-    .form-row { margin-bottom: 12px; }
-    .form-row .label-strong { font-weight: bold; }
-  </style>
 
-  <h1>Create template</h1>
+<div style="display:flex; justify-content:space-between; align-items:center;">
+    <h1>Create template</h1>
 
-  {% if messages %}
+    <a class="btn" href="{% url 'campaigns:template_list' %}">
+        Back to template list
+    </a>
+</div>
+
+<br>
+
+{% if messages %}
     {% for message in messages %}
-      <div class="message {{ message.tags }}">{{ message }}</div>
+        <div class="message {{ message.tags }}">{{ message }}</div>
     {% endfor %}
-  {% endif %}
+{% endif %}
 
-  <form method="post" id="create-template-form">
+<form method="post">
     {% csrf_token %}
     {{ form.non_field_errors }}
 
-    <div class="form-row" style="display:flex; align-items:center;">
-      {% if form.name.errors %}
-        <div class="field-error-left">{{ form.name.errors.0 }}</div>
-      {% endif %}
-      <div style="flex:1;">
-        <div class="label-strong">{{ form.name.label_tag }}</div>
-        {{ form.name }}
-      </div>
+    <!-- ================= TEMPLATE NAME ================= -->
+    <div class="card">
+        <div class="form-row">
+            <div class="label-strong">
+                <strong>{{ form.name.label }}</strong><br><br>
+            </div>
+            {{ form.name }}
+            {{ form.name.errors }}
+        </div>
     </div>
 
-    <div class="form-row">
-      <div class="label-strong">{{ form.template_type.label }}</div>
-      <div>
-        {{ form.template_type }}
-        <button type="button" id="type-info" style="margin-left:8px;">ℹ️</button>
-      </div>
-      <div id="type-info-text" style="display:none; margin-top:8px; background:#f6f6f6; padding:8px; border-radius:4px;">
-        /* explications a modifier */
-        <p><strong>Simple</strong>: a plain table with columns like Output Plasmid, Input1, Input2.</p>
-        <p><strong>Typed</strong>: each input includes a type and a value, separated by the separator character you choose (e.g., '.' or ';').</p>
-      </div>
-      {{ form.template_type.errors }}
+    <!-- ================= TEMPLATE TYPE ================= -->
+    <div class="card">
+        <div class="form-row">
+
+            <!-- Label -->
+            <div class="label-strong">
+                <strong>{{ form.template_type.label }}</strong><br><br>
+            </div>
+
+            <div class="radio-group">
+
+              {% for radio in form.template_type %}
+                  <label class="radio-item">
+                      {{ radio.tag }}
+                      <span>{{ radio.choice_label }}</span>
+                  </label>
+              {% endfor %}
+
+          </div>
+
+          <style>
+          .radio-group {
+              display: flex;
+              flex-direction: column;
+              align-items: flex-start;
+              width: 100%;
+          }
+
+          .radio-item {
+              display: flex;
+              align-items: center;
+              gap: 8px;
+              margin-bottom: 6px;
+          }
+
+          .radio-item span {
+              font-weight: 600;
+          }
+          </style>
+
+            <button type="button"
+                    id="type-info"
+                    style="margin-top:8px;">
+                ℹ️
+            </button>
+
+            <div id="type-info-text"
+                 style="display:none; margin-top:8px; background:#f6f6f6; padding:8px; border-radius:4px;">
+                <p><strong>Simple</strong>: inputs don't have a type.</p>
+                <p><strong>Typed</strong>: each input has a type.</p>
+            </div>
+
+            {{ form.template_type.errors }}
+        </div>
     </div>
 
-    <div class="form-row">
-      <div class="label-strong">{{ form.restriction_enzyme.label_tag }}</div>
-      {{ form.restriction_enzyme }}
-      {{ form.restriction_enzyme.errors }}
+    <!-- ================= RESTRICTION ENZYME ================= -->
+    <div class="card">
+        <div class="form-row">
+            <div class="label-strong">
+                <strong>{{ form.restriction_enzyme.label }}</strong><br><br>
+            </div>
+            {{ form.restriction_enzyme }}
+            {{ form.restriction_enzyme.errors }}
+        </div>
     </div>
 
-    <div class="form-row" id="separator-field">
-      <div class="label-strong">{{ form.separator.label_tag }}</div>
-      {{ form.separator }}
-
-      {{ form.separator.errors }}
+    <!-- ================= SEPARATOR ================= -->
+    <div class="card">
+        <div class="form-row" id="separator-field">
+            <div class="label-strong">
+                <strong>{{ form.separator.label }}</strong><br><br>
+            </div>
+            {{ form.separator }}
+            {{ form.separator.errors }}
+        </div>
     </div>
 
     <div class="form-actions">
-      <button type="submit">Create</button>
+        <button type="submit" class="btn">Create</button>
     </div>
-  </form>
+</form>
 
-  <p><a href="{% url 'campaigns:template_list' %}">Back to template list</a></p>
-
-  <script>
-    document.addEventListener('DOMContentLoaded', function(){
-      // Wire the info button
-      document.getElementById('type-info').addEventListener('click', function(){
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    document.getElementById('type-info').addEventListener('click', function () {
         const t = document.getElementById('type-info-text');
         t.style.display = (t.style.display === 'none') ? 'block' : 'none';
-      });
     });
-  </script>
+});
+</script>
 
 {% endblock %}

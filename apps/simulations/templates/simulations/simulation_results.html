@@ -1,0 +1,115 @@
+{% extends "core/base.html" %}
+
+{% block title %}Results{% endblock %}
+
+{% block content %}
+
+<div class="container">
+
+    <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 24px; flex-wrap: wrap; gap: 10px;">
+        <div>
+            <h1>Results</h1>
+            {% if results.sim_name %}
+                <p style="color: var(--primary); font-weight: bold; font-size: 1.2em; margin-bottom: 4px;">{{ results.sim_name }}</p>
+            {% endif %}
+            <p style="color: var(--muted); font-size: 0.9em;">Run ID: {{ results.sim_id }}</p>
+        </div>
+
+        <div style="display: flex; gap: 10px;">
+            <a href="{% url 'simulations:simu' %}?from_sim={{ results.sim_id }}" class="btn btn-secondary">
+                Edit / Rerun
+            </a>
+            <a href="{% url 'simulations:simu' %}" class="btn">
+                New
+            </a>
+            {% if results.zip_url %}
+            <a href="{{ results.zip_url }}" class="btn" style="background-color: #0f5132;"> Download Zip
+            </a>
+            {% endif %}
+        </div>
+    </div>
+
+    {% if messages %}
+    <ul class="messages">
+        {% for message in messages %}
+        <li class="{{ message.tags }}">{{ message }}</li>
+        {% endfor %}
+    </ul>
+    {% endif %}
+
+    {% if results.files %}
+    
+    <div class="card" style="padding: 0; margin-bottom: 30px; overflow: hidden;">
+        <div style="padding: 16px; border-bottom: 1px solid var(--border); background: var(--bg); font-weight: bold;">
+            Generated Files
+        </div>
+        <table class="table plasmid-table">
+            <thead>
+                <tr>
+                    <th style="padding-left: 20px;">File Name</th>
+                    <th style="text-align: right; padding-right: 20px;">Action</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for file in results.files %}
+                <tr>
+                    <td style="padding-left: 20px;">{{ file }}</td>
+                    <td style="text-align: right; padding-right: 20px;">
+                        <a href="{{ results.output_dir_url }}/{{ file }}" download style="font-weight: 600;">
+                            Download
+                        </a>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <div class="row">
+        {% for file in results.files %}
+            {% if ".png" in file or ".jpg" in file or ".jpeg" in file or ".svg" in file %}
+                <div class="col-md-6" style="margin-bottom: 24px;">
+                    <div class="card" style="height: 100%; display: flex; flex-direction: column;">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+                            <strong style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 70%;">{{ file }}</strong>
+                            <a href="{{ results.output_dir_url }}/{{ file }}" class="btn btn-secondary" style="padding: 6px 12px; font-size: 0.9em;" download>
+                                Download
+                            </a>
+                        </div>
+                        <div style="flex-grow: 1; display: flex; align-items: center; justify-content: center; background: var(--bg); border-radius: 8px; padding: 10px;">
+                            <img src="{{ results.output_dir_url }}/{{ file }}" alt="{{ file }}" style="max-width: 100%; max-height: 350px; border-radius: 4px;">
+                        </div>
+                    </div>
+                </div>
+            {% endif %}
+        {% endfor %}
+    </div>
+
+    <style>
+    .plasmid-table {
+        width: 100%;
+        border-collapse: separate;
+        border-spacing: 0;
+        font-size: 15px;
+    }
+    .plasmid-table thead tr {
+        background-color: var(--primary);
+        color: #fff;
+        text-align: left;
+    }
+    .plasmid-table th, .plasmid-table td {
+        padding: 14px 12px;
+        border-bottom: 1px solid var(--border);
+    }
+    .plasmid-table tbody tr:nth-child(odd) { background-color: var(--card); }
+    .plasmid-table tbody tr:nth-child(even) { background-color: var(--primary-soft); }
+    </style>
+
+    {% else %}
+    <div class="card" style="text-align: center; padding: 40px;">
+        <h3>No files generated</h3>
+    </div>
+    {% endif %}
+
+</div>
+{% endblock %}

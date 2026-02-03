@@ -12,13 +12,16 @@
   {% for c in correspondences %}
     <li>
       <a href="{% url 'correspondences:detail' c.pk %}">{{ c.name }}</a>
+
       - Entries: {{ c.entries.count }}
       {% if c.is_public %}
         (Public)
       {% else %}
         (Private)
       {% endif %}
+      <a href="{% url 'correspondences:delete' c.id %}">🗑️</a>
     </li>
+    
   {% endfor %}
 </ul>
 {% else %}

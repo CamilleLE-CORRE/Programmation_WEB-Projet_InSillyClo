@@ -8,4 +8,6 @@ urlpatterns = [
     path("<int:pk>/", views.correspondence_detail, name="detail"),
     path("<int:pk>/upload/", views.correspondence_upload, name="upload"),
     path("new/", views.correspondence_create, name="create"),
+    path("<int:pk>/delete/", views.correspondence_delete, name="delete"),
+
 ]

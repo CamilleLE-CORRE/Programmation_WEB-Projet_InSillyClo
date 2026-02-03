@@ -36,22 +36,14 @@ class SignUpForm(UserCreationForm):
     def save(self, commit=True):
         user = super().save(commit=False)
 
-        # FIX: username unique requis -> le remplir
-        if hasattr(user, "username") and not user.username:
-            user.username = user.email
-
+        # rôle administratrice -> staff
         if user.role == "administratrice":
             user.is_staff = True
+            # user.is_superuser = True
 
         if commit:
             user.save()
-            if user.role == "administratrice":
-                group, _ = Group.objects.get_or_create(name="Administratrices")
-                user.groups.add(group)
-
         return user
-
-
 
 
 class EmailAuthenticationForm(AuthenticationForm):

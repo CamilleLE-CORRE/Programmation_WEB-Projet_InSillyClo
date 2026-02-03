@@ -45,7 +45,7 @@ header {
 }
 .brand {
     font-weight: 800;
-    font-size: 1.8rem;
+    font-size: 20px;
     letter-spacing: 0.3px;
 }
 
@@ -98,10 +98,11 @@ h1 {
     font-size: 26px;
 }
 h2 {
-    margin: 24px 0 10px 0;
+    margin: 2px 0 12px 0;
     font-size: 18px;
     color: var(--muted);
 }
+
 p { margin: 0 0 12px 0; }
 
 /* ===== Lists ===== */
@@ -236,6 +237,43 @@ footer {
 .plasmid-table tbody tr:hover td:not(.clickable-row) {
     background-color: #7f98fc;
 }
+
+.plasmid-table th:not(:last-child),
+.plasmid-table td:not(:last-child) {
+    border-right: 1px solid var(--border);
+}
+
+/* =========================
+   TABLE ICONS
+   ========================= */
+
+.table-icon {
+    background: none;
+    border: none;
+    cursor: pointer;
+    font-size: 18px;
+    padding: 0;
+    color: inherit;
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.table-icon:hover {
+    opacity: 0.8;
+}
+
+/* spécifique delete */
+.delete-icon:hover {
+    color: #dc3545;
+}
+
+/* spécifique edit */
+.edit-icon:hover {
+    color: #ffc107;
+}
+
 
 /* =========================
    TRI-STATE

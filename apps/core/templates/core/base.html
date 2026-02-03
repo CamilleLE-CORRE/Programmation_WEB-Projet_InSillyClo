@@ -7,7 +7,7 @@
   <title>{% block title %}InSillyClo{% endblock %}</title>
 
   <link rel="stylesheet" href="{% static 'css/site.css' %}">
-
+  {% block extra_css %}{% endblock %}
 </head>
 
 <body>
@@ -56,17 +56,6 @@
 
 <main class="container">
   <div class="card">
-
-  {% if messages %}
-    <ul class="messages">
-      {% for message in messages %}
-        <li class="{{ message.tags }}">{{ message }}</li>
-      {% endfor %}
-    </ul>
-  {% endif %}
-  
-
-
     {% block content %}{% endblock %}
   </div>
 </main>

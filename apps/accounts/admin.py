@@ -26,6 +26,7 @@ class CustomUserAdmin(UserAdmin):
         }),
     )
 
+    # On enlève username des configs héritées
     fieldsets = tuple(fs for fs in fieldsets)
 
 class TeamAdmin(admin.ModelAdmin):

@@ -14,171 +14,138 @@
 <br>
 
 {% if public_templates or user_templates %}
-    <!-- {% with total=public_templates|length %}
-        {% with total=total|add:user_templates|length %}
-            <p class="text-center">
-                {{ total }} templates available.
-            </p>
-        {% endwith %}
-    {% endwith %} -->
 
-    <table class="table plasmid-table">
-        <thead>
-            <tr>
-                <th style="width:40px;"></th>
-                <th>Name</th>
-                <th>XLSX</th>
-                <th>Visibility</th>
-                <th>Type</th>
-                <th>Restriction enzyme</th>
-                <th>Separator</th>
-                <th>Created</th>
-                <th>Owner</th>
-            </tr>
-        </thead>
+<table class="table plasmid-table">
+    <thead>
+        <tr>
+            <th style="width:40px;"></th>   {# Delete #}
+            <th style="width:40px;"></th>   {# Edit #}
+            <th>Name</th>
+            <th>XLSX</th>
+            <th>Visibility</th>
+            <th>Type</th>
+            <th>Restriction enzyme</th>
+            <th>Separator</th>
+            <th>Owner</th>
+            <th>Created</th>
+            <th>Updated</th>
+        </tr>
+    </thead>
 
-        <tbody>
-            {# ===== PUBLIC TEMPLATES ===== #}
-            {% for template in public_templates %}
-                <tr>
-                    <td></td>
+    <tbody>
+        {# ===== PUBLIC TEMPLATES ===== #}
+        {% for template in public_templates %}
+        <tr>
+            <!-- Delete -->
+            <td></td>
 
-                    <td class="template-name">{{ template.name }}</td>
+            <!-- Edit -->
+            <td></td>
 
-                    <td>
-                        <a class="download-link"
-                           href="{% url 'campaigns:download_public_template' template.id %}?format=xlsx">
-                            XLSX
-                        </a>
-                    </td>
+            <!-- Name -->
+            <td class="template-name">{{ template.name }}</td>
 
-                    <td class="template-meta">
-                        <span class="badge bg-success">Public</span>
-                    </td>
+            <!-- XLSX -->
+            <td>
+                <a class="download-link"
+                   href="{% url 'campaigns:download_public_template' template.id %}?format=xlsx">
+                    XLSX
+                </a>
+            </td>
 
-                    <td class="template-meta">{{ template.template_type }}</td>
-                    <td class="template-meta">{{ template.restriction_enzyme|default_if_none:"" }}</td>
-                    <td class="template-meta">{{ template.separator|default_if_none:"" }}</td>
-                    <td class="template-meta">{{ template.created_at|date:"Y-m-d H:i" }}</td>
-                    <td class="template-meta">{{ template.owner.username|default_if_none:"" }}</td>
-                </tr>
-            {% endfor %}
+            <!-- Visibility -->
+            <td class="template-meta">
+                <span class="badge bg-success">Public</span>
+            </td>
 
-            {# ===== USER TEMPLATES ===== #}
-            {% for template in user_templates %}
-                <tr>
-                    <td>
-                        <form method="post"
-                              action="{% url 'campaigns:delete_template' template.id %}"
-                              onsubmit="return confirm('Delete this template?');">
-                            {% csrf_token %}
-                            <button type="submit" class="delete-icon">🗑️</button>
-                        </form>
-                    </td>
+            <!-- Type -->
+            <td class="template-meta">{{ template.template_type }}</td>
 
-                    <td class="template-name">{{ template.name }}</td>
+            <!-- Restriction enzyme -->
+            <td class="template-meta">{{ template.restriction_enzyme|default_if_none:"" }}</td>
 
-                    <td>
-                        <a class="download-link"
-                           href="{% url 'campaigns:download_template' template.id %}?format=xlsx">
-                            XLSX
-                        </a>
-                    </td>
+            <!-- Separator -->
+            <td class="template-meta">{{ template.separator|default_if_none:"" }}</td>
 
-                    <td class="template-meta">
-                        <span class="badge bg-secondary">Private</span>
-                    </td>
+            <!-- Owner -->
+            <td class="template-meta">{{ template.owner.username|default_if_none:"" }}</td>
 
-                    <td class="template-meta">{{ template.template_type }}</td>
-                    <td class="template-meta">{{ template.restriction_enzyme|default_if_none:"" }}</td>
-                    <td class="template-meta">{{ template.separator|default_if_none:"" }}</td>
-                    <td class="template-meta">{{ template.created_at|date:"Y-m-d H:i" }}</td>
-                    <td class="template-meta">{{ template.owner.username|default_if_none:"" }}</td>
-                </tr>
-            {% endfor %}
-        </tbody>
-    </table>
+            <!-- Created -->
+            <td class="template-meta">{{ template.created_at|date:"Y-m-d H:i" }}</td>
+
+            <!-- Updated -->
+            <td class="template-meta">
+                {{ template.updated_at|default:template.created_at|date:"Y-m-d H:i" }}
+            </td>
+        </tr>
+        {% endfor %}
+
+        {# ===== USER TEMPLATES ===== #}
+        {% for template in user_templates %}
+        <tr>
+            <!-- Delete -->
+        <td>
+            <form method="post"
+                action="{% url 'campaigns:delete_template' template.id %}"
+                onsubmit="return confirm('Delete this template?');">
+                {% csrf_token %}
+                <button type="submit" class="table-icon delete-icon" title="Delete">
+                    🗑️
+                </button>
+            </form>
+        </td>
+
+        <!-- Edit -->
+        <td>
+            <a href="{% url 'campaigns:edit_template' template.id %}"
+            class="table-icon edit-icon"
+            title="Edit">
+                ✏️
+            </a>
+        </td>
+
+            <!-- Name -->
+            <td class="template-name">{{ template.name }}</td>
+
+            <!-- XLSX -->
+            <td>
+                <a class="download-link"
+                   href="{% url 'campaigns:download_template' template.id %}?format=xlsx">
+                    XLSX
+                </a>
+            </td>
+
+            <!-- Visibility -->
+            <td class="template-meta">
+                <span class="badge bg-secondary">Private</span>
+            </td>
+
+            <!-- Type -->
+            <td class="template-meta">{{ template.template_type }}</td>
+
+            <!-- Restriction enzyme -->
+            <td class="template-meta">{{ template.restriction_enzyme|default_if_none:"" }}</td>
+
+            <!-- Separator -->
+            <td class="template-meta">{{ template.separator|default_if_none:"" }}</td>
+
+            <!-- Owner -->
+            <td class="template-meta">{{ template.owner.username }}</td>
+
+            <!-- Created -->
+            <td class="template-meta">{{ template.created_at|date:"Y-m-d H:i" }}</td>
+
+            <!-- Updated -->
+            <td class="template-meta">
+                {{ template.updated_at|default:template.created_at|date:"Y-m-d H:i" }}
+            </td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
 
 {% else %}
-    <p class="text-center text-muted">No templates found</p>
+<p class="text-center text-muted">No templates found</p>
 {% endif %}
-
-<style>
-.plasmid-table {
-    width: 100%;
-    border-collapse: separate;
-    border-spacing: 0;
-    font-size: 15px;
-}
-
-.plasmid-table thead tr {
-    background-color: var(--primary);
-    color: #fff;
-}
-
-.plasmid-table th,
-.plasmid-table td {
-    padding: 14px 12px;
-    border-bottom: 1px solid var(--border);
-    vertical-align: middle;
-    text-align: center;
-}
-
-/* Alternating rows */
-.plasmid-table tbody tr:nth-child(odd) {
-    background-color: var(--card);
-}
-
-.plasmid-table tbody tr:nth-child(even) {
-    background-color: var(--primary-soft);
-}
-
-/* UNIFORM hover on entire row */
-.plasmid-table tbody tr:hover {
-    background-color: var(--primary);
-    color: #fff;
-}
-
-.plasmid-table tbody tr:hover a,
-.plasmid-table tbody tr:hover span,
-.plasmid-table tbody tr:hover button {
-    color: #fff;
-}
-
-/* Name emphasis */
-.template-name {
-    font-size: 16px;
-    font-weight: 600;
-}
-
-/* Less prominent metadata */
-.template-meta {
-    font-size: 13px;
-    opacity: 0.8;
-}
-
-/* Download links */
-.download-link {
-    font-weight: 600;
-    text-decoration: none;
-    color: inherit;
-}
-
-.download-link:hover {
-    text-decoration: underline;
-}
-
-/* Delete button */
-.delete-icon {
-    background: none;
-    border: none;
-    cursor: pointer;
-    font-size: 18px;
-}
-
-.delete-icon:hover {
-    color: red;
-}
-</style>
 
 {% endblock %}
