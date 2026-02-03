@@ -4,6 +4,8 @@ from django.utils import timezone
 from django.contrib.contenttypes.fields import GenericForeignKey
 from django.contrib.contenttypes.models import ContentType
 from django.core.exceptions import ValidationError
+from django.conf import settings
+
 
 
 class Publication(models.Model):
@@ -23,10 +25,13 @@ class Publication(models.Model):
     target = GenericForeignKey('target_content_type', 'target_object_id')
 
     status = models.CharField(
-        max_length=32, choices=PublicationStatus.choices, default=PublicationStatus.PENDING_ADMIN
+    max_length=32,
+    choices=Status.choices,
+    default=Status.PENDING,
     )
 
-    team = models.ForeignKey("teams.Team", null=True, blank=True, on_delete=models.SET_NULL)
+
+    team = models.ForeignKey("accounts.Team", null=True, blank=True, on_delete=models.SET_NULL)
     team_validated_by = models.ForeignKey(
         settings.AUTH_USER_MODEL, null=True, blank=True, on_delete=models.SET_NULL,
         related_name="publication_team_validations"
@@ -66,19 +71,21 @@ class Publication(models.Model):
 
     def approve(self, reviewer):
         self.status = self.Status.APPROVED
-        self.reviewed_by = reviewer
-        self.reviewed_comment = ''
-        self.reviewed_at = timezone.now()
+        self.decided_by = reviewer
+        self.rejection_reason = ''
+        self.decided_at = timezone.now()
         self.full_clean()
         self.save()
 
+
     def reject(self, reviewer, comment):
         self.status = self.Status.REJECTED
-        self.reviewed_by = reviewer
-        self.reviewed_comment = comment or ''
-        self.reviewed_at = timezone.now()
+        self.decided_by = reviewer
+        self.rejection_reason = comment or ''
+        self.decided_at = timezone.now()
         self.full_clean()
         self.save()
+
 
     def clean(self):
         # Only allow 2 targets: PlasmidCollection and Correspondence
@@ -94,5 +101,7 @@ class Publication(models.Model):
             raise ValidationError(f"Invalid target type: {app_label}.{model_name}")
 
         # If rejected, require a comment
-        if self.status == self.Status.REJECTED and not self.reviewed_comment:
-            raise ValidationError("A comment is required when rejecting a publication request.")
+        if self.status == self.Status.REJECTED and not self.rejection_reason:
+            raise ValidationError(
+                "A comment is required when rejecting a publication request."
+            )
