@@ -13,12 +13,6 @@
 
 <br>
 
-{% if messages %}
-    {% for message in messages %}
-        <div class="message {{ message.tags }}">{{ message }}</div>
-    {% endfor %}
-{% endif %}
-
 <form method="post">
     {% csrf_token %}
     {{ form.non_field_errors }}
