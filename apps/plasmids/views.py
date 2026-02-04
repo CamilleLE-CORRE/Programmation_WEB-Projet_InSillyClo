@@ -16,28 +16,15 @@ def plasmid_list(request):
     })
 
 
-# def plasmid_detail(request, id):
-#     plasmid = get_object_or_404(Plasmid, id=id)
-#     return render(request, "plasmids/plasmid_detail.html", {
-#         "plasmid": plasmid
-#     })
-
-
 class PlasmidSearchView(TemplateView):
     template_name = "plasmids/search.html"
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
 
-        # -----------------------------
-        # Formulaire
-        # -----------------------------
         form = PlasmidSearchForm(self.request.GET or None)
         context["form"] = form
 
-        # -----------------------------
-        # Contraintes annotations
-        # -----------------------------
         context["annotation_constraints"] = [
             {"name": n, "mode": m}
             for n, m in zip(
@@ -46,9 +33,6 @@ class PlasmidSearchView(TemplateView):
             )
         ]
 
-        # -----------------------------
-        # Contraintes sites de restriction
-        # -----------------------------
         context["restriction_constraints"] = [
             {"name": n, "mode": m}
             for n, m in zip(
@@ -57,21 +41,16 @@ class PlasmidSearchView(TemplateView):
             )
         ]
 
-        context["annotation_constraints_json"] = json.dumps(
-            context["annotation_constraints"]
-        )
-        context["restriction_constraints_json"] = json.dumps(
-            context["restriction_constraints"]
-        )
-
         plasmids = None
 
         if self.request.GET and form.is_valid():
             plasmids = Plasmid.objects.all()
 
-            # --- Champs texte ---
             sequence_pattern = form.cleaned_data.get("sequence_pattern")
             name = form.cleaned_data.get("name")
+
+            similar_sequence = self.request.GET.get("similar_sequence", "").strip()
+            similarity_threshold = self.request.GET.get("similarity_threshold")
 
             if sequence_pattern:
                 plasmids = plasmids.filter(sequence__icontains=sequence_pattern)
@@ -79,7 +58,25 @@ class PlasmidSearchView(TemplateView):
             if name:
                 plasmids = plasmids.filter(name__icontains=name)
 
-            # --- Contraintes annotations ---
+            # --- Similarité de séquence ---
+            if similar_sequence and len(similar_sequence) >= 3:
+                try:
+                    similarity_threshold = float(similarity_threshold or 0)
+                except ValueError:
+                    similarity_threshold = 0
+
+                filtered = []
+                for plasmid in plasmids:
+                    if has_similar_sequence(
+                        plasmid.sequence,
+                        similar_sequence,
+                        similarity_threshold
+                    ):
+                        filtered.append(plasmid)
+
+                plasmids = filtered
+
+            # --- Annotations ---
             for c in context["annotation_constraints"]:
                 ann_name = c["name"].strip()
                 mode = c["mode"]
@@ -96,7 +93,7 @@ class PlasmidSearchView(TemplateView):
                         annotations__label__icontains=ann_name
                     )
 
-            # --- Contraintes sites de restriction ---
+            # --- Sites de restriction ---
             for c in context["restriction_constraints"]:
                 site = c["name"].strip()
                 mode = c["mode"]
@@ -105,18 +102,16 @@ class PlasmidSearchView(TemplateView):
                     continue
 
                 if mode == "present":
-                    plasmids = plasmids.filter(
-                        sites__icontains=site
-                    )
+                    plasmids = plasmids.filter(sites__icontains=site)
                 elif mode == "absent":
-                    plasmids = plasmids.exclude(
-                        sites__icontains=site
-                    )
+                    plasmids = plasmids.exclude(sites__icontains=site)
 
-            plasmids = plasmids.distinct()
+            if hasattr(plasmids, "distinct"):
+                plasmids = plasmids.distinct()
 
         context["plasmids"] = plasmids
         return context
+
 
 
 colors = {
@@ -169,6 +164,26 @@ def generate_external_link(feature):
 
 # Example for terminator :
 # https://www.ncbi.nlm.nih.gov/nuccore/?term=(camR%5BGene+Name%5D)+AND+terminator%5BFeature+key%5D
+
+
+def has_similar_sequence(sequence, pattern, min_similarity):
+    """
+    Vérifie si la sequence contient un motif similaire au pattern
+    avec une similarité >= min_similarity
+    """
+    pattern = pattern.upper()
+    sequence = sequence.upper()
+    pat_len = len(pattern)
+
+    for i in range(len(sequence) - pat_len + 1):
+        window = sequence[i:i + pat_len]
+        matches = sum(1 for a, b in zip(window, pattern) if a == b)
+        similarity = (matches / pat_len) * 100
+
+        if similarity >= min_similarity:
+            return True
+
+    return False
 
 
 def plasmid_detail(request, id):

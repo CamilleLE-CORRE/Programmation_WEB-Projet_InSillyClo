@@ -3,17 +3,47 @@
 
 {% block content %}
 
-<h1>Plasmid Browser</h1>
+<div class="header">
+    <div style="display:flex; justify-content:space-between; align-items:center;">
+        <h1>Plasmid Browser</h1>
+        <a class="btn" href="{% if request.META.HTTP_REFERER %}{{ request.META.HTTP_REFERER }}{% else %}{% url 'plasmid_list' %}{% endif %}">
+            Back to Plasmid List
+        </a>    
+    </div>
+</div>
+
+<br>
 
 <form method="get">
 
     <div class="card">
-        {{ form.sequence_pattern.label_tag }}
+        <h3>Sequence Pattern</h3>
+        Minimum 3 residues
         {{ form.sequence_pattern }}
     </div>
 
+    <!-- Motif similaire -->
     <div class="card">
-        {{ form.name.label_tag }}
+        <h3>Similar Sequence Pattern</h3>
+        <input type="text"
+               name="similar_sequence"
+               id="similar_sequence"
+               value="{{ request.GET.similar_sequence }}"
+               placeholder="Ex: ATGCG">
+
+        <label for="similarity_threshold" style="margin-top:6px;">
+            Minimum similarity (%)
+        </label>
+        <input type="number"
+               name="similarity_threshold"
+               id="similarity_threshold"
+               min="0"
+               max="100"
+               value="{{ request.GET.similarity_threshold|default:80 }}">
+    </div>
+
+    <div class="card">
+        <h3>Name or Sub-chain</h3>
         {{ form.name }}
     </div>
 
@@ -35,13 +65,17 @@
         </button>
     </div>
 
-    <button type="submit" class="btn">Search</button>
+    <div style="margin-top: 32px;">
+            <button type="submit" class="btn" style="width: 100%; padding: 16px; font-size: 1.1em;">
+                SEARCH
+            </button>
+        </div>
 </form>
 
-<hr>
+<br>
 
 {% if plasmids != None %}
-<h2>Search Results</h2>
+<h1>Results</h1>
 
 {% if plasmids %}
 <p>{{ plasmids|length }} plasmids found.</p>
@@ -126,6 +160,5 @@ document.addEventListener("DOMContentLoaded", () => {
     });
 });
 </script>
-
 
 {% endblock %}
