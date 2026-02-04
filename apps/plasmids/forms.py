@@ -1,5 +1,10 @@
 from django import forms
 
+from apps.plasmids.models import Plasmid
+from apps.teams.models import Team
+from .models import PlasmidCollection
+
+
 class PlasmidSearchForm(forms.Form):
     """
     Formulaire de recherche principal.
@@ -26,3 +31,72 @@ class PlasmidSearchForm(forms.Form):
             "class": "form-input",
         })
     )
+
+
+
+# ==================================================
+# Form to add plasmids to a collection
+class AddPlasmidsToCollectionForm(forms.Form):
+    plasmids = forms.ModelMultipleChoiceField(
+        queryset=Plasmid.objects.none(),
+        widget=forms.CheckboxSelectMultiple,
+        required=True,
+        label="Select plasmids to add"
+    )
+
+    def __init__(self, *args, **kwargs):
+        queryset = kwargs.pop("queryset", Plasmid.objects.none())
+        super().__init__(*args, **kwargs)
+        self.fields["plasmids"].queryset = queryset
+
+
+class ImportPlasmidsForm(forms.Form):
+    file = forms.FileField(
+        help_text="Upload a .gb/.gbk file or a .zip containing multiple .gb/.gbk files."
+    )
+
+    target_collection = forms.ModelChoiceField(
+        queryset=PlasmidCollection.objects.none(),
+        required=False,
+        help_text="Choose an existing collection (optional)."
+    )
+
+    new_collection_name = forms.CharField(
+        max_length=255,
+        required=False,
+        help_text="Or create a new collection with this name (optional)."
+    )
+
+    team = forms.ModelChoiceField(
+        queryset=Team.objects.none(),
+        required=False,
+        help_text="Choose a team (required if creating a new collection)."
+    )
+
+    def __init__(self, *args, user=None, **kwargs):
+        super().__init__(*args, **kwargs)
+        # Limit collections to those owned by the user
+        if user is not None:
+            self.fields["target_collection"].queryset = PlasmidCollection.objects.filter(owner=user)
+            self.fields["team"].queryset = Team.objects.filter(members=user)
+
+    def clean(self):
+        cleaned = super().clean()
+        target = cleaned.get("target_collection")
+        new_name = (cleaned.get("new_collection_name") or "").strip()
+        team = cleaned.get("team")
+
+        if target and new_name:
+            raise forms.ValidationError("Please choose only one way: either select an existing collection or provide a new collection name.")
+        if new_name and not team:
+            raise forms.ValidationError("Please select a team when creating a new collection.")
+        return cleaned
+
+    def clean_file(self):
+        f = self.cleaned_data["file"]
+        name = (f.name or "").lower()
+
+        if not (name.endswith(".gb") or name.endswith(".gbk") or name.endswith(".zip")):
+            raise forms.ValidationError("Only .gb/.gbk or .zip files are allowed.")
+
+        return f
