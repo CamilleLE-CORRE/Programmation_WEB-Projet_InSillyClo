@@ -76,7 +76,10 @@ class PlasmidSearchForm(forms.Form):
     #         widget=forms.Select(attrs={'class': 'form-select'})
     #     )
 
-# ==============================================
+
+
+
+# ==================================================
 # Form to add plasmids to a collection
 class AddPlasmidsToCollectionForm(forms.Form):
     plasmids = forms.ModelMultipleChoiceField(
