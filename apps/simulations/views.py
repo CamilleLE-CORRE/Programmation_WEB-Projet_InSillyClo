@@ -18,9 +18,7 @@ import insillyclo.observer
 import insillyclo.simulator
 import insillyclo.data_source
 
-# Import de TES modèles
 from .models import Campaign
-# Import des modèles du groupe (Plasmids)
 from apps.plasmids.models import PlasmidCollection
 
 # --- 1. VUE PRINCIPALE (FORMULAIRE & TRAITEMENT) ---
@@ -140,9 +138,7 @@ def simulation_view(request):
                     else: raise Exception("Missing Zip Archive.")
                 else: raise Exception("No sequence source provided.")
 
-            # --- 4. PARAMÈTRES OPTIONNELS (Fichiers) ---
-            # C'est ce bloc qui manquait et causait l'erreur !
-            
+            # --- 4. PARAMÈTRES OPTIONNELS (Fichiers) ---            
             # A. Fichier d'amorces (Primers DB)
             path_primers_db = None
             if 'primers_file' in request.FILES:
@@ -180,12 +176,11 @@ def simulation_view(request):
                 gb_plasmids=gb_files,
                 output_dir=output_dir,
                 data_source=insillyclo.data_source.DataSourceHardCodedImplementation(),
-                # On passe bien les fichiers optionnels ici
-                primers_file=path_primers_db,      # <--- C'était ici que ça plantait (None)
+                primers_file=path_primers_db,
                 primer_id_pairs=pcr_primers,
                 enzyme_names=enzymes,
                 default_mass_concentration=def_conc,
-                concentration_file=path_conc,      # <--- Ajouté aussi
+                concentration_file=path_conc,
                 sbol_export=False,
             )
 
@@ -224,12 +219,12 @@ def simulation_view(request):
 @login_required
 def simulation_history_view(request):
     # On affiche les campagnes de l'utilisateur, triées par date
-    campaigns = Campaign.objects.filter(owner=request.user) # Le tri est déjà fait dans Meta du modèle
+    campaigns = Campaign.objects.filter(owner=request.user)
     return render(request, 'simulations/history.html', {'campaigns': campaigns})
 
 # --- 3. DÉTAILS / RÉSULTATS ---
 def simulation_detail_view(request, sim_id):
-    # Récupération de l'objet campagne en base (optionnel mais mieux pour le titre)
+    # Récupération de l'objet campagne en base
     campaign = None
     if request.user.is_authenticated:
         try:

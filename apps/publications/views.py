@@ -91,7 +91,9 @@ def admin_publication_requests(request):
     Admin view to list all publication requests.
     """
     status = request.GET.get('status')
-    qs = Publication.objects.all().select_related('requested_by', 'reviewed_by', 'target_content_type').order_by('-created_at')
+    qs = Publication.objects.all().select_related(
+        'requested_by', 'decided_by', 'target_content_type'
+    )
     if status:
         qs = qs.filter(status=status)
     

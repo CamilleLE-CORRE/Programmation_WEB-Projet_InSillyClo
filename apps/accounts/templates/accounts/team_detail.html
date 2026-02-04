@@ -1,0 +1,130 @@
+{% extends "core/base.html" %}
+
+{% block content %}
+
+<h1>{{ team.name }}</h1>
+<p><strong>Owner:</strong> {{ team.owner.email }}</p>
+
+<hr>
+
+<h2>Members</h2>
+<ul>
+  {% for user in members %}
+    <li>
+      {{ user.email }}
+      {% if is_owner and user.id != team.owner_id %}
+        <form method="post"
+              action="{% url 'accounts:remove_member' team.id %}"
+              style="display:inline;">
+          {% csrf_token %}
+          <input type="hidden" name="user_id" value="{{ user.id }}">
+          <button type="submit">Remove</button>
+        </form>
+      {% endif %}
+    </li>
+  {% endfor %}
+</ul>
+
+{% if is_owner %}
+  <h3>Add member</h3>
+  <form method="post" action="{% url 'accounts:add_member' team.id %}">
+    {% csrf_token %}
+    {{ add_member_form.as_p }}
+    <button type="submit">Add</button>
+  </form>
+
+  <h3>Transfer ownership</h3>
+  <form method="post" action="{% url 'accounts:transfer_owner' team.id %}">
+    {% csrf_token %}
+    {{ transfer_owner_form.as_p }}
+    <button type="submit">Transfer</button>
+  </form>
+{% endif %}
+
+<hr>
+
+<h2>Plasmid collections</h2>
+{% if collections %}
+  <ul>
+    {% for c in collections %}
+      <li>
+        {{ c.name }}
+        {% if c.is_public %}(public){% else %}(private){% endif %}
+      </li>
+    {% endfor %}
+  </ul>
+{% else %}
+  <p><em>No plasmid collections for this team.</em></p>
+{% endif %}
+
+<hr>
+
+<h2>Plasmids</h2>
+{% if plasmids %}
+  <ul>
+    {% for p in plasmids %}
+      <li>
+        <a href="{% url 'plasmids:plasmid_detail' p.id %}">
+          {{ p.name }}
+        </a>
+        {% if p.identifier %} — {{ p.identifier }}{% endif %}
+        {% if p.collection %} ({{ p.collection.name }}){% endif %}
+      </li>
+    {% endfor %}
+  </ul>
+{% else %}
+  <p><em>No plasmids linked to this team.</em></p>
+{% endif %}
+
+<hr>
+
+<h2>Correspondences</h2>
+{% if correspondences %}
+  <ul>
+    {% for corr in correspondences %}
+      <li>
+        {{ corr.name }}
+        — owner: {{ corr.owner.email }}
+        {% if corr.is_public %}(public){% else %}(private){% endif %}
+      </li>
+    {% endfor %}
+  </ul>
+{% else %}
+  <p><em>No correspondences for this team.</em></p>
+{% endif %}
+
+<hr>
+
+<h2>Campaigns</h2>
+{% if campaigns %}
+  <ul>
+    {% for camp in campaigns %}
+      <li>
+        {{ camp.name }}
+        {% if camp.template %} — {{ camp.template.name }}{% endif %}
+        {% if camp.owner %} — by {{ camp.owner.email }}{% endif %}
+      </li>
+    {% endfor %}
+  </ul>
+{% else %}
+  <p><em>No campaigns for this team.</em></p>
+{% endif %}
+
+<hr>
+
+<h2>Publication requests</h2>
+{% if publications %}
+  <ul>
+    {% for pub in publications %}
+      <li>
+        {{ pub.target }}
+        — <strong>{{ pub.status }}</strong>
+        — requested by {{ pub.requested_by.email }}
+      </li>
+    {% endfor %}
+  </ul>
+{% else %}
+  <p><em>No publication requests for this team.</em></p>
+{% endif %}
+
+{% endblock %}

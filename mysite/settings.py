@@ -43,12 +43,13 @@ INSTALLED_APPS = [
     # Custom apps
     "apps.core",
     "apps.accounts",
-    "apps.teams.apps.TeamsConfig",
+    # "apps.accounts.apps.TeamsConfig",
     "apps.plasmids.apps.PlasmidsConfig",
     "apps.simulations.apps.SimulationsConfig",
     "apps.correspondences.apps.CorrespondencesConfig",
     "apps.campaigns.apps.CampaignsConfig",
     "apps.publications.apps.PublicationsConfig",
+    "apps.demo",
 ]
 
 MIDDLEWARE = [
