@@ -9,7 +9,7 @@
 {% block content %}
 {% if request.user.is_authenticated %}
 <h1> My correspondence Table</h1>
-<a class="btn" href="{% url 'correspondences:create' %}">Create collection</a>
+<a class="btn" href="{% url 'correspondences:create' %}">Create correspondence</a>
 {% endif %}
 <br><br>
 

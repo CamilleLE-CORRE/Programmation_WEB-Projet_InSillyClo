@@ -9,6 +9,7 @@ from django.urls import reverse, reverse_lazy
 from django.views import View
 
 from apps.correspondences import forms
+from apps.teams.models import Team
 
 from .forms import PlasmidSearchForm, PLASMID_TYPE_CHOICES, RESTRICTION_SITE_CHOICES,AddPlasmidsToCollectionForm, ImportPlasmidsForm
 from .models import PlasmidCollection, Plasmid
@@ -118,6 +119,7 @@ class PlasmidSearchResultsView(TemplateView):
 # =================================================================================
 # Plasmid Collections Views
 
+
 class VisibleCollectionQuerysetMixin:
     """Collections visible to current user (public + owned)."""
     def get_queryset(self):
@@ -166,12 +168,15 @@ class OwnerRequiredMixin(UserPassesTestMixin):
 class CollectionCreateView(LoginRequiredMixin, CreateView):
     model = PlasmidCollection
     template_name = "collections/collection_form.html"
-    fields = ["name", "is_public", "team"]  
+    fields = ["name", "is_public"]
 
+    # Team assignment during creation
     def form_valid(self, form):
         form.instance.owner = self.request.user
+        team = Team.objects.filter(members=self.request.user).first()
+        form.instance.team = team
 
-        return super().form_valid(form)
+        return super().form_valid(form)  
 
 
 class CollectionUpdateView(LoginRequiredMixin, OwnerRequiredMixin, UpdateView):
@@ -234,7 +239,6 @@ class CollectionAddPlasmidsView(LoginRequiredMixin, UserPassesTestMixin, DetailV
     
 
 
-    
 
 class PlasmidImportView(LoginRequiredMixin, View):
     template_name = "collections/plasmid_import.html"

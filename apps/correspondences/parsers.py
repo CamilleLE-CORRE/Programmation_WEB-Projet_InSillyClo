@@ -2,8 +2,10 @@
 This codes used to parse correspondence files uploaded by users. 
 They are served to read the correspondence data and validate its format:
 - Each line should have 2 or 3 columns separated by tabs, commas, semicolons, or multiple spaces.
-- The first column is the identifier, the second is the display name, and the optional third
+- The first column is the identifier, the second is the display name, and the optional third.
+- ALAWAYS consider the first row as a HEADER and skip it for .xlsx files.
 """
+
 
 import re
 from typing import List, Tuple
@@ -44,34 +46,35 @@ def parse_correspondence_text(raw_text: str):
     
     return rows, errors
 
+
 # Parses .xlsx correspondence files
-def parse_correspondence_xlsx(uploaded_file) -> tuple[list[tuple[str, str, str]], list[str]]:
+def parse_correspondence_xlsx(
+    uploaded_file,
+) -> tuple[list[tuple[str, str, str]], list[str]]:
     rows: list[tuple[str, str, str]] = []
     errors: list[str] = []
     seen = set()
 
     wb = load_workbook(uploaded_file, read_only=True, data_only=True)
-    ws = wb.active  # Defautly chooce first sheet
+    ws = wb.active  # always use first sheet
 
     for lineno, row in enumerate(ws.iter_rows(values_only=True), start=1):
-        # skipt empty row
+        # === Always skip first row (header) ===
+        if lineno == 1:
+            continue
+
+        # skip empty rows
         if not row or all(cell is None or str(cell).strip() == "" for cell in row):
             continue
 
-        # 3 first colomns：identifier, display_name, type
         identifier = str(row[0]).strip() if len(row) > 0 and row[0] is not None else ""
         display_name = str(row[1]).strip() if len(row) > 1 and row[1] is not None else ""
         entry_type = str(row[2]).strip() if len(row) > 2 and row[2] is not None else ""
-
-        # skipt header
-        if lineno == 1 and identifier.lower() in {"identifier", "id"} and display_name.lower() in {"display_name", "name"}:
-            continue
 
         if not identifier or not display_name:
             errors.append(f"Line {lineno}: identifier and display_name are required.")
             continue
 
-        # Duplicated identifier
         if identifier in seen:
             errors.append(f"Line {lineno}: duplicate identifier '{identifier}' in file.")
             continue

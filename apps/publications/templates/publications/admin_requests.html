@@ -47,11 +47,11 @@
           </td>
 
           <td>
-            {% if pub.status == "PENDING" %}
+            {% if pub.status == "PENDING_ADMIN" %}
               <span class="badge pending">Pending</span>
             {% elif pub.status == "APPROVED" %}
               <span class="badge approved">Approved</span>
-            {% elif pub.status == "REJECTED" %}
+            {% elif pub.status == "REJECTED_BY_ADMIN" %}
               <span class="badge rejected">Rejected</span>
             {% else %}
               <span class="badge">{{ pub.status }}</span>
@@ -61,7 +61,7 @@
           <td>{{ pub.reviewed_comment|default:"—" }}</td>
 
           <td>
-            {% if pub.status == "PENDING" %}
+            {% if pub.status == "PENDING_ADMIN" %}
               <div class="actions">
                 <!-- Approve -->
                 <form method="post" action="{% url 'publications:admin_review' pub.id %}">

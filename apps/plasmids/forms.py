@@ -2,6 +2,7 @@
 from django import forms
 
 from apps.plasmids.models import Plasmid
+from apps.teams.models import Team
 from .models import PlasmidCollection
 
 PLASMID_TYPE_CHOICES = [
@@ -75,7 +76,7 @@ class PlasmidSearchForm(forms.Form):
     #         widget=forms.Select(attrs={'class': 'form-select'})
     #     )
 
-
+# ==============================================
 # Form to add plasmids to a collection
 class AddPlasmidsToCollectionForm(forms.Form):
     plasmids = forms.ModelMultipleChoiceField(
@@ -108,19 +109,29 @@ class ImportPlasmidsForm(forms.Form):
         help_text="Or create a new collection with this name (optional)."
     )
 
+    team = forms.ModelChoiceField(
+        queryset=Team.objects.none(),
+        required=False,
+        help_text="Choose a team (required if creating a new collection)."
+    )
+
     def __init__(self, *args, user=None, **kwargs):
         super().__init__(*args, **kwargs)
         # Limit collections to those owned by the user
         if user is not None:
             self.fields["target_collection"].queryset = PlasmidCollection.objects.filter(owner=user)
+            self.fields["team"].queryset = Team.objects.filter(members=user)
 
     def clean(self):
         cleaned = super().clean()
         target = cleaned.get("target_collection")
         new_name = (cleaned.get("new_collection_name") or "").strip()
+        team = cleaned.get("team")
 
         if target and new_name:
-            raise ValidationError("Please choose only one way: either select an existing collection or provide a new collection name.")
+            raise forms.ValidationError("Please choose only one way: either select an existing collection or provide a new collection name.")
+        if new_name and not team:
+            raise forms.ValidationError("Please select a team when creating a new collection.")
         return cleaned
 
     def clean_file(self):
@@ -129,6 +140,5 @@ class ImportPlasmidsForm(forms.Form):
 
         if not (name.endswith(".gb") or name.endswith(".gbk") or name.endswith(".zip")):
             raise forms.ValidationError("Only .gb/.gbk or .zip files are allowed.")
-
 
         return f
