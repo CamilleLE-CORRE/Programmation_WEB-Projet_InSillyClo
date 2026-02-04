@@ -1,10 +1,8 @@
-<<<<<<< HEAD
 from django.shortcuts import render, get_object_or_404
 from django.views.generic import TemplateView
 from .models import Plasmid
 from .forms import PlasmidSearchForm
 import json
-=======
 from django.contrib import messages
 from django import forms
 from django.forms import ValidationError
@@ -16,15 +14,14 @@ from django.urls import reverse, reverse_lazy
 from django.views import View
 
 from apps.correspondences import forms
-from apps.teams.models import Team
+from apps.accounts.models import Team
 
-from .forms import PlasmidSearchForm, PLASMID_TYPE_CHOICES, RESTRICTION_SITE_CHOICES,AddPlasmidsToCollectionForm, ImportPlasmidsForm
+from .forms import PlasmidSearchForm,AddPlasmidsToCollectionForm, ImportPlasmidsForm
 from .models import PlasmidCollection, Plasmid
 from .service import import_plasmids_from_upload, get_or_create_target_collection
 
 
 
->>>>>>> muyao_publish_plasmide
 
 
 def plasmid_list(request):
@@ -158,7 +155,6 @@ def generate_external_link(feature):
     if not label:
         return None
 
-<<<<<<< HEAD
     # NCBI nuccore
     base_url = "https://www.ncbi.nlm.nih.gov/nuccore/?term="
 
@@ -323,16 +319,10 @@ def plasmid_detail(request, id):
     }
 
     return render(request, "plasmids/plasmid_detail.html", context)
-=======
-        context['plasmids'] = plasmids
-        context['PLASMID_TYPE_CHOICES'] = PLASMID_TYPE_CHOICES
-        context['RESTRICTION_SITE_CHOICES'] = RESTRICTION_SITE_CHOICES
-        return context
     
 
 # =================================================================================
 # Plasmid Collections Views
-
 
 class VisibleCollectionQuerysetMixin:
     """Collections visible to current user (public + owned)."""
@@ -495,4 +485,3 @@ class PlasmidImportView(LoginRequiredMixin, View):
         if collection:
             return redirect(reverse("plasmids:collection_detail", args=[collection.pk]))
         return redirect(reverse("plasmids:plasmid_list"))
->>>>>>> muyao_publish_plasmide

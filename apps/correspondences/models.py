@@ -15,7 +15,7 @@ Define database models for correspondencesEntry here:
 
 from django.db import models
 
-from apps.teams.models import Team
+from apps.accounts.models import Team
 
 class Correspondence(models.Model):
     id = models.AutoField(primary_key=True)  # Primary key field

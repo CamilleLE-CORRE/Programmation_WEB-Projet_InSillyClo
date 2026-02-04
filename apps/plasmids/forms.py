@@ -1,7 +1,7 @@
 from django import forms
 
 from apps.plasmids.models import Plasmid
-from apps.teams.models import Team
+from apps.accounts.models import Team
 from .models import PlasmidCollection
 
 
