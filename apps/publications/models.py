@@ -1,3 +1,15 @@
+"""
+Models for publication requests.
+- Status: Pending, Approved, Rejected
+- requested_by: User who made the request
+- target: including (target_content_type, target_object_id) 
+    - target_content_type: correspondence table or plasmid collection
+    - target_object_id: id for target object
+- cheffe_reviewed_by, cheffe_review_comment, cheffe_reviewed_at
+- admin_reviewed_by, admin_review_comment, admin_reviewed_at
+- created_at
+"""
+
 from django.db import models
 from django.db.models import Q
 from django.utils import timezone
@@ -10,9 +22,11 @@ from django.conf import settings
 
 class Publication(models.Model):
     class Status(models.TextChoices):
-        PENDING = 'PENDING', 'Pending'
+        PENDING_CHEFFE = 'PENDING_CHEFFE', 'Pending (Cheffe)'
+        REJECTED_BY_CHEFFE = 'REJECTED_BY_CHEFFE', 'Rejected by cheffe'
+        PENDING_ADMIN = 'PENDING_ADMIN', 'Pending (Admin)'
+        REJECTED_BY_ADMIN = 'REJECTED_BY_ADMIN', 'Rejected by admin'
         APPROVED = 'APPROVED', 'Approved'
-        REJECTED = 'REJECTED', 'Rejected'
 
     requested_by = models.ForeignKey(
         'accounts.User',
@@ -25,28 +39,34 @@ class Publication(models.Model):
     target = GenericForeignKey('target_content_type', 'target_object_id')
 
     status = models.CharField(
-    max_length=32,
-    choices=Status.choices,
-    default=Status.PENDING,
+        max_length=20,
+        choices=Status.choices,
+        #default=Status.PENDING_CHEFFE,
+        db_index=True,
     )
 
-
-    team = models.ForeignKey("accounts.Team", null=True, blank=True, on_delete=models.SET_NULL)
-    team_validated_by = models.ForeignKey(
-        settings.AUTH_USER_MODEL, null=True, blank=True, on_delete=models.SET_NULL,
-        related_name="publication_team_validations"
+    # Cheffe review firstly
+    cheffe_reviewed_by = models.ForeignKey(
+        'accounts.User',
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name='cheffe_reviewed_publications'
+        )
+    cheffe_review_comment = models.TextField(blank=True)
+    cheffe_reviewed_at = models.DateTimeField(null=True, blank=True)
+    # Then admin review
+    admin_reviewed_by = models.ForeignKey(
+        'accounts.User',
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name='admin_reviewed_publications'
     )
-    team_validated_at = models.DateTimeField(null=True, blank=True)
-
-    decided_by = models.ForeignKey(
-        settings.AUTH_USER_MODEL, null=True, blank=True, on_delete=models.SET_NULL,
-        related_name="publication_decisions"
-    )
-    decided_at = models.DateTimeField(null=True, blank=True)
-    rejection_reason = models.TextField(blank=True)
+    admin_review_comment = models.TextField(blank=True)
+    admin_reviewed_at = models.DateTimeField(null=True, blank=True)
 
     created_at = models.DateTimeField(auto_now_add=True)
-    updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:
         ordering = ('-created_at',)
@@ -61,7 +81,12 @@ class Publication(models.Model):
         constraints = [
             models.UniqueConstraint(
                 fields=['target_content_type', 'target_object_id'],
-                condition=Q(status="PENDING"),
+                condition=Q(
+                    status__in=[
+                        "PENDING_CHEFFE",
+                        "PENDING_ADMIN",
+                    ]
+                ),
                 name='unique_pending_publication_request',
             )
         ]
@@ -101,7 +126,5 @@ class Publication(models.Model):
             raise ValidationError(f"Invalid target type: {app_label}.{model_name}")
 
         # If rejected, require a comment
-        if self.status == self.Status.REJECTED and not self.rejection_reason:
-            raise ValidationError(
-                "A comment is required when rejecting a publication request."
-            )
+        if self.status == self.Status.REJECTED and not self.reviewed_comment:
+            raise ValidationError("A comment is required when rejecting a publication request.")

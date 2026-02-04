@@ -17,8 +17,11 @@ Define database model for plasmidecollections:
 """
 
 from django.db import models
+from django.urls import reverse
+
 from apps.accounts.models import User
 from apps.accounts.models import Team
+
 
 
 class PlasmidCollection(models.Model):
@@ -45,6 +48,8 @@ class PlasmidCollection(models.Model):
         #indexes = (('id',), ('name',))  # Indexes for id and name fields
         verbose_name = "Plasmid Collection"  # Singular name
         verbose_name_plural = "Plasmid Collections"  # Plural name
+    def get_absolute_url(self):
+        return reverse("plasmids:collection_detail", args=[self.pk])
 
     def __str__(self):
         return f"{self.name}" # (Owner: {self.owner.email})"

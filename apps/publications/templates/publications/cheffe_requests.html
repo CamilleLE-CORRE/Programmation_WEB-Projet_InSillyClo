@@ -6,7 +6,7 @@
 {% endblock %}
 
 {% block content %}
-<h1 class="page-title">Publication requests (admin)</h1>
+<h1 class="page-title">Publication requests (cheffe)</h1>
 
 <div class="card">
   <p class="muted">Approve or reject publication requests. Rejection requires a reason.</p>
@@ -34,7 +34,7 @@
           <td>
             <div>
                 <strong>
-                  <a href="{% url 'publications:admin_detail' pub.id %}">
+                  <a href="{% url 'publications:cheffe_detail' pub.id %}">
                     {{ pub.target }}
                   </a>
                 </strong>
@@ -47,11 +47,11 @@
           </td>
 
           <td>
-            {% if pub.status == "PENDING_ADMIN" %}
+            {% if pub.status == "PENDING_CHEFFE" %}
               <span class="badge pending">Pending</span>
             {% elif pub.status == "APPROVED" %}
               <span class="badge approved">Approved</span>
-            {% elif pub.status == "REJECTED_BY_ADMIN" %}
+            {% elif pub.status == "REJECTED_BY_CHEFFE" %}
               <span class="badge rejected">Rejected</span>
             {% else %}
               <span class="badge">{{ pub.status }}</span>
@@ -61,17 +61,17 @@
           <td>{{ pub.reviewed_comment|default:"—" }}</td>
 
           <td>
-            {% if pub.status == "PENDING_ADMIN" %}
+            {% if pub.status == "PENDING_CHEFFE" %}
               <div class="actions">
                 <!-- Approve -->
-                <form method="post" action="{% url 'publications:admin_review' pub.id %}">
+                <form method="post" action="{% url 'publications:cheffe_review' pub.id %}">
                   {% csrf_token %}
                   <input type="hidden" name="action" value="approve">
                   <button class="btn primary" type="submit">Approve</button>
                 </form>
 
                 <!-- Reject -->
-                <form method="post" action="{% url 'publications:admin_review' pub.id %}">
+                <form method="post" action="{% url 'publications:cheffe_review' pub.id %}">
                   {% csrf_token %}
                   <input type="hidden" name="action" value="reject">
                   <input class="input" type="text" name="comment" placeholder="Rejection reason" required>
