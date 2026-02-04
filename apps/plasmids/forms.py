@@ -1,9 +1,5 @@
 from django import forms
 
-from apps.plasmids.models import Plasmid
-from apps.teams.models import Team
-from .models import PlasmidCollection
-
 class PlasmidSearchForm(forms.Form):
     """
     Formulaire de recherche principal.
@@ -26,26 +22,7 @@ class PlasmidSearchForm(forms.Form):
         label="Name or Sub-chain",
         required=False,
         widget=forms.TextInput(attrs={
-            'placeholder': 'Ex: pYTK081',
-            'class': 'form-input',
+            "placeholder": "Ex: pYTK081",
+            "class": "form-input",
         })
     )
-
-    # MAINTENANT GERES DANS LE HTML POUR TABLEAU INTERACTIF
-    # Types
-    # for t in PLASMID_TYPE_CHOICES:
-    #     locals()[f"type_{t[0]}"] = forms.ChoiceField(
-    #         label=f"{t[1]}",
-    #         choices=PRESENCE_CHOICES,
-    #         required=False,
-    #         widget=forms.Select(attrs={'class': 'form-select'})
-    #     )
-
-    # ER Sites
-    # for s in RESTRICTION_SITE_CHOICES:
-    #     locals()[f"site_{s[0]}"] = forms.ChoiceField(
-    #         label=f"{s[1]}",
-    #         choices=PRESENCE_CHOICES,
-    #         required=False,
-    #         widget=forms.Select(attrs={'class': 'form-select'})
-    #     )

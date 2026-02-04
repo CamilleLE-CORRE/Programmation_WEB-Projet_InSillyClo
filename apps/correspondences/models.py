@@ -15,8 +15,6 @@ Define database models for correspondencesEntry here:
 
 from django.db import models
 
-from apps.teams.models import Team
-
 class Correspondence(models.Model):
     id = models.AutoField(primary_key=True)  # Primary key field
     name = models.CharField(max_length=200)  # Name of the correspondence
@@ -26,13 +24,6 @@ class Correspondence(models.Model):
         related_name='correspondences'
     )  # Foreign key to User model
     is_public = models.BooleanField(default=False)  # Public visibility flag
-    team = models.ForeignKey(
-        Team, 
-        on_delete=models.CASCADE,
-        related_name='correspondences',
-        null=True,
-        blank=True
-    )  # Optional foreign key to Team model
 
     class Meta:
         ordering = ('id', 'name')  # Default ordering by id and name
@@ -57,7 +48,6 @@ class CorrespondenceEntry(models.Model):
     identifier = models.CharField(max_length=100)  # Plasmid ID
     display_name = models.CharField(max_length=200)  # Name shown to user
     entry_type = models.CharField(max_length=100, blank=True, default="")  # Type of the entry
-    
 
     class Meta:
         ordering = ('correspondence_id','identifier')  # Default ordering by id

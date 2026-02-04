@@ -9,9 +9,7 @@
 <h1 class="page-title">My publication requests</h1>
 
 <div class="card">
-  <p class="muted">
-    Track the status of your requests. Team resources must be validated by the team cheffe before being reviewed by an administratrice.
-  </p>
+  <p class="muted">Here you can track the status of your publication requests.</p>
 
   <div class="table-wrap">
     <table class="nice-table">
@@ -20,8 +18,7 @@
           <th>ID</th>
           <th>Target</th>
           <th>Status</th>
-          <th>Next step</th>
-          <th>Comment</th>
+          <th>Reviewed comment</th>
           <th>Created</th>
         </tr>
       </thead>
@@ -40,51 +37,25 @@
           </td>
 
           <td>
-            {% if pub.status == "PENDING_CHEFFE" %}
-              <span class="badge pending">Pending (cheffe)</span>
-            {% elif pub.status == "PENDING_ADMIN" %}
-              <span class="badge pending">Pending (admin)</span>
+            {% if pub.status == "PENDING" %}
+              <span class="badge pending">Pending</span>
             {% elif pub.status == "APPROVED" %}
               <span class="badge approved">Approved</span>
-            {% elif pub.status == "REJECTED_BY_CHEFFE" %}
-              <span class="badge rejected">Rejected (cheffe)</span>
-            {% elif pub.status == "REJECTED_BY_ADMIN" %}
-              <span class="badge rejected">Rejected (admin)</span>
+            {% elif pub.status == "REJECTED" %}
+              <span class="badge rejected">Rejected</span>
             {% else %}
               <span class="badge">{{ pub.status }}</span>
             {% endif %}
           </td>
 
-          <td class="muted">
-            {% if pub.status == "PENDING_CHEFFE" %}
-              Waiting for team cheffe validation
-            {% elif pub.status == "PENDING_ADMIN" %}
-              Waiting for administratrice review
-            {% elif pub.status == "APPROVED" %}
-              Published
-            {% elif pub.status == "REJECTED_BY_CHEFFE" or pub.status == "REJECTED_BY_ADMIN" %}
-              Closed
-            {% else %}
-              —
-            {% endif %}
-          </td>
-
-          <td>
-            {% if pub.status == "REJECTED_BY_CHEFFE" %}
-              {{ pub.cheffe_review_comment|default:"—" }}
-            {% elif pub.status == "REJECTED_BY_ADMIN" %}
-              {{ pub.admin_review_comment|default:"—" }}
-            {% else %}
-              —
-            {% endif %}
-          </td>
+          <td>{{ pub.reviewed_comment|default:"—" }}</td>
 
           <td>{{ pub.created_at|date:"Y-m-d H:i" }}</td>
         </tr>
 
         {% empty %}
         <tr>
-          <td colspan="6" class="empty">You have not submitted any publication request yet.</td>
+          <td colspan="5" class="empty">You have not submitted any publication request yet.</td>
         </tr>
         {% endfor %}
       </tbody>

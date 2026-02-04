@@ -32,14 +32,7 @@
           <td>{{ pub.requested_by.email }}</td>
 
           <td>
-            <div>
-                <strong>
-                  <a href="{% url 'publications:admin_detail' pub.id %}">
-                    {{ pub.target }}
-                  </a>
-                </strong>
-            </div>
-
+            <div><strong>{{ pub.target }}</strong></div>
             <div class="muted">
               {{ pub.target_content_type.app_label }}/{{ pub.target_content_type.model }}
               (id={{ pub.target_object_id }})
@@ -47,11 +40,11 @@
           </td>
 
           <td>
-            {% if pub.status == "PENDING_ADMIN" %}
+            {% if pub.status == "PENDING" %}
               <span class="badge pending">Pending</span>
             {% elif pub.status == "APPROVED" %}
               <span class="badge approved">Approved</span>
-            {% elif pub.status == "REJECTED_BY_ADMIN" %}
+            {% elif pub.status == "REJECTED" %}
               <span class="badge rejected">Rejected</span>
             {% else %}
               <span class="badge">{{ pub.status }}</span>
@@ -61,7 +54,7 @@
           <td>{{ pub.reviewed_comment|default:"—" }}</td>
 
           <td>
-            {% if pub.status == "PENDING_ADMIN" %}
+            {% if pub.status == "PENDING" %}
               <div class="actions">
                 <!-- Approve -->
                 <form method="post" action="{% url 'publications:admin_review' pub.id %}">

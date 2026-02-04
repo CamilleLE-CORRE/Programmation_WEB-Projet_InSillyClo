@@ -1,30 +1,17 @@
-"""
-These codes used to parse correspondence files uploaded by users:
--  Show correspondence list
--  Show correspondence detail
--  Create new correspondence
--  Upload correspondence entries from a file:
-    -  Parse file
-    -  Validate for conflicts
-    -  Write to DB
--  Delete correspondence
-"""
 import re
 
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.db import transaction
 from django.db.models import Q, Count
-from django.http import Http404
 from django.shortcuts import get_object_or_404, redirect, render
-from django.core.exceptions import PermissionDenied
 
-from apps.teams.models import Team
 from .forms import CorrespondenceCreateForm, CorrespondenceUploadForm
 from .models import Correspondence, CorrespondenceEntry
 from apps.correspondences.parsers import parse_correspondence_text
 from collections import defaultdict
 from .parsers import parse_correspondence_text, parse_correspondence_xlsx
+from .models import Correspondence
 
 
 
@@ -61,7 +48,6 @@ def correspondence_create(request):
         if form.is_valid():
             obj = form.save(commit=False)
             obj.owner = request.user
-            obj.team = Team.objects.filter(members=request.user).first()
             obj.save()
             messages.success(request, "Correspondence created.")
             return redirect("correspondences:detail", pk=obj.pk)
@@ -74,129 +60,108 @@ def correspondence_create(request):
 @login_required
 def correspondence_upload(request, pk: int):
     """
-    Upload correspondence entries from a text or .xlsx file.
-    - Parses the file
-    - Validates for conflicts
-    - Writes to DB
+    POST
+    ├─ form.is_valid()
+    │   ├─ read file
+    │   ├─ parse_correspondence_text(raw)
+    │   │    ↳ rows, errors
+    │   ├─ if errors:  ← CSV/TSV
+    │   │      return
+    │   ├─ with transaction.atomic():
+    │   │     ├─ delete existing (optional)
+    │   │     ├─ bulk_create entries  
+    │   └─ success
     """
     corr = get_object_or_404(Correspondence, pk=pk, owner=request.user)
 
     if request.method == "POST":
         form = CorrespondenceUploadForm(request.POST, request.FILES)
-        if not form.is_valid():
-            return render(
-                request,
-                "correspondences/correspondence_upload.html",
-                {"form": form, "correspondence": corr},
-            )
+        if form.is_valid():
+            f = form.cleaned_data["file"]
+            replace_existing = form.cleaned_data["replace_existing"]
 
-        f = form.cleaned_data["file"]
-        replace_existing = form.cleaned_data["replace_existing"]
+            #raw = f.read().decode("utf-8", errors="replace")
+            #rows, errors = parse_correspondence_text(raw)
+            name = (f.name or "").lower()
+            if name.endswith(".xlsx"):
+                rows, errors = parse_correspondence_xlsx(f)
+            else:
+                raw = f.read().decode("utf-8", errors="replace")
+                rows, errors = parse_correspondence_text(raw)
 
-        # ===== Parse file =====
-        name = (getattr(f, "name", "") or "").lower()
-        if name.endswith(".xlsx"):
-            rows, errors = parse_correspondence_xlsx(f)
-        else:
-            raw = f.read().decode("utf-8", errors="replace")
-            rows, errors = parse_correspondence_text(raw)
 
-        # ===== Handle parsing errors FIRST =====
-        if errors:
-            messages.error(request, "Parsing errors detected. Please fix and re-upload.")
-            for e in errors[:10]:
-                messages.error(request, e)
-            if len(errors) > 10:
-                messages.error(request, f"... plus {len(errors) - 10} more errors.")
-            return render(
-                request,
-                "correspondences/correspondence_upload.html",
-                {"form": form, "correspondence": corr},
-            )
+            # ======= Conflits detection =======
+            by_name = defaultdict(set)   # (display_name, entry_type) -> set(identifier)
+            by_identifier = defaultdict(set)  # identifier -> set((display_name, entry_type))
+            
+            for identifier, display_name, entry_type in rows:
+                key_name = (display_name, entry_type or "")
+                key_id = (identifier, entry_type or "")
+                by_name[key_name].add(identifier)
+                by_identifier[identifier].add((display_name))
+            
+            conflict_messages = []
 
-        
-
-        # ===== Conflict detection =====
-        # Rule (symmetric):
-        # 1) Same (display_name, entry_type) cannot map to multiple identifiers
-        # 2) Same (identifier, entry_type) cannot map to multiple display_names
-        by_name = defaultdict(set)  # (display_name, entry_type) -> {identifier}
-        by_id = defaultdict(set)    # (identifier, entry_type) -> {display_name}
-
-        for identifier, display_name, entry_type in rows:
-            et = entry_type or ""
-            by_name[(display_name, et)].add(identifier)
-            by_id[(identifier, et)].add(display_name)
-
-        conflict_messages = []
-
-        for (display_name, et), identifiers in by_name.items():
-            if len(identifiers) > 1:
-                conflict_messages.append(
-                    f"Conflict: Display name '{display_name}' (type: '{et}') maps to multiple identifiers: "
-                    f"{', '.join(sorted(identifiers))}."
+            # (1) Same display_name --> multiple identifiers
+            for (display_name, entry_type), identifiers in by_name.items():
+                if len(identifiers) > 1:
+                    conflict_messages.append(
+                        f"Conflict: Display name '{display_name}' (type: '{entry_type}') maps to multiple identifiers: {', '.join(sorted(identifiers))}."
+                    )
+            # (2) Same identifier --> multiple display_names
+            for identifier, name_types in by_identifier.items():
+                if len(name_types) > 1:
+                    conflict_messages.append(
+                        f"Conflict: Identifier '{identifier}' maps to multiple display names: {', '.join(sorted(name_types))}."
+                    )
+            if conflict_messages:
+                # We do not automatically resolve ambiguous correspondences.
+                # User must fix the correspondence table.
+                messages.error(
+                    request,
+                    "Conflicts detected in the uploaded correspondence table:\n" 
+                    "Ambiguous mapping are not allowed."
+                    "Please fix the following issues and re-upload:\n" 
                 )
+                for msg in conflict_messages:
+                    messages.error(request, msg)
+                return render(request, "correspondences/correspondence_upload.html", {"form": form, "correspondence": corr})
+            # ===================================
 
-        for (identifier, et), display_names in by_id.items():
-            if len(display_names) > 1:
-                conflict_messages.append(
-                    f"Conflict: Identifier '{identifier}' (type: '{et}') maps to multiple display names: "
-                    f"{', '.join(sorted(display_names))}."
-                )
+            # ============= Handle parsing errors=============
+            if errors:
+                for e in errors[:10]:
+                    messages.error(request, e)
+                if len(errors) > 10:
+                    messages.error(request, f"... plus {len(errors)-10} more errors.")
+                return render(request, "correspondences/correspondence_upload.html", {"form": form, "correspondence": corr})
 
-        if conflict_messages:
-            messages.error(request, "Conflicts detected in the uploaded correspondence table.")
-            messages.error(request, "Ambiguous mappings are not allowed. Please fix the issues below and re-upload.")
-            for msg in conflict_messages[:20]:
-                messages.error(request, msg)
-            if len(conflict_messages) > 20:
-                messages.error(request, f"... plus {len(conflict_messages) - 20} more conflicts.")
-            return render(
-                request,
-                "correspondences/correspondence_upload.html",
-                {"form": form, "correspondence": corr},
-            )
+            with transaction.atomic():
+                if replace_existing:
+                    corr.entries.all().delete()
 
-        # ===== Write to DB =====
-        with transaction.atomic():
-            if replace_existing:
-                corr.entries.all().delete()
+                entries = [
+                    CorrespondenceEntry(
+                        correspondence=corr,
+                        identifier=identifier,
+                        display_name=display_name,
+                        entry_type=entry_type,
+                    )
+                    for identifier, display_name, entry_type in rows
+                ]
+                CorrespondenceEntry.objects.bulk_create(entries)
 
-            entries = [
-                CorrespondenceEntry(
-                    correspondence=corr,
-                    identifier=identifier,
-                    display_name=display_name,
-                    entry_type=(entry_type or ""),
-                )
-                for identifier, display_name, entry_type in rows
-            ]
-            CorrespondenceEntry.objects.bulk_create(entries)
+            messages.success(request, f"Uploaded {len(rows)} entries successfully.")
+            return redirect("correspondences:detail", pk=corr.pk)
+    else:
+        form = CorrespondenceUploadForm()
 
-        messages.success(request, f"Uploaded {len(rows)} entries successfully.")
-        return redirect("correspondences:detail", pk=corr.pk)
-
-    # GET
-    form = CorrespondenceUploadForm()
-    return render(
-        request,
-        "correspondences/correspondence_upload.html",
-        {"form": form, "correspondence": corr},
-    )
+    return render(request, "correspondences/correspondence_upload.html", {"form": form, "correspondence": corr})
 
 
 @login_required
 def correspondence_delete(request, pk: int):
-    #corr = get_object_or_404(Correspondence, pk=pk, owner=request.user)
-    corr = get_object_or_404(Correspondence, pk=pk)
-
-    # Collection owner and cheffe can delete
-    is_owner = (corr.owner_id == request.user.id)
-    is_team_owner = (corr.team_id is not None and corr.team.owner_id == request.user.id)
-
-    if not (is_owner or is_team_owner):
-        raise PermissionDenied("You are not allowed to delete this correspondence.")
-
+    corr = get_object_or_404(Correspondence, pk=pk, owner=request.user)
 
     if request.method == "POST":
         name = corr.name
@@ -204,4 +169,5 @@ def correspondence_delete(request, pk: int):
         messages.success(request, f"Deleted correspondence '{name}'.")
         return redirect("correspondences:list")
 
+    # GET: show confirmation page
     return render(request, "correspondences/correspondence_confirm_delete.html", {"correspondence": corr})
