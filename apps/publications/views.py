@@ -26,8 +26,7 @@ from django.urls import reverse
 from django.views.decorators.http import require_http_methods
 from django.core.mail import send_mail
 
-from apps.accounts.models import User
-from apps.teams.models import Team
+from apps.accounts.models import User, Team
 from .models import Publication
 
 

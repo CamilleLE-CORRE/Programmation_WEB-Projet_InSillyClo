@@ -19,7 +19,7 @@ from django.http import Http404
 from django.shortcuts import get_object_or_404, redirect, render
 from django.core.exceptions import PermissionDenied
 
-from apps.teams.models import Team
+from apps.accounts.models import Team
 from .forms import CorrespondenceCreateForm, CorrespondenceUploadForm
 from .models import Correspondence, CorrespondenceEntry
 from apps.correspondences.parsers import parse_correspondence_text

@@ -16,8 +16,6 @@ from django.utils import timezone
 from django.contrib.contenttypes.fields import GenericForeignKey
 from django.contrib.contenttypes.models import ContentType
 from django.core.exceptions import ValidationError
-from django.conf import settings
-
 
 
 class Publication(models.Model):
@@ -42,6 +40,15 @@ class Publication(models.Model):
         max_length=20,
         choices=Status.choices,
         #default=Status.PENDING_CHEFFE,
+        db_index=True,
+    )
+
+    team = models.ForeignKey(
+        "accounts.Team",
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="publication_requests",
         db_index=True,
     )
 
@@ -96,21 +103,19 @@ class Publication(models.Model):
 
     def approve(self, reviewer):
         self.status = self.Status.APPROVED
-        self.decided_by = reviewer
-        self.rejection_reason = ''
-        self.decided_at = timezone.now()
+        self.reviewed_by = reviewer
+        self.reviewed_comment = ''
+        self.reviewed_at = timezone.now()
         self.full_clean()
         self.save()
-
 
     def reject(self, reviewer, comment):
         self.status = self.Status.REJECTED
-        self.decided_by = reviewer
-        self.rejection_reason = comment or ''
-        self.decided_at = timezone.now()
+        self.reviewed_by = reviewer
+        self.reviewed_comment = comment or ''
+        self.reviewed_at = timezone.now()
         self.full_clean()
         self.save()
-
 
     def clean(self):
         # Only allow 2 targets: PlasmidCollection and Correspondence
@@ -126,5 +131,8 @@ class Publication(models.Model):
             raise ValidationError(f"Invalid target type: {app_label}.{model_name}")
 
         # If rejected, require a comment
-        if self.status == self.Status.REJECTED and not self.reviewed_comment:
-            raise ValidationError("A comment is required when rejecting a publication request.")
+        if self.status == self.Status.REJECTED_BY_CHEFFE and not self.cheffe_review_comment:
+            raise ValidationError("A comment is required when the cheffe rejects a request.")
+
+        if self.status == self.Status.REJECTED_BY_ADMIN and not self.admin_review_comment:
+            raise ValidationError("A comment is required when the admin rejects a request.")
