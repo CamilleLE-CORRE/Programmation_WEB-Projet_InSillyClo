@@ -212,6 +212,11 @@ footer {
     border-bottom: 1px solid var(--border);
 }
 
+table.dataTable.plasmid-table th,
+table.dataTable.plasmid-table td {
+    padding: 12px 10px;
+}
+
 /* lignes alternées */
 .plasmid-table tbody tr:nth-child(odd) {
     background-color: var(--card);
@@ -309,3 +314,16 @@ footer {
     text-align: center;
     vertical-align: middle;
 }
+
+/* =========================
+   TABLE SCROLL
+   ========================= */
+
+.dataTables_wrapper {
+    width: 100%;
+}
+
+.dataTables_scrollBody {
+    overflow-x: auto;
+}
+
