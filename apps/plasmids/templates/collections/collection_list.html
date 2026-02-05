@@ -27,6 +27,7 @@
                 <th>Owner / Team</th>
                 <th>Visibility</th>
                 <th>Actions</th>
+                <th>Export</th>
             </tr>
         </thead>
         <tbody>
@@ -52,6 +53,9 @@
                     </td>
                     <td>
                         <a href="{% url 'plasmids:collection_delete' collection.id %}">🗑️</a>
+                    </td>
+                    <td>
+                        <a href="{% url 'plasmids:collection_export' collection.id %}">📤 Export</a>
                     </td>
                 </tr>
             {% endfor %}

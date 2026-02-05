@@ -80,7 +80,7 @@ def import_plasmids_from_upload(
         try:
             records = list(_parse_genbank_records(content, filename))
             if not records:
-                errors.append(f"{filename}: 没有解析到 GenBank record")
+                errors.append(f"{filename}: Can't find GenBank record")
                 continue
 
             for rec in records:

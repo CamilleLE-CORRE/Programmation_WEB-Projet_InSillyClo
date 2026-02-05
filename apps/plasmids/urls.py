@@ -15,6 +15,8 @@ urlpatterns = [
     path("collections/<int:pk>/delete/", views.CollectionDeleteView.as_view(), name="collection_delete"),
     path("collections/<int:pk>/add-plasmids/", views.CollectionAddPlasmidsView.as_view(), name="collection_add_plasmids"),
     path("plasmids/import/", views.PlasmidImportView.as_view(), name="plasmid_import"),
+    # Export collections
+    path("collections/<int:pk>/export/", views.collection_export_gb_zip, name="collection_export"),
 
 
     # Plasmide

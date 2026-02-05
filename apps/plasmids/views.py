@@ -1,7 +1,4 @@
-from django.shortcuts import render, get_object_or_404
 from django.views.generic import TemplateView
-from .models import Plasmid
-from .forms import PlasmidSearchForm
 import json
 from django.contrib import messages
 from django import forms
@@ -12,6 +9,12 @@ from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
 from django.db.models import Q
 from django.urls import reverse, reverse_lazy
 from django.views import View
+import re
+import zipfile
+from pathlib import Path
+from io import BytesIO
+from django.http import Http404, HttpResponse
+from django.contrib.auth.decorators import login_required
 
 from apps.correspondences import forms
 from apps.accounts.models import Team
@@ -19,6 +22,9 @@ from apps.accounts.models import Team
 from .forms import PlasmidSearchForm,AddPlasmidsToCollectionForm, ImportPlasmidsForm
 from .models import PlasmidCollection, Plasmid
 from .service import import_plasmids_from_upload, get_or_create_target_collection
+
+
+
 
 
 
@@ -321,6 +327,7 @@ def plasmid_detail(request, id):
     return render(request, "plasmids/plasmid_detail.html", context)
     
 
+
 # =================================================================================
 # Plasmid Collections Views
 
@@ -485,3 +492,65 @@ class PlasmidImportView(LoginRequiredMixin, View):
         if collection:
             return redirect(reverse("plasmids:collection_detail", args=[collection.pk]))
         return redirect(reverse("plasmids:plasmid_list"))
+    
+
+
+#========================================================
+# Export collection files
+def safe_filename(name: str, default="plasmid") -> str:
+    name = (name or "").strip() or default
+    name = re.sub(r"[^\w\-.]+", "_", name)
+    return name[:120]
+
+
+@login_required
+def collection_export_gb_zip(request, pk: int):
+    collection = get_object_or_404(PlasmidCollection, pk=pk)
+
+    # Public collections can be exported directly
+    if not collection.is_public and collection.owner_id != request.user.id:
+        raise Http404("No permission")
+
+    plasmids = collection.plasmids.all()
+    if not plasmids.exists():
+        raise Http404("Empty collection")
+
+    buffer = BytesIO()
+    missing = 0
+    added = 0
+
+    # Contents of .zip file about to be exported
+    with zipfile.ZipFile(buffer, "w", compression=zipfile.ZIP_DEFLATED) as zf:
+        zf.writestr(
+            "README.txt",
+            f"Exported collection: {collection.name}\n"
+            f"Format: GenBank (.gb)\n"
+            f"Note: files are read from plasmid.file_path on disk.\n"
+        )
+
+        for p in plasmids:
+            fp = getattr(p, "file_path", None)
+            if not fp:
+                missing += 1
+                continue
+
+            path = Path(fp)
+            if not path.exists() or not path.is_file():
+                missing += 1
+                continue
+
+            base = safe_filename(p.identifier or p.name or path.stem)
+            arcname = f"{base}.gb"
+
+            with open(path, "rb") as f:
+                zf.writestr(arcname, f.read())
+                added += 1
+
+    if added == 0:
+        raise Http404("No GenBank files available to export (missing file_path or files not found on disk).")
+
+    buffer.seek(0)
+    zip_name = safe_filename(collection.name, default=f"collection_{collection.id}")
+    resp = HttpResponse(buffer.getvalue(), content_type="application/zip")
+    resp["Content-Disposition"] = f'attachment; filename="{zip_name}_genbank.zip"'
+    return resp

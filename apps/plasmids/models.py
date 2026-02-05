@@ -66,6 +66,7 @@ class Plasmid(models.Model):
     collection = models.ForeignKey(PlasmidCollection, on_delete=models.CASCADE, related_name='plasmids')
     genbank_data = models.JSONField(blank=True, null=True)
     is_public = models.BooleanField(default=False)  # Public visibility flag
+    file_path = models.TextField(blank=True, null=True)
 
     class Meta:
         ordering = ('id', 'identifier')  # Default ordering by id and identifier
