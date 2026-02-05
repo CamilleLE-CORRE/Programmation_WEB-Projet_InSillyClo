@@ -66,10 +66,10 @@
     </div>
 
     <div style="margin-top: 32px;">
-            <button type="submit" class="btn" style="width: 100%; padding: 16px; font-size: 1.1em;">
-                SEARCH
-            </button>
-        </div>
+        <button type="submit" class="btn" style="width: 100%; padding: 16px; font-size: 1.1em;">
+            SEARCH
+        </button>
+    </div>
 </form>
 
 <br>
@@ -80,7 +80,7 @@
 {% if plasmids %}
 <p>{{ plasmids|length }} plasmids found.</p>
 
-<table class="plasmid-table">
+<table id="plasmidTable" class="plasmid-table with-columns">
     <thead>
         <tr>
             <th>Name</th>
@@ -159,6 +159,40 @@ document.addEventListener("DOMContentLoaded", () => {
         row.onclick = () => window.location = row.dataset.href;
     });
 });
+
+document.addEventListener("DOMContentLoaded", function () {
+
+    $('#plasmidTable tbody').on('click', 'tr', function () {
+        const href = this.dataset.href;
+        if (href) {
+            window.location = href;
+        }
+    });
+
+    $('#plasmidTable').DataTable({
+        paging: true,
+        pageLength: 25,
+        lengthChange: false,
+        ordering: true,
+        info: true,
+        searching: true,
+        order: [[0, 'asc']],
+        columnDefs: [
+            { orderable: false, targets: [] }
+        ],
+        language: {
+            search: "",
+            info: "Showing _START_ to _END_ of _TOTAL_ plasmids",
+            infoEmpty: "No plasmids available",
+            zeroRecords: "No matching plasmids found",
+            paginate: {
+                previous: "Previous",
+                next: "Next"
+            }
+        }
+    });
+});
+
 </script>
 
 {% endblock %}
