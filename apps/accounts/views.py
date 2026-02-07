@@ -12,6 +12,7 @@ from apps.simulations.models import Campaign
 from apps.plasmids.models import PlasmidCollection
 from apps.correspondences.models import Correspondence
 from apps.publications.models import Publication
+from apps.plasmids.models import Plasmid
 
 
 from .forms import (
@@ -45,6 +46,8 @@ class SignUpView(CreateView):
     form_class = SignUpForm
     template_name = "accounts/signup.html"
     success_url = reverse_lazy("accounts:login")
+
+
 
 
 # =========================
@@ -177,32 +180,39 @@ class TeamDetailView(TeamMemberRequiredMixin, DetailView):
         team = self.object
 
         ctx["is_owner"] = team.owner_id == self.request.user.id
+        ctx["members"] = team.members.all().order_by("email")
         ctx["add_member_form"] = TeamAddMemberForm(team=team)
         ctx["transfer_owner_form"] = TeamTransferOwnerForm(team=team)
-        ctx["members"] = team.members.all().order_by("email")
 
-        # === NOUVEAU ===
+        # === RESSOURCES D'ÉQUIPE ===
+
+        ctx["collections"] = PlasmidCollection.objects.filter(team=team)
+
+        ctx["plasmids"] = Plasmid.objects.filter(
+            collection__team=team
+        ).select_related("collection")
+
+        ctx["correspondences"] = Correspondence.objects.filter(
+            team=team
+        ).select_related("owner")
 
         ctx["campaigns"] = Campaign.objects.filter(
             owner__in=team.members.all()
         ).select_related("template").distinct()
 
-        ctx["collections"] = PlasmidCollection.objects.filter(
-            team=team
-        )
-
-        ctx["correspondences"] = (
-            Correspondence.objects
-            .filter(owner__in=team.members.all())
-            .select_related("owner")
-            .distinct()
-        )
-
-
-        ctx["publication_requests"] = Publication.objects.filter(
+        ctx["publications"] = Publication.objects.filter(
             team=team
         ).select_related("requested_by")
 
+        ctx["publication_requests"] = (
+            Publication.objects
+            .filter(team=team)                
+            .select_related("requested_by", "team")
+            .order_by("-created_at")
+        )
+
+        ctx["is_cheffe"] = (team.owner_id == self.request.user.id)
+        ctx["PENDING_CHEFFE"] = Publication.Status.PENDING_CHEFFE
         return ctx
 
 
