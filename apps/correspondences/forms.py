@@ -7,7 +7,8 @@ from .models import Correspondence
 class CorrespondenceCreateForm(forms.ModelForm):
     class Meta:
         model = Correspondence
-        fields = ['name', 'is_public']  # Fields to be included in the form
+        fields = ['name','team']  # Fields to be included in the form
+        exclude = ["is_public"]
 
 
 class CorrespondenceUploadForm(forms.Form):

@@ -379,7 +379,8 @@ class OwnerRequiredMixin(UserPassesTestMixin):
 class CollectionCreateView(LoginRequiredMixin, CreateView):
     model = PlasmidCollection
     template_name = "collections/collection_form.html"
-    fields = ["name", "is_public"]
+    fields = ["name", "team"]
+    exclude=["is_public"]
 
     # Team assignment during creation
     def form_valid(self, form):

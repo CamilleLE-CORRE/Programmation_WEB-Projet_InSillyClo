@@ -19,6 +19,7 @@
         <tr>
           <th>ID</th>
           <th>Target</th>
+          <th>Team</th>
           <th>Status</th>
           <th>Next step</th>
           <th>Comment</th>
@@ -38,6 +39,9 @@
               (id={{ pub.target_object_id }})
             </div>
           </td>
+
+          <td>{{pub.team}}</td>
+
 
           <td>
             {% if pub.status == "PENDING_CHEFFE" %}

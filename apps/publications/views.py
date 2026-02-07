@@ -89,12 +89,14 @@ def request_publication(request, target_kind:str, target_id:int):
             if getattr(target_obj, "team_id", None) is not None
             else Publication.Status.PENDING_ADMIN
         )
+        team = getattr(target_obj, "team", None)
 
         pub = Publication(
             requested_by=request.user,
             target_content_type=ct,
             target_object_id=target_obj.pk,
             status=initial_status,
+            team = team
         )
         pub.full_clean()
         pub.save()
