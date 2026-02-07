@@ -5,17 +5,24 @@
 {% block content %}
 <h1>Home</h1>
 
+<p class="home-intro">
+  InSillyClo is a platform designed to manage synthetic biology campaigns.
+  You can create and reuse campaign templates, explore plasmid libraries,
+  run simulations, collaborate within teams, and handle publication requests
+  from a single interface.
+</p>
+
 <h2>Quick Access</h2>
 <ul>
-  <li><a href="{% url 'campaigns:template_list' %}">Template List</a></li>
-  <li><a href="{% url 'campaigns:create_template' %}">Create a template</a></li>
-  <li><a href="{% url 'simulations:simu' %}">Campaign Simulation</a></li>
-  <li><a href="{% url 'plasmids:plasmid_list' %}">Plasmid List</a></li>
-  <li><a href="{% url 'plasmids:search' %}">Browse plasmids</a></li>
+  <li><a href="{% url 'campaigns:template_list' %}">Browse Templates  </a></li>
+  <li><a href="{% url 'campaigns:create_template' %}">New Template</a></li>
+  <li><a href="{% url 'simulations:simu' %}">Run Simulation</a></li>
+  <li><a href="{% url 'plasmids:plasmid_list' %}">Plasmids Library</a></li>
+  <li><a href="{% url 'plasmids:search' %}">Search plasmids</a></li>
   <li><a href="{% url 'plasmids:collection_list' %}">Plasmid Collections</a></li>
-  <li><a href="{% url 'accounts:teams' %}">Teams</a></li>
-  <li><a href="{% url 'correspondences:list' %}">Correspondence Table</a></li>
-  <li><a href="{% url 'publications:my_requests'%}">My publication request</a></li>
-  <li><a href="{% url 'publications:cheffe_requests'%}">Team publication requests (cheffe)</a></li>
+  <li><a href="{% url 'accounts:teams' %}">My Teams</a></li>
+  <li><a href="{% url 'publications:my_requests'%}">My Publication Requests</a></li>
+  <li><a href="{% url 'publications:cheffe_requests'%}">Team Publication Review</a></li>
+  <li><a href="{% url 'correspondences:list' %}">Open Correspondences</a></li>
 </ul>
 {% endblock %}

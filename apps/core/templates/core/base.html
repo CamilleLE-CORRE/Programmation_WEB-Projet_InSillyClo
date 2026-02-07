@@ -35,6 +35,8 @@
       
       <a href="{% url 'accounts:teams' %}">Teams</a>
 
+      <a href="{%url 'correspondences:list' %}">Correspondences</a>
+
       {% if request.user.is_staff %}
         <a href="{% url 'core:admin_dashboard' %}">Admin</a>
       {% endif %}
