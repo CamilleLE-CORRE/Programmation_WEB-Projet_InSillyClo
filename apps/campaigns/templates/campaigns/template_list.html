@@ -15,137 +15,178 @@
 
 {% if public_templates or user_templates %}
 
-<table class="table plasmid-table">
-    <thead>
-        <tr>
-            <th style="width:40px;"></th>   {# Delete #}
-            <th style="width:40px;"></th>   {# Edit #}
-            <th>Name</th>
-            <th>XLSX</th>
-            <th>Visibility</th>
-            <th>Type</th>
-            <th>Restriction enzyme</th>
-            <th>Separator</th>
-            <th>Owner</th>
-            <th>Created</th>
-            <th>Updated</th>
-        </tr>
-    </thead>
+<div class="table-scroll">
 
-    <tbody>
-        {# ===== PUBLIC TEMPLATES ===== #}
-        {% for template in public_templates %}
-        <tr>
-            <!-- Delete -->
-            <td></td>
+    <table id="templateTable" class="table plasmid-table with-columns">
+        <thead>
+            <tr>
+                <th style="width:40px;"></th>   {# Delete #}
+                <th style="width:40px;"></th>   {# Edit #}
+                <th>Name</th>
+                <th>XLSX</th>
+                <th>Visibility</th>
+                <th>Type</th>
+                <th>Restriction enzyme</th>
+                <th>Separator</th>
+                <th>Owner</th>
+                <th>Created</th>
+                <th>Updated</th>
+            </tr>
+        </thead>
+
+        <tbody>
+            {# ===== PUBLIC TEMPLATES ===== #}
+            {% for template in public_templates %}
+            <tr>
+                <!-- Delete -->
+                <td></td>
+
+                <!-- Edit -->
+                <td></td>
+
+                <!-- Name -->
+                <td class="template-name">{{ template.name }}</td>
+
+                <!-- XLSX -->
+                <td>
+                    <a class="download-link"
+                    href="{% url 'campaigns:download_public_template' template.id %}?format=xlsx">
+                        XLSX
+                    </a>
+                </td>
+
+                <!-- Visibility -->
+                <td class="template-meta">
+                    <span class="badge bg-success">Public</span>
+                </td>
+
+                <!-- Type -->
+                <td class="template-meta">{{ template.template_type }}</td>
+
+                <!-- Restriction enzyme -->
+                <td class="template-meta">{{ template.restriction_enzyme|default_if_none:"" }}</td>
+
+                <!-- Separator -->
+                <td class="template-meta">{{ template.separator|default_if_none:"" }}</td>
+
+                <!-- Owner -->
+                <td class="template-meta">{{ template.owner.username|default_if_none:"" }}</td>
+
+                <!-- Created -->
+                <td class="template-meta">{{ template.created_at|date:"Y-m-d H:i" }}</td>
+
+                <!-- Updated -->
+                <td class="template-meta">
+                    {{ template.updated_at|default:template.created_at|date:"Y-m-d H:i" }}
+                </td>
+            </tr>
+            {% endfor %}
+
+            {# ===== USER TEMPLATES ===== #}
+            {% for template in user_templates %}
+            <tr>
+                <!-- Delete -->
+            <td>
+                <form method="post"
+                    action="{% url 'campaigns:delete_template' template.id %}"
+                    onsubmit="return confirm('Delete this template?');">
+                    {% csrf_token %}
+                    <button type="submit" class="table-icon delete-icon" title="Delete">
+                        🗑️
+                    </button>
+                </form>
+            </td>
 
             <!-- Edit -->
-            <td></td>
-
-            <!-- Name -->
-            <td class="template-name">{{ template.name }}</td>
-
-            <!-- XLSX -->
             <td>
-                <a class="download-link"
-                   href="{% url 'campaigns:download_public_template' template.id %}?format=xlsx">
-                    XLSX
+                <a href="{% url 'campaigns:edit_template' template.id %}"
+                class="table-icon edit-icon"
+                title="Edit">
+                    ✏️
                 </a>
             </td>
 
-            <!-- Visibility -->
-            <td class="template-meta">
-                <span class="badge bg-success">Public</span>
-            </td>
+                <!-- Name -->
+                <td class="template-name">{{ template.name }}</td>
 
-            <!-- Type -->
-            <td class="template-meta">{{ template.template_type }}</td>
+                <!-- XLSX -->
+                <td>
+                    <a class="download-link"
+                    href="{% url 'campaigns:download_template' template.id %}?format=xlsx">
+                        XLSX
+                    </a>
+                </td>
 
-            <!-- Restriction enzyme -->
-            <td class="template-meta">{{ template.restriction_enzyme|default_if_none:"" }}</td>
+                <!-- Visibility -->
+                <td class="template-meta">
+                    <span class="badge bg-secondary">Private</span>
+                </td>
 
-            <!-- Separator -->
-            <td class="template-meta">{{ template.separator|default_if_none:"" }}</td>
+                <!-- Type -->
+                <td class="template-meta">{{ template.template_type }}</td>
 
-            <!-- Owner -->
-            <td class="template-meta">{{ template.owner.username|default_if_none:"" }}</td>
+                <!-- Restriction enzyme -->
+                <td class="template-meta">{{ template.restriction_enzyme|default_if_none:"" }}</td>
 
-            <!-- Created -->
-            <td class="template-meta">{{ template.created_at|date:"Y-m-d H:i" }}</td>
+                <!-- Separator -->
+                <td class="template-meta">{{ template.separator|default_if_none:"" }}</td>
 
-            <!-- Updated -->
-            <td class="template-meta">
-                {{ template.updated_at|default:template.created_at|date:"Y-m-d H:i" }}
-            </td>
-        </tr>
-        {% endfor %}
+                <!-- Owner -->
+                <td class="template-meta">You</td>
 
-        {# ===== USER TEMPLATES ===== #}
-        {% for template in user_templates %}
-        <tr>
-            <!-- Delete -->
-        <td>
-            <form method="post"
-                action="{% url 'campaigns:delete_template' template.id %}"
-                onsubmit="return confirm('Delete this template?');">
-                {% csrf_token %}
-                <button type="submit" class="table-icon delete-icon" title="Delete">
-                    🗑️
-                </button>
-            </form>
-        </td>
+                <!-- Created -->
+                <td class="template-meta">{{ template.created_at|date:"Y-m-d H:i" }}</td>
 
-        <!-- Edit -->
-        <td>
-            <a href="{% url 'campaigns:edit_template' template.id %}"
-            class="table-icon edit-icon"
-            title="Edit">
-                ✏️
-            </a>
-        </td>
-
-            <!-- Name -->
-            <td class="template-name">{{ template.name }}</td>
-
-            <!-- XLSX -->
-            <td>
-                <a class="download-link"
-                   href="{% url 'campaigns:download_template' template.id %}?format=xlsx">
-                    XLSX
-                </a>
-            </td>
-
-            <!-- Visibility -->
-            <td class="template-meta">
-                <span class="badge bg-secondary">Private</span>
-            </td>
-
-            <!-- Type -->
-            <td class="template-meta">{{ template.template_type }}</td>
-
-            <!-- Restriction enzyme -->
-            <td class="template-meta">{{ template.restriction_enzyme|default_if_none:"" }}</td>
-
-            <!-- Separator -->
-            <td class="template-meta">{{ template.separator|default_if_none:"" }}</td>
-
-            <!-- Owner -->
-            <td class="template-meta">{{ template.owner.username }}</td>
-
-            <!-- Created -->
-            <td class="template-meta">{{ template.created_at|date:"Y-m-d H:i" }}</td>
-
-            <!-- Updated -->
-            <td class="template-meta">
-                {{ template.updated_at|default:template.created_at|date:"Y-m-d H:i" }}
-            </td>
-        </tr>
-        {% endfor %}
-    </tbody>
-</table>
+                <!-- Updated -->
+                <td class="template-meta">
+                    {{ template.updated_at|default:template.created_at|date:"Y-m-d H:i" }}
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
 
 {% else %}
 <p class="text-center text-muted">No templates found</p>
 {% endif %}
+
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+
+    $('#templateTable tbody').on('click', 'tr', function () {
+        const href = this.dataset.href;
+        if (href) {
+            window.location = href;
+        }
+    });
+
+    $('#templateTable').DataTable({
+        scrollX: true,
+        paging: true,
+        pageLength: 25,
+        lengthChange: false,
+        ordering: true,
+        info: true,
+        searching: true,
+        order: [[0, 'asc']],
+        columnDefs: [
+            { orderable: false, targets: [] }
+        ],
+        language: {
+            search: "",
+            info: "Showing _START_ to _END_ of _TOTAL_ templates",
+            infoEmpty: "No templates available",
+            zeroRecords: "No matching templates found",
+            paginate: {
+                previous: "Previous",
+                next: "Next"
+            }
+        }
+    });
+
+});
+</script>
+
 
 {% endblock %}

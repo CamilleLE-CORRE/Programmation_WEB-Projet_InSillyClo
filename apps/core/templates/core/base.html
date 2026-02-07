@@ -7,6 +7,13 @@
   <title>{% block title %}InSillyClo{% endblock %}</title>
 
   <link rel="stylesheet" href="{% static 'css/site.css' %}">
+
+  <!-- Pour utiliser Data Tables -->
+  <link rel="stylesheet" href="https://cdn.datatables.net/1.13.8/css/jquery.dataTables.min.css">
+  <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+  <script src="https://cdn.datatables.net/1.13.8/js/jquery.dataTables.min.js"></script>
+
+
   {% block extra_css %}{% endblock %}
 </head>
 
@@ -26,7 +33,7 @@
   
       <a href="{% url 'plasmids:plasmid_list' %}">Plasmids</a>
       
-      <a href="{% url 'teams:teams' %}">Teams</a>
+      <a href="{% url 'accounts:teams' %}">Teams</a>
 
       {% if request.user.is_staff %}
         <a href="{% url 'core:admin_dashboard' %}">Admin</a>

@@ -17,4 +17,6 @@ class CampaignTemplate(models.Model):
     is_public = models.BooleanField(default=False)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
+    source_file = models.FileField(upload_to='templates/', null=True, blank=True)
+
 

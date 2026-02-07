@@ -17,8 +17,11 @@ Define database model for plasmidecollections:
 """
 
 from django.db import models
+from django.urls import reverse
+
 from apps.accounts.models import User
-from apps.teams.models import Team
+from apps.accounts.models import Team
+
 
 
 class PlasmidCollection(models.Model):
@@ -45,6 +48,8 @@ class PlasmidCollection(models.Model):
         #indexes = (('id',), ('name',))  # Indexes for id and name fields
         verbose_name = "Plasmid Collection"  # Singular name
         verbose_name_plural = "Plasmid Collections"  # Plural name
+    def get_absolute_url(self):
+        return reverse("plasmids:collection_detail", args=[self.pk])
 
     def __str__(self):
         return f"{self.name}" # (Owner: {self.owner.email})"
@@ -61,6 +66,7 @@ class Plasmid(models.Model):
     collection = models.ForeignKey(PlasmidCollection, on_delete=models.CASCADE, related_name='plasmids')
     genbank_data = models.JSONField(blank=True, null=True)
     is_public = models.BooleanField(default=False)  # Public visibility flag
+    file_path = models.TextField(blank=True, null=True)
 
     class Meta:
         ordering = ('id', 'identifier')  # Default ordering by id and identifier

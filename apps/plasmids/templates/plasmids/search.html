@@ -1,130 +1,198 @@
 {% extends "core/base.html" %}
-{% block title %}Recherche de plasmides{% endblock %}
+{% block title %}Plasmid Browser{% endblock %}
 
 {% block content %}
-<h1>Recherche de plasmides</h1>
 
-<form method="get" action="{% url 'plasmids:search_results' %}">
-    {% csrf_token %}
+<div class="header">
+    <div style="display:flex; justify-content:space-between; align-items:center;">
+        <h1>Plasmid Browser</h1>
+        <a class="btn" href="{% if request.META.HTTP_REFERER %}{{ request.META.HTTP_REFERER }}{% else %}{% url 'plasmid_list' %}{% endif %}">
+            Back to Plasmid List
+        </a>    
+    </div>
+</div>
 
-    <div class="card" style="margin-bottom:16px;">
-        {{ form.sequence_pattern.label_tag }}
+<br>
+
+<form method="get">
+
+    <div class="card">
+        <h3>Sequence Pattern</h3>
+        Minimum 3 residues
         {{ form.sequence_pattern }}
     </div>
 
-    <div class="card" style="margin-bottom:16px;">
-        {{ form.name.label_tag }}
+    <!-- Motif similaire -->
+    <div class="card">
+        <h3>Similar Sequence Pattern</h3>
+        <input type="text"
+               name="similar_sequence"
+               id="similar_sequence"
+               value="{{ request.GET.similar_sequence }}"
+               placeholder="Ex: ATGCG">
+
+        <label for="similarity_threshold" style="margin-top:6px;">
+            Minimum similarity (%)
+        </label>
+        <input type="number"
+               name="similarity_threshold"
+               id="similarity_threshold"
+               min="0"
+               max="100"
+               value="{{ request.GET.similarity_threshold|default:80 }}">
+    </div>
+
+    <div class="card">
+        <h3>Name or Sub-chain</h3>
         {{ form.name }}
     </div>
 
-    <!-- Tableau tri-state Types -->
-    <div class="card" style="margin-bottom:16px;">
-        <h3>Types de plasmide</h3>
-        <table class="tri-state-table">
-            <thead>
-                <tr><th>Type</th><th>Presence</th></tr>
-            </thead>
-            <tbody>
-                {% for t, t_label in PLASMID_TYPE_CHOICES %}
-                <tr>
-                    <td>{{ t_label }}</td>
-                    <td>
-                        <div class="tri-state-cell" data-name="{{ t }}" data-value="indifferent"></div>
-                        <input type="hidden" name="type_{{ t }}" value="indifferent">
-                    </td>
-                </tr>
-                {% endfor %}
-            </tbody>
-        </table>
+    <!-- Contraintes sur annotations -->
+    <div class="card">
+        <h3>Annotations</h3>
+        <div id="annotation-constraints"></div>
+        <button type="button" class="btn btn-secondary" id="add-annotation">
+            + Add annotation constraint
+        </button>
     </div>
 
-    <!-- Tableau tri-state Sites ER -->
-    <div class="card" style="margin-bottom:16px;">
-        <h3>Sites de restriction</h3>
-        <table class="tri-state-table">
-            <thead>
-                <tr><th>Restriction Enzyme Site</th><th>Presence</th></tr>
-            </thead>
-            <tbody>
-                {% for s, s_label in RESTRICTION_SITE_CHOICES %}
-                <tr>
-                    <td>{{ s_label }}</td>
-                    <td>
-                        <div class="tri-state-cell" data-name="{{ s }}" data-value="indifferent"></div>
-                        <input type="hidden" name="site_{{ s }}" value="indifferent">
-                    </td>
-                </tr>
-                {% endfor %}
-            </tbody>
-        </table>
+    <!-- Contraintes sur sites de restriction -->
+    <div class="card">
+        <h3>Restriction Enzyme Sites</h3>
+        <div id="restriction-constraints"></div>
+        <button type="button" class="btn btn-secondary" id="add-restriction">
+            + Add restriction constraint
+        </button>
     </div>
 
-    <button type="submit" class="btn">Search</button>
+    <div style="margin-top: 32px;">
+        <button type="submit" class="btn" style="width: 100%; padding: 16px; font-size: 1.1em;">
+            SEARCH
+        </button>
+    </div>
 </form>
 
-<!-- JS tri-state -->
+<br>
+
+{% if plasmids != None %}
+<h1>Results</h1>
+
+{% if plasmids %}
+<p>{{ plasmids|length }} plasmids found.</p>
+
+<table id="plasmidTable" class="plasmid-table with-columns">
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Length</th>
+            <th>Collection</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for plasmid in plasmids %}
+        <tr class="clickable-row"
+            data-href="{% url 'plasmids:plasmid_detail' plasmid.id %}">
+            <td>{{ plasmid.name }}</td>
+            <td>{{ plasmid.length }} bp</td>
+            <td>{{ plasmid.collection.name }}</td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+
+{% else %}
+<p class="text-muted">No plasmids found.</p>
+{% endif %}
+{% endif %}
+
+{{ annotation_constraints|json_script:"annotation-constraints-data" }}
+{{ restriction_constraints|json_script:"restriction-constraints-data" }}
+
 <script>
 document.addEventListener("DOMContentLoaded", () => {
-    const cells = document.querySelectorAll(".tri-state-cell");
-    cells.forEach(cell => {
-        cell.addEventListener("click", () => {
-            const hiddenInput = cell.nextElementSibling;
-            let current = cell.dataset.value;
-            if(current === "indifferent") {
-                cell.dataset.value = "yes";
-                hiddenInput.value = "yes";
-                cell.classList.remove("absent");
-                cell.classList.add("present");
-                cell.innerHTML = "✔";
-            } else if(current === "yes") {
-                cell.dataset.value = "no";
-                hiddenInput.value = "no";
-                cell.classList.remove("present");
-                cell.classList.add("absent");
-                cell.innerHTML = "✖";
-            } else {
-                cell.dataset.value = "indifferent";
-                hiddenInput.value = "indifferent";
-                cell.classList.remove("absent");
-                cell.innerHTML = "";
-            }
-        });
+
+    function addRow(container, name, mode, inputName, selectName) {
+        const row = document.createElement("div");
+        row.style.display = "flex";
+        row.style.gap = "8px";
+        row.style.marginBottom = "6px";
+
+        row.innerHTML = `
+            <input type="text" name="${inputName}" value="${name || ""}">
+            <select name="${selectName}">
+                <option value="present" ${mode === "present" ? "selected" : ""}>Must be present</option>
+                <option value="absent" ${mode === "absent" ? "selected" : ""}>Must be absent</option>
+            </select>
+            <button type="button" class="btn btn-danger">✖</button>
+        `;
+
+        row.querySelector("button").onclick = () => row.remove();
+        container.appendChild(row);
+    }
+
+    const annotationContainer = document.getElementById("annotation-constraints");
+    const restrictionContainer = document.getElementById("restriction-constraints");
+
+    const annotationConstraints = JSON.parse(
+        document.getElementById("annotation-constraints-data").textContent
+    );
+
+    const restrictionConstraints = JSON.parse(
+        document.getElementById("restriction-constraints-data").textContent
+    );
+
+    annotationConstraints.forEach(c =>
+        addRow(annotationContainer, c.name, c.mode, "annotation_name", "annotation_mode")
+    );
+
+    restrictionConstraints.forEach(c =>
+        addRow(restrictionContainer, c.name, c.mode, "restriction_name", "restriction_mode")
+    );
+
+    document.getElementById("add-annotation").onclick = () =>
+        addRow(annotationContainer, "", "present", "annotation_name", "annotation_mode");
+
+    document.getElementById("add-restriction").onclick = () =>
+        addRow(restrictionContainer, "", "present", "restriction_name", "restriction_mode");
+
+    document.querySelectorAll(".clickable-row").forEach(row => {
+        row.onclick = () => window.location = row.dataset.href;
     });
 });
+
+document.addEventListener("DOMContentLoaded", function () {
+
+    $('#plasmidTable tbody').on('click', 'tr', function () {
+        const href = this.dataset.href;
+        if (href) {
+            window.location = href;
+        }
+    });
+
+    $('#plasmidTable').DataTable({
+        paging: true,
+        pageLength: 25,
+        lengthChange: false,
+        ordering: true,
+        info: true,
+        searching: true,
+        order: [[0, 'asc']],
+        columnDefs: [
+            { orderable: false, targets: [] }
+        ],
+        language: {
+            search: "",
+            info: "Showing _START_ to _END_ of _TOTAL_ plasmids",
+            infoEmpty: "No plasmids available",
+            zeroRecords: "No matching plasmids found",
+            paginate: {
+                previous: "Previous",
+                next: "Next"
+            }
+        }
+    });
+});
+
 </script>
-
-<style>
-.tri-state-cell {
-    width: 30px;
-    height: 30px;
-    border: 1px solid var(--border);
-    border-radius: 6px;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    background-color: white;
-    font-size: 18px;
-    transition: all 0.2s;
-}
-.tri-state-cell.present {
-    background-color: #d1fae5;
-    color: #065f46;
-}
-.tri-state-cell.absent {
-    background-color: #fee2e2;
-    color: #991b1b;
-}
-.tri-state-table {
-    border-collapse: separate;
-    border-spacing: 20px 5px;
-}
-
-.tri-state-table th,
-.tri-state-table td {
-    text-align: center;
-    vertical-align: middle;
-}
-</style>
 
 {% endblock %}

@@ -12,12 +12,6 @@
 
 <br>
 
-{% if messages %}
-    {% for message in messages %}
-        <div class="message {{ message.tags }}">{{ message }}</div>
-    {% endfor %}
-{% endif %}
-
 <form method="post">
     {% csrf_token %}
     {{ form.non_field_errors }}
@@ -83,16 +77,18 @@
         </div>
     </div>
 
-    <div class="form-actions" style="margin-top:12px;">
-        <button type="submit" class="btn">Save changes</button>
+    <div style="margin-top: 32px;">
+        <button type="submit" class="btn" style="width: 100%; padding: 16px; font-size: 1.1em;">
+            SAVE CHANGES
+        </button>
     </div>
 </form>
 
-<hr>
+<br>
 
 <!-- ================= XLSX REPLACEMENT ================= -->
 <div class="card" style="padding:16px; margin-bottom:12px;">
-    <h3>Replace template using XLSX</h3>
+    <h3>Or replace template using XLSX</h3>
     <p class="text-muted">
         Uploading a new XLSX file will overwrite the current template structure.
     </p>
@@ -102,10 +98,16 @@
           enctype="multipart/form-data">
         {% csrf_token %}
         <input type="file" name="xlsx" accept=".xlsx" required>
-        <br><br>
-        <button type="submit" class="btn btn-secondary">Upload XLSX</button>
+        <br>
+        <div style="margin-top: 32px;">
+            <button type="submit" class="btn" style="width: 100%; padding: 16px; font-size: 1.1em;">
+                UPLOAD NEW TEMPLATE
+            </button>
+        </div>
     </form>
 </div>
+
+
 
 <style>
 .radio-group {

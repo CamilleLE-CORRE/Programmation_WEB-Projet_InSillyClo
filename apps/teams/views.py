@@ -146,5 +146,5 @@ class TeamTransferOwnerView(TeamOwnerRequiredMixin, View):
         new_owner = form.cleaned_data["new_owner"]
         team.owner = new_owner
         team.save()  # Team.save() force le membership OWNER sur new_owner et MEMBER sur ancien owner
-        messages.success(request, "Propriété de l’équipe transférée.")
+        messages.success(request, "Propriété de l'équipe transférée.")
         return redirect("teams:team_detail", pk=team.pk)

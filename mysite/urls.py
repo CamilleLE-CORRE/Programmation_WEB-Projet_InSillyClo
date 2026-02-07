@@ -24,11 +24,11 @@ from django.conf.urls.static import static
 urlpatterns = [
     path("admin/", admin.site.urls),
     path("", include("apps.core.urls")),
-    path("accounts/", include("apps.accounts.urls")),
+    path("accounts/", include(("apps.accounts.urls", "accounts"), namespace="accounts")),
     path("campaigns/", include("apps.campaigns.urls")),
     path("plasmids/", include("apps.plasmids.urls")),
     path("simulations/", include("apps.simulations.urls")),
-    path("teams/", include("apps.teams.urls")),
+    # path("teams/", include("apps.teams.urls")),
     path("correspondences/", include("apps.correspondences.urls")),
     path("publications/", include("apps.publications.urls")),
 ]

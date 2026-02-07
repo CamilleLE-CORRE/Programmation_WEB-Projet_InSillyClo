@@ -1,0 +1,57 @@
+/* ===============================
+   PLASMID MAP
+   =============================== */
+
+/* Container for the linear plasmid map */
+.plasmid-map-container {
+    overflow-x: auto;
+    padding: 12px 0;
+    margin: 20px 0;
+}
+
+/* .plasmid-map {
+    border: 1px solid #ccc;
+    background: #fafafa;
+} */
+
+.plasmid-map {
+    display: block;
+    margin: 0 auto;
+    overflow: visible;
+}
+
+/* Individual feature */
+.plasmid-feature {
+    cursor: pointer;
+    transition: opacity 0.15s ease, transform 0.1s;
+}
+
+/* ===============================
+   COLLAPSIBLE CARD
+   =============================== */
+
+.card-toggle {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    cursor: pointer;
+    user-select: none;
+}
+
+.toggle-btn {
+    display: inline-flex;
+    width: 18px;
+    height: 18px;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid #aaa;
+    border-radius: 4px;
+    font-size: 14px;
+    font-weight: bold;
+    background: #f5f5f5;
+    color: #333;
+}
+
+.card-content {
+    margin-top: 8px;
+}

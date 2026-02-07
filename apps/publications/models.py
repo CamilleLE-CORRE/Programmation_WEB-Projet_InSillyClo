@@ -1,3 +1,15 @@
+"""
+Models for publication requests.
+- Status: Pending, Approved, Rejected
+- requested_by: User who made the request
+- target: including (target_content_type, target_object_id) 
+    - target_content_type: correspondence table or plasmid collection
+    - target_object_id: id for target object
+- cheffe_reviewed_by, cheffe_review_comment, cheffe_reviewed_at
+- admin_reviewed_by, admin_review_comment, admin_reviewed_at
+- created_at
+"""
+
 from django.db import models
 from django.db.models import Q
 from django.utils import timezone
@@ -8,9 +20,11 @@ from django.core.exceptions import ValidationError
 
 class Publication(models.Model):
     class Status(models.TextChoices):
-        PENDING = 'PENDING', 'Pending'
+        PENDING_CHEFFE = 'PENDING_CHEFFE', 'Pending (Cheffe)'
+        REJECTED_BY_CHEFFE = 'REJECTED_BY_CHEFFE', 'Rejected by cheffe'
+        PENDING_ADMIN = 'PENDING_ADMIN', 'Pending (Admin)'
+        REJECTED_BY_ADMIN = 'REJECTED_BY_ADMIN', 'Rejected by admin'
         APPROVED = 'APPROVED', 'Approved'
-        REJECTED = 'REJECTED', 'Rejected'
 
     requested_by = models.ForeignKey(
         'accounts.User',
@@ -25,20 +39,41 @@ class Publication(models.Model):
     status = models.CharField(
         max_length=20,
         choices=Status.choices,
-        default=Status.PENDING,
+        #default=Status.PENDING_CHEFFE,
         db_index=True,
     )
 
-    reviewed_by = models.ForeignKey(
-        'accounts.User',
-        on_delete=models.SET_NULL,
-        related_name='reviewed_publications',
+    team = models.ForeignKey(
+        "accounts.Team",
         null=True,
-        blank=True
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="publication_requests",
+        db_index=True,
     )
-    reviewed_comment = models.TextField(blank=True)
-    created_at = models.DateTimeField(default=timezone.now)
-    reviewed_at = models.DateTimeField(null=True, blank=True)
+
+    # Cheffe review firstly
+    cheffe_reviewed_by = models.ForeignKey(
+        'accounts.User',
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name='cheffe_reviewed_publications'
+        )
+    cheffe_review_comment = models.TextField(blank=True)
+    cheffe_reviewed_at = models.DateTimeField(null=True, blank=True)
+    # Then admin review
+    admin_reviewed_by = models.ForeignKey(
+        'accounts.User',
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name='admin_reviewed_publications'
+    )
+    admin_review_comment = models.TextField(blank=True)
+    admin_reviewed_at = models.DateTimeField(null=True, blank=True)
+
+    created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
         ordering = ('-created_at',)
@@ -53,7 +88,12 @@ class Publication(models.Model):
         constraints = [
             models.UniqueConstraint(
                 fields=['target_content_type', 'target_object_id'],
-                condition=Q(status="PENDING"),
+                condition=Q(
+                    status__in=[
+                        "PENDING_CHEFFE",
+                        "PENDING_ADMIN",
+                    ]
+                ),
                 name='unique_pending_publication_request',
             )
         ]
@@ -91,5 +131,8 @@ class Publication(models.Model):
             raise ValidationError(f"Invalid target type: {app_label}.{model_name}")
 
         # If rejected, require a comment
-        if self.status == self.Status.REJECTED and not self.reviewed_comment:
-            raise ValidationError("A comment is required when rejecting a publication request.")
+        if self.status == self.Status.REJECTED_BY_CHEFFE and not self.cheffe_review_comment:
+            raise ValidationError("A comment is required when the cheffe rejects a request.")
+
+        if self.status == self.Status.REJECTED_BY_ADMIN and not self.admin_review_comment:
+            raise ValidationError("A comment is required when the admin rejects a request.")

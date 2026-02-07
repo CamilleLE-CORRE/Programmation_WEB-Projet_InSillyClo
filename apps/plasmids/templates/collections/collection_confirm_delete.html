@@ -1,0 +1,16 @@
+{% extends "core/base.html" %}
+
+{% block content %}
+<h1>Delete collections</h1>
+
+<p>
+  Are you sure you want to delete <strong>{{ collection.name }}</strong>?
+  This will also delete all its entries.
+</p>
+
+<form method="post">
+  {% csrf_token %}
+  <button type="submit">Yes, delete</button>
+  <a href="{% url 'plasmids:collection_detail' collection.id %}">Cancel</a>
+</form>
+{% endblock %}

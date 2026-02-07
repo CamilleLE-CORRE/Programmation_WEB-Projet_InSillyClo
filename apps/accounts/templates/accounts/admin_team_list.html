@@ -1,0 +1,21 @@
+{% extends "core/base.html" %}
+
+{% block title %}Teams · InSillyClo{% endblock %}
+
+{% block content %}
+  <h1>Teams</h1>
+
+  {% if object_list %}
+    <ul>
+      {% for team in object_list %}
+        <li>
+          <a href="{% url 'accounts:team_detail' team.pk %}">{{ team.name }}</a>
+        </li>
+      {% endfor %}
+    </ul>
+  {% else %}
+    <p>No teams yet.</p>
+  {% endif %}
+
+  <p><a class="btn" href="{% url 'accounts:create_team' %}">Create team</a></p>
+{% endblock %}
