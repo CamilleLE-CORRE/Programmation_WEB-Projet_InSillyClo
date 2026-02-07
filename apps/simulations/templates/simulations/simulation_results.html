@@ -30,11 +30,97 @@
     </div>
 
     {% if messages %}
-    <ul class="messages">
+    <ul class="messages" style="list-style: none; padding: 0; margin-bottom: 20px;">
         {% for message in messages %}
-        <li class="{{ message.tags }}">{{ message }}</li>
+        <li class="{{ message.tags }}" style="padding: 15px; border-radius: 4px; margin-bottom: 10px; font-weight: 500;">
+            {{ message }}
+        </li>
         {% endfor %}
     </ul>
+    {% endif %}
+
+    {% if campaign %}
+    <div class="card" style="margin-bottom: 30px; padding: 0; overflow: hidden;">
+        
+        <div id="summary-header"
+             style="padding: 12px 16px; background: var(--bg); border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; cursor: pointer; user-select: none;">
+            
+            <strong style="color: var(--primary);"><i class="bi bi-sliders"></i> Configuration Summary</strong>
+            
+            <div style="display: flex; align-items: center; gap: 15px;">
+                <span style="font-size: 0.85em; color: var(--muted);">{{ campaign.created_at|date:"d M Y H:i" }}</span>
+                <i class="bi bi-chevron-up" id="summary-chevron" style="transition: transform 0.2s;"></i>
+            </div>
+        </div>
+        
+        <div id="configSummary" style="display: block;">
+            <div style="padding: 20px;">
+                <div class="row">
+                    <div class="col-md-6" style="border-right: 1px solid var(--border);">
+                        <h6 style="text-transform: uppercase; font-size: 0.75em; color: var(--muted); letter-spacing: 1px; margin-bottom: 15px;">Input Files</h6>
+                        
+                        <ul style="list-style: none; padding: 0; margin: 0; font-size: 0.95em;">
+                            <li style="margin-bottom: 10px;">
+                                <i class="bi bi-file-earmark-spreadsheet" style="color: #198754; margin-right: 8px;"></i>
+                                Template: <strong>{{ campaign.parameters.template_name|default:"-" }}</strong>
+                            </li>
+                            <li style="margin-bottom: 10px;">
+                                <i class="bi bi-file-earmark-zip" style="color: #ffc107; margin-right: 8px;"></i>
+                                Sequences: <strong>{{ campaign.parameters.archive_name|default:"-" }}</strong>
+                            </li>
+                            <li style="margin-bottom: 10px;">
+                                <i class="bi bi-table" style="color: #0d6efd; margin-right: 8px;"></i>
+                                Correspondence: <strong>{{ campaign.parameters.correspondence_name|default:"-" }}</strong>
+                            </li>
+
+                            {% if campaign.parameters.primers_name %}
+                            <li style="margin-bottom: 10px;">
+                                <i class="bi bi-file-earmark-text" style="color: #6610f2; margin-right: 8px;"></i>
+                                Primers DB: <strong>{{ campaign.parameters.primers_name }}</strong>
+                            </li>
+                            {% endif %}
+
+                            {% if campaign.parameters.concentrations_name %}
+                            <li style="margin-bottom: 10px;">
+                                <i class="bi bi-droplet" style="color: #dc3545; margin-right: 8px;"></i>
+                                Concentrations: <strong>{{ campaign.parameters.concentrations_name }}</strong>
+                            </li>
+                            {% endif %}
+                        </ul>
+                    </div>
+
+                    <div class="col-md-6" style="padding-left: 24px;">
+                        <h6 style="text-transform: uppercase; font-size: 0.75em; color: var(--muted); letter-spacing: 1px; margin-bottom: 15px;">Parameters</h6>
+                        
+                        <div class="row">
+                            <div class="col-6" style="margin-bottom: 15px;">
+                                <span style="display: block; font-size: 0.85em; color: var(--muted);">Digestion Enzymes</span>
+                                {% if campaign.parameters.digestion_enzymes %}
+                                    <strong style="font-size: 1.05em;">{{ campaign.parameters.digestion_enzymes }}</strong>
+                                {% else %}
+                                    <span style="font-style: italic; color: var(--muted);">Auto-detected</span>
+                                {% endif %}
+                            </div>
+
+                            <div class="col-6" style="margin-bottom: 15px;">
+                                <span style="display: block; font-size: 0.85em; color: var(--muted);">Concentration</span>
+                                <strong style="font-size: 1.05em;">{{ campaign.parameters.default_concentration }} ng/µL</strong>
+                            </div>
+
+                            <div class="col-12">
+                                <span style="display: block; font-size: 0.85em; color: var(--muted);">PCR Primers</span>
+                                {% if campaign.parameters.pcr_primers_text %}
+                                    <code style="background: var(--bg); padding: 4px 8px; border-radius: 4px; color: var(--primary);">{{ campaign.parameters.pcr_primers_text }}</code>
+                                {% else %}
+                                    <span style="font-size: 0.9em;">No specific restrictions</span>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
     {% endif %}
 
     {% if results.files %}
@@ -103,6 +189,17 @@
     }
     .plasmid-table tbody tr:nth-child(odd) { background-color: var(--card); }
     .plasmid-table tbody tr:nth-child(even) { background-color: var(--primary-soft); }
+    
+    .messages .success {
+        background-color: #d1e7dd;
+        color: #0f5132;
+        border: 1px solid #badbcc;
+    }
+    .messages .error {
+        background-color: #f8d7da;
+        color: #842029;
+        border: 1px solid #f5c2c7;
+    }
     </style>
 
     {% else %}
@@ -112,4 +209,31 @@
     {% endif %}
 
 </div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const header = document.getElementById('summary-header');
+        const content = document.getElementById('configSummary');
+        const chevron = document.getElementById('summary-chevron');
+
+        if (header && content && chevron) {
+            header.addEventListener('click', function() {
+                // Si c'est visible, on cache
+                if (content.style.display !== 'none') {
+                    content.style.display = 'none';
+                    // Flèche vers le bas
+                    chevron.classList.remove('bi-chevron-up');
+                    chevron.classList.add('bi-chevron-down');
+                } else {
+                    // Sinon on affiche
+                    content.style.display = 'block';
+                    // Flèche vers le haut
+                    chevron.classList.remove('bi-chevron-down');
+                    chevron.classList.add('bi-chevron-up');
+                }
+            });
+        }
+    });
+</script>
+
 {% endblock %}

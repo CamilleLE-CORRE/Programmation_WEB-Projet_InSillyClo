@@ -18,3 +18,10 @@ __pycache__/
 *.pyc
 
 *:Zone.Identifier
+
+
+#Simulation
+media/
+simulations/
+apps/media/
+apps/simulations/results/

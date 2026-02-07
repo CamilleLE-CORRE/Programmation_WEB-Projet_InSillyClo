@@ -33,6 +33,9 @@
             <input type="hidden" name="old_sim_id" value="{{ prefill.old_sim_id }}">
         {% endif %}
 
+        <input type="hidden" name="clear_primers" id="clear_primers" value="false">
+        <input type="hidden" name="clear_concentrations" id="clear_concentrations" value="false">
+
         <div class="card" style="margin-bottom: 24px;">
             <h2>Identification</h2>
             <label for="simulation_name">Campaign Name (Optional)</label>
@@ -54,8 +57,8 @@
                     <label for="template_file">Campaign Template (Excel/CSV)</label>
                     
                     {% if prefill.prev_template %}
-                        <div class="messages">
-                            <li class="success">
+                        <div class="messages" style="margin-bottom: 5px;">
+                            <li class="success" style="padding: 5px 10px; font-size: 0.9em;">
                                 Previous file detected: <strong>{{ prefill.prev_template }}</strong>
                             </li>
                         </div>
@@ -72,15 +75,16 @@
                     <label for="sequences_archive">Sequence Archive (ZIP)</label>
 
                     {% if prefill.prev_zip %}
-                        <div class="messages">
-                            <li class="success">
+                        <div class="messages" style="margin-bottom: 5px;">
+                            <li class="success" style="padding: 5px 10px; font-size: 0.9em;">
                                 Previous archive: <strong>{{ prefill.prev_zip }}</strong>
                             </li>
                         </div>
                     {% endif %}
                     
                     <input type="file" id="sequences_archive" name="sequences_archive" accept=".zip"
-                           {% if not prefill.prev_zip and not prefill.use_collections %}required{% endif %}>
+                           {% if not prefill.prev_zip and not prefill.use_collections %}required{% endif %}
+                           {% if prefill.prev_zip %}data-prev-exists="true"{% endif %}>
                     <p style="font-size: 0.85em; color: var(--muted); margin-top: 4px;">
                         A .zip archive containing all .gb files.
                     </p>
@@ -117,8 +121,8 @@
                     <label for="correspondence_file">Correspondence Table (CSV) <span style="color: var(--danger);">*</span></label>
                     
                     {% if prefill.prev_correspondence %}
-                        <div class="messages">
-                            <li class="success">
+                        <div class="messages" style="margin-bottom: 5px;">
+                            <li class="success" style="padding: 5px 10px; font-size: 0.9em;">
                                 Previous table: <strong>{{ prefill.prev_correspondence }}</strong>
                             </li>
                         </div>
@@ -139,13 +143,27 @@
                 <i class="bi bi-chevron-down" id="chevron-icon"></i>
             </button>
             
-            <div id="options-content" class="card" {% if not prefill.pcr_primers and not prefill.digestion_enzymes %}hidden{% endif %} style="border-top-left-radius: 0; border-top-right-radius: 0; margin-top: -10px; padding-top: 20px;">
+            <div id="options-content" class="card" 
+                 {% if not prefill.pcr_primers and not prefill.digestion_enzymes and not prefill.prev_primers and not prefill.prev_concentrations %}hidden{% endif %} 
+                 style="border-top-left-radius: 0; border-top-right-radius: 0; margin-top: -10px; padding-top: 20px;">
                 <div class="row">
                     <div class="col-md-6" style="margin-bottom: 16px;">
                         <label>Primer Pairs (IDs)</label>
                         <textarea name="pcr_primers" rows="2" placeholder="Ex: P29, P30">{{ prefill.pcr_primers|default:'' }}</textarea>
                         
                         <label style="margin-top: 10px; font-weight: normal; font-size: 0.9em;">Primers Database (CSV)</label>
+                        
+                        {% if prefill.prev_primers %}
+                            <div class="messages" id="msg-prev-primers" style="margin-bottom: 5px;">
+                                <li class="success" style="padding: 5px 10px; font-size: 0.9em; display: flex; justify-content: space-between; align-items: center;">
+                                    <span>Detected: <strong>{{ prefill.prev_primers }}</strong></span>
+                                    <button type="button" class="btn btn-sm btn-outline-danger" onclick="clearOptionalFile('primers')" style="padding: 0px 6px; font-size: 0.8em; margin-left: 10px;">
+                                        <i class="bi bi-x-lg"></i> Remove
+                                    </button>
+                                </li>
+                            </div>
+                        {% endif %}
+                        
                         <input type="file" name="primers_file" accept=".csv">
                     </div>
 
@@ -154,6 +172,18 @@
                         <input type="text" id="digestion_enzymes" name="digestion_enzymes" value="{{ prefill.digestion_enzymes|default:'' }}" placeholder="Ex: BsmBI, NotI">
                         
                         <label style="margin-top: 10px; font-weight: normal; font-size: 0.9em;">Specific Concentrations (CSV)</label>
+                        
+                        {% if prefill.prev_concentrations %}
+                            <div class="messages" id="msg-prev-concentrations" style="margin-bottom: 5px;">
+                                <li class="success" style="padding: 5px 10px; font-size: 0.9em; display: flex; justify-content: space-between; align-items: center;">
+                                    <span>Detected: <strong>{{ prefill.prev_concentrations }}</strong></span>
+                                    <button type="button" class="btn btn-sm btn-outline-danger" onclick="clearOptionalFile('concentrations')" style="padding: 0px 6px; font-size: 0.8em; margin-left: 10px;">
+                                        <i class="bi bi-x-lg"></i> Remove
+                                    </button>
+                                </li>
+                            </div>
+                        {% endif %}
+
                         <input type="file" name="concentrations_file" accept=".csv">
                     </div>
                     
@@ -175,6 +205,17 @@
 </div>
 
 <script>
+// Fonction pour supprimer un fichier optionnel pré-rempli
+function clearOptionalFile(type) {
+    if (type === 'primers') {
+        document.getElementById('msg-prev-primers').style.display = 'none';
+        document.getElementById('clear_primers').value = 'true';
+    } else if (type === 'concentrations') {
+        document.getElementById('msg-prev-concentrations').style.display = 'none';
+        document.getElementById('clear_concentrations').value = 'true';
+    }
+}
+
 document.addEventListener('DOMContentLoaded', function() {
     const useCollections = document.getElementById('use_collections');
     const collectionsSelector = document.getElementById('collections_selector');
@@ -183,23 +224,30 @@ document.addEventListener('DOMContentLoaded', function() {
     function updateCollectionsState() {
         if (!useCollections) return;
         if (useCollections.checked) {
-            collectionsSelector.hidden = false;
-            collectionsSelector.style.display = 'block'; 
-            seqArchive.removeAttribute('required');
-            seqArchive.disabled = true;
-        } else {
-            collectionsSelector.hidden = true;
-            collectionsSelector.style.display = 'none';
-            if (!seqArchive.getAttribute('data-prev-exists')) {
+            if(collectionsSelector) {
+                collectionsSelector.hidden = false;
+                collectionsSelector.style.display = 'block'; 
             }
-            seqArchive.disabled = false;
+            if(seqArchive) {
+                seqArchive.removeAttribute('required');
+                seqArchive.disabled = true;
+            }
+        } else {
+            if(collectionsSelector) {
+                collectionsSelector.hidden = true;
+                collectionsSelector.style.display = 'none';
+            }
+            if(seqArchive) {
+                if (!seqArchive.getAttribute('data-prev-exists')) {
+                    seqArchive.setAttribute('required', 'required');
+                }
+                seqArchive.disabled = false;
+            }
         }
     }
 
     if (useCollections) {
         useCollections.addEventListener('change', updateCollectionsState);
-        // On ne lance pas updateCollectionsState() tout de suite au chargement
-        // pour laisser le template gérer l'état initial via 'hidden' et 'checked'
         if(useCollections.checked) updateCollectionsState();
     }
 
@@ -208,13 +256,11 @@ document.addEventListener('DOMContentLoaded', function() {
     const chevron = document.getElementById('chevron-icon');
 
     if (btnToggle && contentDiv) {
-        // Initialisation de l'icône selon l'état 'hidden'
         if (!contentDiv.hidden && chevron) {
              chevron.className = 'bi bi-chevron-up';
         }
 
         btnToggle.addEventListener('click', function() {
-            // On vérifie si c'est caché
             const isHidden = contentDiv.style.display === 'none' || contentDiv.hidden;
 
             if (isHidden) {
@@ -223,6 +269,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 if(chevron) chevron.className = 'bi bi-chevron-up';
             } else {
                 contentDiv.style.display = 'none';
+                contentDiv.hidden = true;
                 if(chevron) chevron.className = 'bi bi-chevron-down';
             }
         });
