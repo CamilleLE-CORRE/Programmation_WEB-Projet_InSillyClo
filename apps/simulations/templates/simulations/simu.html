@@ -33,8 +33,13 @@
             <input type="hidden" name="old_sim_id" value="{{ prefill.old_sim_id }}">
         {% endif %}
 
+        <input type="hidden" name="clear_primers" id="clear_primers" value="false">
+        <input type="hidden" name="clear_concentrations" id="clear_concentrations" value="false">
+
         <div class="card" style="margin-bottom: 24px;">
-            <h2>Identification</h2>
+            <h2 style="color: var(--primary); font-weight: bold; margin-bottom: 20px;">
+                Identification
+            </h2>
             <label for="simulation_name">Campaign Name (Optional)</label>
             <input type="text" 
                    id="simulation_name" 
@@ -47,15 +52,16 @@
         </div>
 
         <div class="card" style="margin-bottom: 24px;">
-            <h2>Required files</h2>
-            
+            <h2 style="color: var(--primary); font-weight: bold; margin-bottom: 20px;">
+                Required Files
+            </h2>            
             <div class="row">
                 <div class="col-md-12" style="margin-bottom: 24px;"> 
-                    <label for="template_file">Campaign Template (Excel/CSV)</label>
+                    <label for="template_file">Campaign Template (Excel/CSV) <span style="color: var(--danger);">*</span></label>
                     
                     {% if prefill.prev_template %}
-                        <div class="messages">
-                            <li class="success">
+                        <div class="messages" style="margin-bottom: 5px;">
+                            <li class="success" style="padding: 5px 10px; font-size: 0.9em;">
                                 Previous file detected: <strong>{{ prefill.prev_template }}</strong>
                             </li>
                         </div>
@@ -69,56 +75,11 @@
                 </div>
 
                 <div class="col-md-6" style="margin-bottom: 24px;">
-                    <label for="sequences_archive">Sequence Archive (ZIP)</label>
-
-                    {% if prefill.prev_zip %}
-                        <div class="messages">
-                            <li class="success">
-                                Previous archive: <strong>{{ prefill.prev_zip }}</strong>
-                            </li>
-                        </div>
-                    {% endif %}
-                    
-                    <input type="file" id="sequences_archive" name="sequences_archive" accept=".zip"
-                           {% if not prefill.prev_zip and not prefill.use_collections %}required{% endif %}>
-                    <p style="font-size: 0.85em; color: var(--muted); margin-top: 4px;">
-                        A .zip archive containing all .gb files.
-                    </p>
-
-                    {% if user.is_authenticated %}
-                    <div style="margin-top: 12px; padding: 12px; border: 1px solid var(--border); border-radius: 12px; background: var(--bg);">
-                        <div style="display: flex; align-items: center; gap: 8px;">
-                            <input type="checkbox" id="use_collections" name="use_collections" 
-                                   style="width: auto;"
-                                   {% if prefill.use_collections %}checked{% endif %}>
-                            <label for="use_collections" style="margin:0; cursor:pointer;">Use my collections</label>
-                        </div>
-
-                        <div id="collections_selector" style="margin-top: 10px;" {% if not prefill.use_collections %}hidden{% endif %}>
-                            {% if user_collections %}
-                                <div style="max-height: 150px; overflow-y: auto;">
-                                    {% for collection in user_collections %}
-                                    <div style="display: flex; align-items: center; gap: 6px; margin-bottom: 4px;">
-                                        <input type="checkbox" name="selected_collections" value="{{ collection.id }}" id="c{{ collection.id }}" style="width: auto;"
-                                        {% if collection.id in prefill.selected_collection_ids %}checked{% endif %}>
-                                        <label for="c{{ collection.id }}" style="margin:0; font-weight: normal;">{{ collection.name }}</label>
-                                    </div>
-                                    {% endfor %}
-                                </div>
-                            {% else %}
-                                <p style="color: var(--danger); font-size: 0.9em;">No collection found.</p>
-                            {% endif %}
-                        </div>
-                    </div>
-                    {% endif %}
-                </div>
-
-                <div class="col-md-6" style="margin-bottom: 24px;">
                     <label for="correspondence_file">Correspondence Table (CSV) <span style="color: var(--danger);">*</span></label>
                     
                     {% if prefill.prev_correspondence %}
-                        <div class="messages">
-                            <li class="success">
+                        <div class="messages" style="margin-bottom: 5px;">
+                            <li class="success" style="padding: 5px 10px; font-size: 0.9em;">
                                 Previous table: <strong>{{ prefill.prev_correspondence }}</strong>
                             </li>
                         </div>
@@ -130,6 +91,92 @@
                         File for linking plasmid identifiers.
                     </p>
                 </div>
+
+                <div class="col-md-6" style="margin-bottom: 24px;">
+                    <label>Sequences Source <span style="color: var(--danger);">*</span></label> 
+
+                    <div class="form-group" style="margin-bottom: 15px; background: #f8f9fa; padding: 10px; border-radius: 5px; border: 1px solid var(--border);">
+                        <div style="display: flex; align-items: center; gap: 8px;">
+                            <input type="checkbox" id="use_collections" name="use_collections" 
+                                   style="width: auto; cursor: pointer;" 
+                                   {% if prefill.use_collections %}checked{% endif %}>
+                            <label for="use_collections" style="margin:0; cursor:pointer;">
+                                Use Plasmid Collections (Database) 
+                            </label> 
+                        </div>
+                    </div>
+
+                    <div id="collections-section" style="display: none; padding-left: 10px; border-left: 3px solid var(--primary); margin-bottom: 20px;">
+                        <p class="help-text" style="margin-bottom: 10px; font-size: 0.9em;">Select one or more collections:</p>
+                        
+                        <div style="max-height: 200px; overflow-y: auto; background: white; border: 1px solid var(--border); padding: 10px; border-radius: 4px;">
+                            
+                            {% if user.is_authenticated %}
+                                <h5 style="font-size: 0.8em; text-transform: uppercase; color: var(--muted); margin-bottom: 8px;">My Collections</h5>
+                                {% if user_collections %}
+                                    {% for col in user_collections %}
+                                    <label style="display: flex; align-items: center; gap: 8px; margin-bottom: 6px; cursor: pointer; font-weight: normal;">
+                                        <input type="checkbox" name="selected_collections" value="{{ col.id }}" style="width: auto;" 
+                                        {% if col.id in prefill.selected_collection_ids %}checked{% endif %}>
+                                        <span>{{ col.name }} <span style="font-size: 0.8em; color: var(--muted);">({{ col.plasmid_count }})</span></span>
+                                    </label>
+                                    {% endfor %}
+                                {% else %}
+                                    <p style="font-size: 0.8em; font-style: italic; color: var(--muted);">No private collections.</p>
+                                {% endif %}
+                                <hr style="margin: 8px 0;">
+                            {% endif %}
+
+                            <h5 style="font-size: 0.8em; text-transform: uppercase; color: var(--muted); margin-bottom: 8px;">Public Collections</h5>
+                            {% if public_collections %}
+                                {% for col in public_collections %}
+                                <label style="display: flex; align-items: center; gap: 8px; margin-bottom: 6px; cursor: pointer; font-weight: normal;">
+                                    <input type="checkbox" name="selected_collections" value="{{ col.id }}" style="width: auto;" 
+                                    {% if col.id in prefill.selected_collection_ids %}checked{% endif %}>
+                                    <span>{{ col.name }} <span style="font-size: 0.8em; color: var(--muted);">({{ col.plasmid_count }})</span></span>
+                                </label>
+                                {% endfor %}
+                            {% else %}
+                                <p style="font-size: 0.8em; font-style: italic; color: var(--muted);">No public collections.</p>
+                            {% endif %}
+                        </div>
+                    </div>
+
+                    <div id="upload-section">
+                        {% if prefill.prev_zip %}
+                            <div id="prev-zip-msg" class="messages" style="margin-bottom: 5px;">
+                                <li class="success" style="padding: 5px 10px; font-size: 0.9em;">
+                                    Previous archive: <strong>{{ prefill.prev_zip }}</strong>
+                                </li>
+                            </div>
+                        {% endif %}
+                        
+                        <input type="file" id="sequences_archive" name="sequences_archive" accept=".zip"
+                               {% if not prefill.prev_zip %}required{% endif %}
+                               {% if prefill.prev_zip %}data-prev-exists="true"{% endif %}>
+                        <p style="font-size: 0.85em; color: var(--muted); margin-top: 4px;">
+                            A .zip archive containing all .gb files.
+                        </p>
+
+                        {% if user.is_authenticated %}
+                        <div style="margin-top: 15px; padding: 10px; background-color: #e8f5e9; border: 1px solid #c8e6c9; border-radius: 5px;">
+                            <div style="display: flex; align-items: center; gap: 8px;">
+                                <input type="checkbox" id="save_to_collection" name="save_to_collection" style="width: auto; cursor: pointer;">
+                                <label for="save_to_collection" style="margin:0; cursor:pointer; color: #2e7d32; font-weight: bold;">
+                                    <i class="bi bi-save"></i> Save plasmids to my collections
+                                </label>
+                            </div>
+                            
+                            <div id="collection_name_input_div" style="display: none; margin-top: 10px; margin-left: 24px;">
+                                <label for="new_collection_name" style="font-size: 0.9em; color: #2e7d32;">Name for this new collection:</label>
+                                <input type="text" id="new_collection_name" name="new_collection_name" 
+                                       placeholder="Ex: Import Project Alpha" 
+                                       style="border: 1px solid #81c784; background: white;">
+                            </div>
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
             </div>
         </div>
 
@@ -139,13 +186,27 @@
                 <i class="bi bi-chevron-down" id="chevron-icon"></i>
             </button>
             
-            <div id="options-content" class="card" {% if not prefill.pcr_primers and not prefill.digestion_enzymes %}hidden{% endif %} style="border-top-left-radius: 0; border-top-right-radius: 0; margin-top: -10px; padding-top: 20px;">
+            <div id="options-content" class="card" 
+                 {% if not prefill.pcr_primers and not prefill.digestion_enzymes and not prefill.prev_primers and not prefill.prev_concentrations %}hidden{% endif %} 
+                 style="border-top-left-radius: 0; border-top-right-radius: 0; margin-top: -10px; padding-top: 20px;">
                 <div class="row">
                     <div class="col-md-6" style="margin-bottom: 16px;">
                         <label>Primer Pairs (IDs)</label>
                         <textarea name="pcr_primers" rows="2" placeholder="Ex: P29, P30">{{ prefill.pcr_primers|default:'' }}</textarea>
                         
                         <label style="margin-top: 10px; font-weight: normal; font-size: 0.9em;">Primers Database (CSV)</label>
+                        
+                        {% if prefill.prev_primers %}
+                            <div class="messages" id="msg-prev-primers" style="margin-bottom: 5px;">
+                                <li class="success" style="padding: 5px 10px; font-size: 0.9em; display: flex; justify-content: space-between; align-items: center;">
+                                    <span>Detected: <strong>{{ prefill.prev_primers }}</strong></span>
+                                    <button type="button" class="btn btn-sm btn-outline-danger" onclick="clearOptionalFile('primers')" style="padding: 0px 6px; font-size: 0.8em; margin-left: 10px;">
+                                        <i class="bi bi-x-lg"></i> Remove
+                                    </button>
+                                </li>
+                            </div>
+                        {% endif %}
+                        
                         <input type="file" name="primers_file" accept=".csv">
                     </div>
 
@@ -154,6 +215,18 @@
                         <input type="text" id="digestion_enzymes" name="digestion_enzymes" value="{{ prefill.digestion_enzymes|default:'' }}" placeholder="Ex: BsmBI, NotI">
                         
                         <label style="margin-top: 10px; font-weight: normal; font-size: 0.9em;">Specific Concentrations (CSV)</label>
+                        
+                        {% if prefill.prev_concentrations %}
+                            <div class="messages" id="msg-prev-concentrations" style="margin-bottom: 5px;">
+                                <li class="success" style="padding: 5px 10px; font-size: 0.9em; display: flex; justify-content: space-between; align-items: center;">
+                                    <span>Detected: <strong>{{ prefill.prev_concentrations }}</strong></span>
+                                    <button type="button" class="btn btn-sm btn-outline-danger" onclick="clearOptionalFile('concentrations')" style="padding: 0px 6px; font-size: 0.8em; margin-left: 10px;">
+                                        <i class="bi bi-x-lg"></i> Remove
+                                    </button>
+                                </li>
+                            </div>
+                        {% endif %}
+
                         <input type="file" name="concentrations_file" accept=".csv">
                     </div>
                     
@@ -175,54 +248,99 @@
 </div>
 
 <script>
+// Fonction pour supprimer un fichier optionnel pré-rempli
+function clearOptionalFile(type) {
+    if (type === 'primers') {
+        document.getElementById('msg-prev-primers').style.display = 'none';
+        document.getElementById('clear_primers').value = 'true';
+    } else if (type === 'concentrations') {
+        document.getElementById('msg-prev-concentrations').style.display = 'none';
+        document.getElementById('clear_concentrations').value = 'true';
+    }
+}
+
 document.addEventListener('DOMContentLoaded', function() {
+    // 1. GESTION ZIP vs COLLECTIONS EXISTANTES
     const useCollections = document.getElementById('use_collections');
-    const collectionsSelector = document.getElementById('collections_selector');
+    const collectionsSection = document.getElementById('collections-section');
+    const uploadSection = document.getElementById('upload-section');
     const seqArchive = document.getElementById('sequences_archive');
+    const prevZipMsg = document.getElementById('prev-zip-msg');
 
     function updateCollectionsState() {
         if (!useCollections) return;
+        
         if (useCollections.checked) {
-            collectionsSelector.hidden = false;
-            collectionsSelector.style.display = 'block'; 
-            seqArchive.removeAttribute('required');
-            seqArchive.disabled = true;
-        } else {
-            collectionsSelector.hidden = true;
-            collectionsSelector.style.display = 'none';
-            if (!seqArchive.getAttribute('data-prev-exists')) {
+            // MODE COLLECTION ACTIVÉ
+            collectionsSection.style.display = 'block';
+            
+            // On grise et désactive l'upload zip
+            uploadSection.style.opacity = '0.5';
+            uploadSection.style.pointerEvents = 'none'; // Empêche le clic
+            
+            if(seqArchive) {
+                // Si on utilise les collections, le ZIP n'est plus obligatoire
+                seqArchive.removeAttribute('required'); 
+                seqArchive.disabled = true; // Désactivé pour l'envoi
             }
-            seqArchive.disabled = false;
+            if(prevZipMsg) prevZipMsg.style.display = 'none'; // Cache le message "Previous file"
+
+        } else {
+            // MODE ZIP ACTIVÉ (Classique)
+            collectionsSection.style.display = 'none';
+            
+            uploadSection.style.opacity = '1';
+            uploadSection.style.pointerEvents = 'auto';
+            
+            if(seqArchive) {
+                seqArchive.disabled = false;
+                // Si on n'a pas de fichier précédent, le zip redevient obligatoire
+                if (!seqArchive.getAttribute('data-prev-exists')) {
+                    seqArchive.setAttribute('required', 'required');
+                }
+            }
+            if(prevZipMsg) prevZipMsg.style.display = 'block';
         }
     }
 
     if (useCollections) {
         useCollections.addEventListener('change', updateCollectionsState);
-        // On ne lance pas updateCollectionsState() tout de suite au chargement
-        // pour laisser le template gérer l'état initial via 'hidden' et 'checked'
-        if(useCollections.checked) updateCollectionsState();
+        updateCollectionsState();
     }
 
+    // 2. GESTION DU NOM DE LA COLLECTION
+    const saveCheckbox = document.getElementById('save_to_collection');
+    const nameInputDiv = document.getElementById('collection_name_input_div');
+    const nameInput = document.getElementById('new_collection_name');
+
+    // On vérifie que les éléments existent (car l'utilisateur peut être déconnecté)
+    if (saveCheckbox && nameInputDiv) {
+        saveCheckbox.addEventListener('change', function() {
+            if (this.checked) {
+                nameInputDiv.style.display = 'block';
+                if(nameInput) nameInput.focus();
+            } else {
+                nameInputDiv.style.display = 'none';
+            }
+        });
+    }
+    
+    // 3. OPTIONS AVANCÉES
     const btnToggle = document.getElementById('btn-options-toggle');
     const contentDiv = document.getElementById('options-content');
     const chevron = document.getElementById('chevron-icon');
 
     if (btnToggle && contentDiv) {
-        // Initialisation de l'icône selon l'état 'hidden'
-        if (!contentDiv.hidden && chevron) {
-             chevron.className = 'bi bi-chevron-up';
-        }
-
+        if (!contentDiv.hidden && chevron) { chevron.className = 'bi bi-chevron-up'; }
         btnToggle.addEventListener('click', function() {
-            // On vérifie si c'est caché
             const isHidden = contentDiv.style.display === 'none' || contentDiv.hidden;
-
             if (isHidden) {
                 contentDiv.hidden = false;
                 contentDiv.style.display = 'block';
                 if(chevron) chevron.className = 'bi bi-chevron-up';
             } else {
                 contentDiv.style.display = 'none';
+                contentDiv.hidden = true;
                 if(chevron) chevron.className = 'bi bi-chevron-down';
             }
         });
