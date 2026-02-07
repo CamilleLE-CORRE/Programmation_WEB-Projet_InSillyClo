@@ -8,7 +8,7 @@
 {% if user.is_authenticated %}
   <p>Dashboard admin.</p>
 
-  {% if user.is_superuser %}
+  {% if user.is_staff %}
     <h2>Accès</h2>
     <ul>
       <li><a href="{% url 'admin:index' %}">Admin Django</a></li>

@@ -113,18 +113,24 @@
 <hr>
 
 <h2>Publication requests</h2>
-{% if publications %}
+
+{% if publication_requests %}
   <ul>
-    {% for pub in publications %}
+    {% for pub in publication_requests %}
       <li>
-        {{ pub.target }}
-        — <strong>{{ pub.status }}</strong>
-        — requested by {{ pub.requested_by.email }}
+        {% if is_cheffe and pub.status == PENDING_CHEFFE %}
+          <a href="{% url 'publications:cheffe_detail' pub.pk %}">
+            {{ pub.target }} — {{ pub.status }} — requested by {{ pub.requested_by.email }}
+          </a>
+        {% else %}
+          {{ pub.target }} — {{ pub.status }} — requested by {{ pub.requested_by.email }}
+        {% endif %}
       </li>
     {% endfor %}
   </ul>
 {% else %}
   <p><em>No publication requests for this team.</em></p>
 {% endif %}
+
 
 {% endblock %}

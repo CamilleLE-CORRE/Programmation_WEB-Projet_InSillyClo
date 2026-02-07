@@ -967,105 +967,81 @@ class Command(BaseCommand):
         from django.utils import timezone
 
         demo_requests = [
-            # Pending (user request)
-            {
-                "target": targets[0],
-                "requested_by": "sophie.rousseau@insillyclo.com",
-                "status": self.Publication.Status.PENDING,
-                "team": None,
-            },
-            # Approved
-            {
-                "target": targets[1],
-                "requested_by": "marie.dupont@insillyclo.com",
-                "status": self.Publication.Status.APPROVED,
-                "decided_by": "admin@insillyclo.com",
-                "decided_at": timezone.now(),
-            },
-            # Rejected
-            {
-                "target": targets[2] if len(targets) > 2 else targets[0],
-                "requested_by": "jean.martin@insillyclo.com",
-                "status": self.Publication.Status.REJECTED,
-                "decided_by": "admin@insillyclo.com",
-                "decided_at": timezone.now(),
-                "rejection_reason": "Data incomplete or not validated",
-            },
-            
-            {
-                "target": self.collections.get("Sophie - Personal"),
-                "requested_by": "sophie.rousseau@insillyclo.com",
-                "status": self.Publication.Status.PENDING,
-                "team": None,
-            },
-
-            # Pending – demande liée à une équipe
-            {
-                "target": self.collections.get("Team BioSyn - Private"),
-                "requested_by": "emma.moreau@insillyclo.com",
-                "status": self.Publication.Status.PENDING,
-                "team": self.teams.get("Équipe Biologie Synthétique"),
-            },
-
-            # Approved – collection d’équipe validée
-            {
+            # 1) Pending cheffe (demande liée à une team)
+    {
                 "target": self.collections.get("Team Synthèse - Private"),
-                "requested_by": "marie.dupont@insillyclo.com",
-                "status": self.Publication.Status.APPROVED,
-                "decided_by": "admin@insillyclo.com",
-                "decided_at": timezone.now() - timedelta(days=3),
+                "requested_by": "sophie.rousseau@insillyclo.com",
+                "status": self.Publication.Status.PENDING_CHEFFE,
+                "team": self.teams.get("Équipe Synthèse Génomique"),
             },
 
-            # Approved – correspondence rendue publique
+            # 2) Rejected by cheffe (commentaire obligatoire)
             {
-                "target": self.correspondences.get("YTK to Addgene IDs"),
+                "target": targets[1] if len(targets) > 1 else targets[0],
+                "requested_by": "lucas.petit@insillyclo.com",
+                "status": self.Publication.Status.REJECTED_BY_CHEFFE,
+                "team": None,
+                "cheffe_reviewed_by": "marie.dupont@insillyclo.com",
+                "cheffe_review_comment": "Demande trop vague / métadonnées insuffisantes.",
+                "cheffe_reviewed_at": timezone.now() - timedelta(days=6),
+            },
+
+            # 3) Pending admin (cheffe a validé, admin pas encore)
+            {
+                "target": self.collections.get("Team BioSyn - Private") or targets[0],
+                "requested_by": "emma.moreau@insillyclo.com",
+                "status": self.Publication.Status.PENDING_ADMIN,
+                "team": self.teams.get("Équipe Biologie Synthétique"),
+                "cheffe_reviewed_by": "jean.martin@insillyclo.com",
+                "cheffe_review_comment": "OK pour publication, à vérifier côté admin.",
+                "cheffe_reviewed_at": timezone.now() - timedelta(days=2),
+            },
+
+            # 4) Rejected by admin (commentaire obligatoire)
+            {
+                "target": self.correspondences.get("Freezer Location Mapping") or targets[0],
+                "requested_by": "thomas.leroy@insillyclo.com",
+                "status": self.Publication.Status.REJECTED_BY_ADMIN,
+                "team": None,
+                "cheffe_reviewed_by": "claire.bernard@insillyclo.com",
+                "cheffe_review_comment": "Cheffe OK, mais vérifier conformité.",
+                "cheffe_reviewed_at": timezone.now() - timedelta(days=9),
+                "admin_reviewed_by": "admin@insillyclo.com",
+                "admin_review_comment": "Information interne (localisation congélateur), non publiable.",
+                "admin_reviewed_at": timezone.now() - timedelta(days=8),
+            },
+
+            # 5) Approved (cheffe + admin)
+            {
+                "target": self.correspondences.get("YTK to Addgene IDs") or targets[0],
                 "requested_by": "claire.bernard@insillyclo.com",
                 "status": self.Publication.Status.APPROVED,
-                "decided_by": "admin@insillyclo.com",
-                "decided_at": timezone.now() - timedelta(days=1),
-            },
-
-            # Rejected – données incomplètes
-            {
-                "target": self.collections.get("Sophie - Personal"),
-                "requested_by": "sophie.rousseau@insillyclo.com",
-                "status": self.Publication.Status.REJECTED,
-                "decided_by": "admin@insillyclo.com",
-                "decided_at": timezone.now() - timedelta(days=7),
-                "rejection_reason": "Missing annotations and metadata",
-            },
-
-            # Rejected – trop spécifique / non généralisable
-            {
-                "target": self.correspondences.get("Freezer Location Mapping"),
-                "requested_by": "lucas.petit@insillyclo.com",
-                "status": self.Publication.Status.REJECTED,
-                "decided_by": "admin@insillyclo.com",
-                "decided_at": timezone.now() - timedelta(days=10),
-                "rejection_reason": "Internal lab-only information",
-            },
-
-            # Pending – correspondence en attente de validation
-            {
-                "target": self.correspondences.get("Internal Lab Codes"),
-                "requested_by": "jean.martin@insillyclo.com",
-                "status": self.Publication.Status.PENDING,
                 "team": None,
+                "cheffe_reviewed_by": "marie.dupont@insillyclo.com",
+                "cheffe_review_comment": "Bonne correspondance, utile publiquement.",
+                "cheffe_reviewed_at": timezone.now() - timedelta(days=4),
+                "admin_reviewed_by": "admin@insillyclo.com",
+                "admin_review_comment": "Validé.",
+                "admin_reviewed_at": timezone.now() - timedelta(days=3),
             },
         ]
 
         for data in demo_requests:
-            target = data["target"]
+            target = data.get("target")
+            if target is None:
+                continue
+
             ct = ContentType.objects.get_for_model(target)
 
-            # Respect de la contrainte UNIQUE sur les PENDING
-            exists = self.Publication.objects.filter(
-                target_content_type=ct,
-                target_object_id=target.id,
-                status=self.Publication.Status.PENDING,
-            ).exists()
-            if exists:
-                continue
+            # Contrainte unique: pas plus d'une demande "pending" par target
+            if data["status"] in (self.Publication.Status.PENDING_CHEFFE, self.Publication.Status.PENDING_ADMIN):
+                exists = self.Publication.objects.filter(
+                    target_content_type=ct,
+                    target_object_id=target.id,
+                    status__in=[self.Publication.Status.PENDING_CHEFFE, self.Publication.Status.PENDING_ADMIN],
+                ).exists()
+                if exists:
+                    continue
 
             kwargs = {
                 "requested_by": self.users[data["requested_by"]],
@@ -1074,25 +1050,31 @@ class Command(BaseCommand):
                 "status": data["status"],
             }
 
-            if "team" in data and data["team"]:
+            if data.get("team"):
                 kwargs["team"] = data["team"]
 
-            if "decided_by" in data:
-                kwargs["decided_by"] = self.users[data["decided_by"]]
-                kwargs["decided_at"] = data.get("decided_at")
+            # Cheffe review fields
+            if data.get("cheffe_reviewed_by"):
+                kwargs["cheffe_reviewed_by"] = self.users[data["cheffe_reviewed_by"]]
+            if "cheffe_review_comment" in data:
+                kwargs["cheffe_review_comment"] = data.get("cheffe_review_comment", "")
+            if data.get("cheffe_reviewed_at"):
+                kwargs["cheffe_reviewed_at"] = data["cheffe_reviewed_at"]
 
-            if "rejection_reason" in data:
-                kwargs["rejection_reason"] = data["rejection_reason"]
+            # Admin review fields
+            if data.get("admin_reviewed_by"):
+                kwargs["admin_reviewed_by"] = self.users[data["admin_reviewed_by"]]
+            if "admin_review_comment" in data:
+                kwargs["admin_review_comment"] = data.get("admin_review_comment", "")
+            if data.get("admin_reviewed_at"):
+                kwargs["admin_reviewed_at"] = data["admin_reviewed_at"]
 
             try:
                 pub = self.Publication.objects.create(**kwargs)
-                self.stdout.write(self.style.SUCCESS(
-                    f"  ✓ Created publication request for {target}"
-                ))
+                self.stdout.write(self.style.SUCCESS(f"  ✓ Created publication request for {target}"))
             except Exception as e:
-                self.stdout.write(self.style.ERROR(
-                    f"  ✗ Failed to create publication request for {target}: {e}"
-                ))
+                self.stdout.write(self.style.ERROR(f"  ✗ Failed to create publication request for {target}: {e}"))
+
 
     # =====================================================================
     # SUMMARY
