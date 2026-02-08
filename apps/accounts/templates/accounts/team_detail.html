@@ -82,11 +82,14 @@
 {% if correspondences %}
   <ul>
     {% for corr in correspondences %}
-      <li>
+    <li>
+      <a href="{% url 'correspondences:detail' corr.id %}">
         {{ corr.name }}
-        — owner: {{ corr.owner.email }}
-        {% if corr.is_public %}(public){% else %}(private){% endif %}
-      </li>
+      </a>
+      — owner: {{ corr.owner.email }}
+      {% if corr.is_public %}(public){% else %}(private){% endif %}
+    </li>
+    
     {% endfor %}
   </ul>
 {% else %}
