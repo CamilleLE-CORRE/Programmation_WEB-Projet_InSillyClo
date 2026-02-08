@@ -30,9 +30,19 @@
     <section class="card">
       <h2 class="card-title">Plasmids</h2>
       <ul class="card-list">
-        <li><a href="{% url 'plasmids:plasmid_list' %}">Plasmids library</a></li>
+        <li>
+          <a href="{% url 'plasmids:plasmid_list' %}">
+            Plasmids library
+          </a>
+        </li>
+        <li>
+          <a href="{% url 'plasmids:collection_list' %}">
+            Plasmid collections
+          </a>
+        </li>
       </ul>
     </section>
+    
 
     <section class="card">
       <h2 class="card-title">Correspondences</h2>

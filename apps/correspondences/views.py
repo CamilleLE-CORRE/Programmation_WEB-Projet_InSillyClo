@@ -40,8 +40,12 @@ def correspondence_list(request):
 
 def correspondence_detail(request, pk: int):
     qs = Correspondence.objects.all()
+
     if request.user.is_authenticated:
-        qs = qs.filter(Q(is_public=True) | Q(owner=request.user))
+        if request.user.is_staff:
+            pass  # accès total
+        else:
+            qs = qs.filter(Q(is_public=True) | Q(owner=request.user))
     else:
         qs = qs.filter(is_public=True)
 
@@ -52,6 +56,7 @@ def correspondence_detail(request, pk: int):
         "correspondences/correspondence_detail.html",
         {"correspondence": correspondence, "entries": entries},
     )
+
 
 
 @login_required
