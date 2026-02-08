@@ -118,13 +118,14 @@
   <ul>
     {% for pub in publication_requests %}
       <li>
-        {% if is_cheffe and pub.status == PENDING_CHEFFE %}
-          <a href="{% url 'publications:cheffe_detail' pub.pk %}">
+        {% if is_owner and pub.status == pub.Status.PENDING_CHEFFE %}
+          <a href="{% url 'publications:cheffe_requests' %}">
             {{ pub.target }} — {{ pub.status }} — requested by {{ pub.requested_by.email }}
           </a>
         {% else %}
           {{ pub.target }} — {{ pub.status }} — requested by {{ pub.requested_by.email }}
         {% endif %}
+
       </li>
     {% endfor %}
   </ul>
