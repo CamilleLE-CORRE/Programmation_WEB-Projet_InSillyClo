@@ -1,0 +1,7 @@
+/* Profile page - spacing */
+.profile-form{margin-top:24px}
+.form-group-spaced{margin-bottom:24px}
+.form-group-spaced label{display:block;margin-bottom:8px;font-weight:500;font-size:14px;color:#374151}
+.form-group-spaced input,.form-group-spaced select,.form-group-spaced textarea{width:100%;padding:12px 14px;border:1px solid #e6e6ef;border-radius:10px;font-size:14px;background:#fff}
+.form-group-spaced input[type="date"]{cursor:pointer}
+.form-group-spaced input:focus,.form-group-spaced select:focus,.form-group-spaced textarea:focus{outline:none;border-color:#4f46e5;box-shadow:0 0 0 3px rgba(79,70,229,0.1)}

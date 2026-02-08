@@ -1,0 +1,20 @@
+/* Team detail page */
+.section{margin-top:32px;padding-top:24px;border-top:1px solid #e6e6ef}
+.section:first-child{margin-top:0;padding-top:0;border-top:none}
+.section-title{margin:0 0 16px 0;font-size:18px;font-weight:600}
+.subsection-title{margin:0 0 12px 0;font-size:15px;font-weight:600}
+.members-list{display:flex;flex-direction:column;gap:8px;margin-bottom:16px}
+.member-item{display:flex;justify-content:space-between;align-items:center;padding:10px 14px;background:#fafafa;border-radius:10px}
+.member-email{font-size:14px}
+.badge-owner{background:#eef2ff;color:#3730a3}
+.btn-remove{padding:6px 12px;border-radius:8px;border:1px solid #dc2626;background:#fff;color:#dc2626;font-size:13px;cursor:pointer}
+.btn-remove:hover{background:#fee2e2}
+.action-forms{display:flex;gap:24px;margin-top:16px;flex-wrap:wrap}
+.form-section{flex:1;min-width:280px}
+.inline-form p{margin:0 0 10px 0}
+.inline-form input,.inline-form select{width:100%;padding:8px 12px;border-radius:10px;border:1px solid #e6e6ef;font-size:14px}
+.resource-list{list-style:none;padding:0;margin:0;display:flex;flex-direction:column;gap:8px}
+.resource-list li{padding:8px 0;display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.resource-name{font-weight:500;font-size:14px}
+.resource-link{color:#4f46e5;text-decoration:none;font-weight:500;font-size:14px}
+.resource-link:hover{text-decoration:underline}

@@ -1,23 +1,65 @@
 {% extends "core/base.html" %}
+{% load static %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/profile_page.css' %}">
+{% endblock %}
+
+{% block title %}Profile · InSillyClo{% endblock %}
 
 {% block content %}
-<h1>Profile</h1>
-
-<form method="post">
-  {% csrf_token %}
-
-  {{ form.non_field_errors }}
-
-  {% for field in form %}
-    <div style="margin-bottom: 12px;">
-      {{ field.label_tag }}<br>
-      {{ field }}
-      {% if field.errors %}
-        <div style="color:red;">{{ field.errors }}</div>
-      {% endif %}
+<div class="card">
+  <div class="header-row">
+    <div>
+      <h1 class="page-title">Profile Settings</h1>
+      <p class="muted">Manage your account information and preferences</p>
     </div>
-  {% endfor %}
+  </div>
 
-  <button type="submit">Save</button>
-</form>
+  {% if messages %}
+    <div class="messages-box">
+      {% for message in messages %}
+        <div class="message message-{{ message.tags }}">{{ message }}</div>
+      {% endfor %}
+    </div>
+  {% endif %}
+
+  <form method="post" class="profile-form">
+    {% csrf_token %}
+    
+    {% if form.non_field_errors %}
+      <div class="form-errors">
+        {{ form.non_field_errors }}
+      </div>
+    {% endif %}
+
+    <div class="form-section">
+      <h3 class="subsection-title">Account Information</h3>
+      {% for field in form %}
+        <div class="form-group-spaced">
+          {{ field.label_tag }}
+          {% if field.field.widget.input_type == 'date' %}
+            {{ field }}
+          {% else %}
+            {{ field }}
+          {% endif %}
+          {% if field.help_text %}
+            <div class="form-help">{{ field.help_text }}</div>
+          {% endif %}
+          {% if field.errors %}
+            <div class="field-errors">
+              {{ field.errors }}
+            </div>
+          {% endif %}
+        </div>
+      {% endfor %}
+    </div>
+
+    <div class="form-actions">
+      <button type="submit" class="btn">Save changes</button>
+      <a class="btn btn-secondary" href="{% url 'core:home' %}">Cancel</a>
+    </div>
+  </form>
+
+
 {% endblock %}

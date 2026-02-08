@@ -25,6 +25,9 @@ from django.core.management import call_command
 from django.core.management.base import BaseCommand
 from django.db import transaction
 from django.utils import timezone
+from django.contrib.contenttypes.models import ContentType
+from django.core.exceptions import FieldDoesNotExist
+
 
 User = get_user_model()
 
@@ -213,7 +216,7 @@ class Command(BaseCommand):
                 "is_superuser": True,
                 "is_staff": True,
             },
-            # Staff (team leads)
+            # Staff 
             {
                 "email": "marie.dupont@insillyclo.com",
                 "password": "marie123",
@@ -271,6 +274,7 @@ class Command(BaseCommand):
                 "last_name": "Simon",
                 "is_staff": False,
             },
+
         ]
 
         if not self.minimal:
@@ -290,6 +294,35 @@ class Command(BaseCommand):
                         "last_name": "Roux",
                         "is_staff": False,
                     },
+
+                            {
+                    "email": "antoine.martin@insillyclo.com",
+                    "password": "antoine123",
+                    "first_name": "Antoine",
+                    "last_name": "Martin",
+                    "is_staff": False,
+                },
+                {
+                    "email": "clara.dubois@insillyclo.com",
+                    "password": "clara123",
+                    "first_name": "Clara",
+                    "last_name": "Dubois",
+                    "is_staff": False,
+                },
+                {
+                    "email": "nicolas.bernard@insillyclo.com",
+                    "password": "nicolas123",
+                    "first_name": "Nicolas",
+                    "last_name": "Bernard",
+                    "is_staff": False,
+                },
+                {
+                    "email": "lea.fournier@insillyclo.com",
+                    "password": "lea123",
+                    "first_name": "Léa",
+                    "last_name": "Fournier",
+                    "is_staff": False,
+                },
                 ]
             )
 
@@ -339,60 +372,103 @@ class Command(BaseCommand):
             return
 
         teams_data = [
+            # --- Mixed owners (staff + non-staff) ---
             {
                 "name": "Équipe Synthèse Génomique",
-                "owner": "marie.dupont@insillyclo.com",
+                "owner": "marie.dupont@insillyclo.com",  # staff
                 "members": [
                     "marie.dupont@insillyclo.com",
                     "sophie.rousseau@insillyclo.com",
                     "lucas.petit@insillyclo.com",
                     "thomas.leroy@insillyclo.com",
+                    "clara.dubois@insillyclo.com",
                 ],
             },
             {
                 "name": "Équipe Biologie Synthétique",
-                "owner": "jean.martin@insillyclo.com",
+                "owner": "sophie.rousseau@insillyclo.com",  # non-staff
                 "members": [
-                    "jean.martin@insillyclo.com",
+                    "sophie.rousseau@insillyclo.com",
                     "emma.moreau@insillyclo.com",
                     "julie.simon@insillyclo.com",
+                    "antoine.martin@insillyclo.com",
                 ],
             },
             {
                 "name": "Équipe Plasmides & Assemblage",
-                "owner": "claire.bernard@insillyclo.com",
+                "owner": "claire.bernard@insillyclo.com",  # staff
                 "members": [
                     "claire.bernard@insillyclo.com",
-                    "sophie.rousseau@insillyclo.com",
+                    "lucas.petit@insillyclo.com",
                     "emma.moreau@insillyclo.com",
+                    "nicolas.bernard@insillyclo.com",
+                ],
+            },
+            {
+                "name": "Équipe Design & Documentation",
+                "owner": "lea.fournier@insillyclo.com",  # non-staff
+                "members": [
+                    "lea.fournier@insillyclo.com",
+                    "julie.simon@insillyclo.com",
+                    "clara.dubois@insillyclo.com",
+                    "antoine.martin@insillyclo.com",
+                ],
+            },
+            {
+                "name": "Équipe QA / Validation",
+                "owner": "jean.martin@insillyclo.com",  # staff
+                "members": [
+                    "jean.martin@insillyclo.com",
+                    "thomas.leroy@insillyclo.com",
+                    "nicolas.bernard@insillyclo.com",
                     "lucas.petit@insillyclo.com",
                 ],
             },
         ]
 
         if not self.minimal:
-            teams_data.extend(
-                [
-                    {
-                        "name": "Équipe CRISPR-Cas9",
-                        "owner": "marie.dupont@insillyclo.com",
-                        "members": [
-                            "marie.dupont@insillyclo.com",
-                            "pierre.garcia@insillyclo.com",
-                            "camille.roux@insillyclo.com",
-                        ],
-                    },
-                    {
-                        "name": "Équipe Levures Modifiées",
-                        "owner": "jean.martin@insillyclo.com",
-                        "members": [
-                            "jean.martin@insillyclo.com",
-                            "thomas.leroy@insillyclo.com",
-                            "julie.simon@insillyclo.com",
-                        ],
-                    },
-                ]
-            )
+            teams_data.extend([
+                {
+                    "name": "Équipe CRISPR-Cas9",
+                    "owner": "emma.moreau@insillyclo.com",  # non-staff
+                    "members": [
+                        "emma.moreau@insillyclo.com",
+                        "pierre.garcia@insillyclo.com",
+                        "camille.roux@insillyclo.com",
+                        "marie.dupont@insillyclo.com",
+                    ],
+                },
+                {
+                    "name": "Équipe Levures Modifiées",
+                    "owner": "jean.martin@insillyclo.com",  # staff
+                    "members": [
+                        "jean.martin@insillyclo.com",
+                        "thomas.leroy@insillyclo.com",
+                        "julie.simon@insillyclo.com",
+                        "lea.fournier@insillyclo.com",
+                    ],
+                },
+                {
+                    "name": "Équipe Métabolisme & Pathways",
+                    "owner": "antoine.martin@insillyclo.com",  # non-staff
+                    "members": [
+                        "antoine.martin@insillyclo.com",
+                        "claire.bernard@insillyclo.com",
+                        "lucas.petit@insillyclo.com",
+                        "pierre.garcia@insillyclo.com",
+                    ],
+                },
+                {
+                    "name": "Équipe Bioinformatique",
+                    "owner": "clara.dubois@insillyclo.com",  # non-staff
+                    "members": [
+                        "clara.dubois@insillyclo.com",
+                        "nicolas.bernard@insillyclo.com",
+                        "camille.roux@insillyclo.com",
+                        "jean.martin@insillyclo.com",
+                    ],
+                },
+            ])
 
         has_members_m2m = has_field(self.Team, "members")
         owner_field = pick_field(self.Team, ["owner", "created_by", "leader"])
@@ -635,13 +711,6 @@ class Command(BaseCommand):
             # Public
             {"identifier": "pYTK008", "name": "mCherry", "type": "3b", "collection": "pYTK Public Library", "desc": "RFP reporter cassette"},
             {"identifier": "pYTK100", "name": "GFP", "type": "3a", "collection": "Yeast Toolkit Public", "desc": "GFP reporter cassette"},
-
-            # Private team
-            # {"identifier": "pSA001", "name": "Venus-Expression", "type": "TU1", "collection": "Team Synthèse - Private", "desc": "Expression construct for screening"},
-            # {"identifier": "pBIO001", "name": "GAL1-Venus", "type": "TU2", "collection": "Team BioSyn - Private", "desc": "GAL1 promoter driving Venus"},
-
-            # Personal
-            
             {"identifier": "pSR001", "name": "Sophie-TagTest", "type": "misc", "collection": "Sophie - Personal", "desc": "Personal test plasmid"},
         # --- Personal / test / experimental plasmids ---
             {"identifier": "pSR002", "name": "Tag-Linker-Test",        "type": "misc", "collection": "Sophie - Personal",               "desc": "Flexible linker length comparison"},
@@ -666,15 +735,6 @@ class Command(BaseCommand):
 
         ]
 
-
-
-        if not self.minimal:
-            plasmids_data.extend(
-                [
-                    {"identifier": "pCR001", "name": "CRISPR-gRNA-Backbone", "type": "misc", "collection": "Plasmid Assembly - Sandbox", "desc": "gRNA backbone demo plasmid"},
-                    {"identifier": "pCR002", "name": "Cas9-Expression", "type": "TU3", "collection": "Plasmid Assembly - Sandbox", "desc": "Cas9 expression demo plasmid"},
-                ]
-            )
 
         for d in plasmids_data:
             coll_name = d["collection"]
@@ -745,6 +805,9 @@ class Command(BaseCommand):
         entry_display_field = pick_field(self.CorrespondenceEntry, ["display_name", "value", "label"])
 
         correspondences_data = [
+            # =========================
+            # Public
+            # =========================
             {
                 "name": "YTK to Addgene IDs",
                 "owner": "marie.dupont@insillyclo.com",
@@ -754,8 +817,35 @@ class Command(BaseCommand):
                     {"identifier": "pYTK002", "display_name": "Addgene #65142", "entry_type": "Promoter"},
                     {"identifier": "pYTK003", "display_name": "Addgene #65143", "entry_type": "Gene"},
                     {"identifier": "pYTK004", "display_name": "Addgene #65144", "entry_type": "Terminator"},
+                    {"identifier": "pYTK008", "display_name": "Addgene #65148", "entry_type": "Reporter"},
                 ],
             },
+            {
+                "name": "Public Part Categories",
+                "owner": "claire.bernard@insillyclo.com",
+                "is_public": True,
+                "entries": [
+                    {"identifier": "pYTK002", "display_name": "Promoter parts", "entry_type": "Category"},
+                    {"identifier": "pYTK003", "display_name": "Coding sequences", "entry_type": "Category"},
+                    {"identifier": "pYTK004", "display_name": "Terminators", "entry_type": "Category"},
+                    {"identifier": "pYTK008", "display_name": "Fluorescent reporters", "entry_type": "Category"},
+                ],
+            },
+            {
+                "name": "Yeast Reporters (Display Names)",
+                "owner": "jean.martin@insillyclo.com",
+                "is_public": True,
+                "entries": [
+                    {"identifier": "pYTK100", "display_name": "GFP (green fluorescent protein)", "entry_type": "Reporter"},
+                    {"identifier": "pYTK008", "display_name": "mCherry (red fluorescent protein)", "entry_type": "Reporter"},
+                    {"identifier": "pSR010", "display_name": "Reporter control (ON)", "entry_type": "Control"},
+                    {"identifier": "pSR011", "display_name": "Reporter control (OFF)", "entry_type": "Control"},
+                ],
+            },
+
+            # =========================
+            # Private lab internal
+            # =========================
             {
                 "name": "Internal Lab Codes",
                 "owner": "jean.martin@insillyclo.com",
@@ -764,8 +854,24 @@ class Command(BaseCommand):
                     {"identifier": "pSA001", "display_name": "LAB-2024-001", "entry_type": "Expression"},
                     {"identifier": "pSA002", "display_name": "LAB-2024-002", "entry_type": "Expression"},
                     {"identifier": "pBIO001", "display_name": "YEAST-001", "entry_type": "Yeast"},
+                    {"identifier": "pSR004", "display_name": "LAB-2025-014", "entry_type": "Screen"},
                 ],
             },
+            {
+                "name": "Project Aliases (Short Names)",
+                "owner": "marie.dupont@insillyclo.com",
+                "is_public": False,
+                "entries": [
+                    {"identifier": "pSR004", "display_name": "NLS-screen-v1", "entry_type": "Alias"},
+                    {"identifier": "pSR005", "display_name": "NES-export-v1", "entry_type": "Alias"},
+                    {"identifier": "pSR006", "display_name": "GFP-fusion-v2", "entry_type": "Alias"},
+                    {"identifier": "pSR017", "display_name": "Inducible-test", "entry_type": "Alias"},
+                ],
+            },
+
+            # =========================
+            # Personal (non-public)
+            # =========================
             {
                 "name": "Freezer Location Mapping",
                 "owner": "sophie.rousseau@insillyclo.com",
@@ -773,6 +879,65 @@ class Command(BaseCommand):
                 "entries": [
                     {"identifier": "pYTK003", "display_name": "Freezer A / Box 1 / Pos 3", "entry_type": "Stock"},
                     {"identifier": "pYTK008", "display_name": "Freezer A / Box 1 / Pos 8", "entry_type": "Stock"},
+                    {"identifier": "pSR001", "display_name": "Freezer B / Box 2 / Pos 1", "entry_type": "Stock"},
+                ],
+            },
+            {
+                "name": "Sophie Notes (Readable Names)",
+                "owner": "sophie.rousseau@insillyclo.com",
+                "is_public": False,
+                "entries": [
+                    {"identifier": "pSR001", "display_name": "Tag test plasmid", "entry_type": "Note"},
+                    {"identifier": "pSR002", "display_name": "Linker length comparison", "entry_type": "Note"},
+                    {"identifier": "pSR012", "display_name": "Domain deletion mutant", "entry_type": "Note"},
+                    {"identifier": "pSR018", "display_name": "Stop codon readthrough assay", "entry_type": "Note"},
+                ],
+            },
+            {
+                "name": "Lucas Bench IDs",
+                "owner": "lucas.petit@insillyclo.com",
+                "is_public": False,
+                "entries": [
+                    {"identifier": "pSR013", "display_name": "BENCH-LP-001", "entry_type": "Bench"},
+                    {"identifier": "pSR014", "display_name": "BENCH-LP-002", "entry_type": "Bench"},
+                    {"identifier": "pSR019", "display_name": "BENCH-LP-003", "entry_type": "Bench"},
+                ],
+            },
+            {
+                "name": "Emma Strains / Plasmids Mapping",
+                "owner": "emma.moreau@insillyclo.com",
+                "is_public": False,
+                "entries": [
+                    {"identifier": "pBIO001", "display_name": "Strain EM-YEAST-01", "entry_type": "Strain"},
+                    {"identifier": "pSR006", "display_name": "Strain EM-YEAST-02", "entry_type": "Strain"},
+                    {"identifier": "pSR017", "display_name": "Strain EM-YEAST-03", "entry_type": "Strain"},
+                ],
+            },
+
+            # =========================
+            # Extra demo variety
+            # =========================
+            {
+                "name": "Plate Layout (96-well) - Week 12",
+                "owner": "julie.simon@insillyclo.com",
+                "is_public": False,
+                "entries": [
+                    {"identifier": "A01", "display_name": "pYTK100", "entry_type": "Well"},
+                    {"identifier": "A02", "display_name": "pYTK008", "entry_type": "Well"},
+                    {"identifier": "B01", "display_name": "pSR010", "entry_type": "Well"},
+                    {"identifier": "B02", "display_name": "pSR011", "entry_type": "Well"},
+                    {"identifier": "C01", "display_name": "pSR017", "entry_type": "Well"},
+                ],
+            },
+            {
+                "name": "Primer Set Mapping",
+                "owner": "claire.bernard@insillyclo.com",
+                "is_public": False,
+                "entries": [
+                    {"identifier": "PR_FWD_01", "display_name": "pTEF1_Fwd", "entry_type": "Primer"},
+                    {"identifier": "PR_REV_01", "display_name": "tCYC1_Rev", "entry_type": "Primer"},
+                    {"identifier": "PR_FWD_02", "display_name": "GAL1_Fwd", "entry_type": "Primer"},
+                    {"identifier": "PR_REV_02", "display_name": "ADH1_Rev", "entry_type": "Primer"},
                 ],
             },
         ]
@@ -934,9 +1099,6 @@ class Command(BaseCommand):
             self.stdout.write(self.style.SUCCESS(f"  ✓ Created campaign '{cname}'"))
             self.campaigns[cname] = campaign
 
-    # =====================================================================
-    # PUBLICATION REQUESTS
-    # =====================================================================
     def create_publication_requests(self):
         self.stdout.write("\n>>> Creating publication requests...")
 
@@ -946,16 +1108,12 @@ class Command(BaseCommand):
             ))
             return
 
-        # On crée des requêtes sur des objets EXISTANTS
+        # Build targets list (existing objects only)
         targets = []
-
-        # 1) Collections
-        for name, coll in self.collections.items():
+        for _, coll in (self.collections or {}).items():
             if coll is not None:
                 targets.append(coll)
-
-        # 2) Correspondences
-        for name, corr in self.correspondences.items():
+        for _, corr in (self.correspondences or {}).items():
             if corr is not None:
                 targets.append(corr)
 
@@ -963,84 +1121,143 @@ class Command(BaseCommand):
             self.stdout.write(self.style.WARNING("  ⚠ No valid targets for publication requests."))
             return
 
-        from django.contrib.contenttypes.models import ContentType
-        from django.utils import timezone
 
+        # Helper: safe get status enum (in case Status enum name differs)
+        Status = getattr(self.Publication, "Status", None) or getattr(self.Publication, "Statuses", None)
+
+        if Status is None:
+            self.stdout.write(self.style.WARNING("  ⚠ Publication.Status enum not found. Skipping publication requests."))
+            return
+
+        # Helper: detect if Publication model actually has a "team" FK
+        def publication_has_field(field_name: str) -> bool:
+            try:
+                self.Publication._meta.get_field(field_name)
+                return True
+            except FieldDoesNotExist:
+                return False
+            except Exception:
+                return False
+
+        has_team_field = publication_has_field("team")
+
+    # ------------------------------------------------------------------
+    # DEMO REQUESTS
+    # ------------------------------------------------------------------
+    # Rules implemented:
+    # - Requests with team -> often start PENDING_CHEFFE (some rejected by cheffe, some advance to PENDING_ADMIN)
+    # - Requests without team -> start directly PENDING_ADMIN
+    # - Some rejected (cheffe/admin) with mandatory comment
+    # - Some approved (cheffe + admin)
         demo_requests = [
-            # 1) Pending cheffe (demande liée à une team)
-    {
+            # =========================================================
+            # HORS ÉQUIPE → DIRECT PENDING_ADMIN
+            # =========================================================
+            {
+                "target": self.correspondences.get("Freezer Location Mapping"),
+                "requested_by": "sophie.rousseau@insillyclo.com",
+                "status": Status.PENDING_ADMIN,
+                "team": None,
+            },
+            {
+                "target": self.collections.get("pYTK Public Library"),
+                "requested_by": "lucas.petit@insillyclo.com",
+                "status": Status.PENDING_ADMIN,
+                "team": None,
+            },
+
+            # =========================================================
+            # AVEC ÉQUIPE → PENDING_CHEFFE
+            # =========================================================
+            {
                 "target": self.collections.get("Team Synthèse - Private"),
                 "requested_by": "sophie.rousseau@insillyclo.com",
-                "status": self.Publication.Status.PENDING_CHEFFE,
+                "status": Status.PENDING_CHEFFE,
                 "team": self.teams.get("Équipe Synthèse Génomique"),
             },
-
-            # 2) Rejected by cheffe (commentaire obligatoire)
             {
-                "target": targets[1] if len(targets) > 1 else targets[0],
-                "requested_by": "lucas.petit@insillyclo.com",
-                "status": self.Publication.Status.REJECTED_BY_CHEFFE,
-                "team": None,
-                "cheffe_reviewed_by": "marie.dupont@insillyclo.com",
-                "cheffe_review_comment": "Demande trop vague / métadonnées insuffisantes.",
-                "cheffe_reviewed_at": timezone.now() - timedelta(days=6),
+                "target": self.correspondences.get("Internal Lab Codes"),
+                "requested_by": "thomas.leroy@insillyclo.com",
+                "status": Status.PENDING_CHEFFE,
+                "team": self.teams.get("Équipe Biologie Synthétique"),
             },
 
-            # 3) Pending admin (cheffe a validé, admin pas encore)
+            # =========================================================
+            # VALIDÉE PAR CHEFFE → PENDING_ADMIN
+            # =========================================================
             {
-                "target": self.collections.get("Team BioSyn - Private") or targets[0],
+                "target": self.collections.get("Team BioSyn - Private"),
                 "requested_by": "emma.moreau@insillyclo.com",
-                "status": self.Publication.Status.PENDING_ADMIN,
+                "status": Status.PENDING_ADMIN,
                 "team": self.teams.get("Équipe Biologie Synthétique"),
                 "cheffe_reviewed_by": "jean.martin@insillyclo.com",
-                "cheffe_review_comment": "OK pour publication, à vérifier côté admin.",
+                "cheffe_review_comment": "OK pour publication.",
                 "cheffe_reviewed_at": timezone.now() - timedelta(days=2),
             },
 
-            # 4) Rejected by admin (commentaire obligatoire)
+            # =========================================================
+            # REFUSÉ PAR CHEFFE (motif obligatoire)
+            # =========================================================
             {
-                "target": self.correspondences.get("Freezer Location Mapping") or targets[0],
-                "requested_by": "thomas.leroy@insillyclo.com",
-                "status": self.Publication.Status.REJECTED_BY_ADMIN,
-                "team": None,
-                "cheffe_reviewed_by": "claire.bernard@insillyclo.com",
-                "cheffe_review_comment": "Cheffe OK, mais vérifier conformité.",
-                "cheffe_reviewed_at": timezone.now() - timedelta(days=9),
-                "admin_reviewed_by": "admin@insillyclo.com",
-                "admin_review_comment": "Information interne (localisation congélateur), non publiable.",
-                "admin_reviewed_at": timezone.now() - timedelta(days=8),
+                "target": self.correspondences.get("Project Aliases (Short Names)"),
+                "requested_by": "lucas.petit@insillyclo.com",
+                "status": Status.REJECTED_BY_CHEFFE,
+                "team": self.teams.get("Équipe Synthèse Génomique"),
+                "cheffe_reviewed_by": "marie.dupont@insillyclo.com",
+                "cheffe_review_comment": "Noms trop spécifiques au projet, non généralisables.",
+                "cheffe_reviewed_at": timezone.now() - timedelta(days=5),
             },
 
-            # 5) Approved (cheffe + admin)
+            # =========================================================
+            # REFUSÉ PAR ADMIN (motif obligatoire)
+            # =========================================================
             {
-                "target": self.correspondences.get("YTK to Addgene IDs") or targets[0],
-                "requested_by": "claire.bernard@insillyclo.com",
-                "status": self.Publication.Status.APPROVED,
+                "target": self.correspondences.get("Freezer Location Mapping"),
+                "requested_by": "thomas.leroy@insillyclo.com",
+                "status": Status.REJECTED_BY_ADMIN,
                 "team": None,
-                "cheffe_reviewed_by": "marie.dupont@insillyclo.com",
-                "cheffe_review_comment": "Bonne correspondance, utile publiquement.",
-                "cheffe_reviewed_at": timezone.now() - timedelta(days=4),
                 "admin_reviewed_by": "admin@insillyclo.com",
-                "admin_review_comment": "Validé.",
+                "admin_review_comment": "Données internes de localisation, non publiables.",
                 "admin_reviewed_at": timezone.now() - timedelta(days=3),
             },
+
+            # =========================================================
+            # APPROUVÉ (cheffe + admin)
+            # =========================================================
+            {
+                "target": self.correspondences.get("YTK to Addgene IDs"),
+                "requested_by": "claire.bernard@insillyclo.com",
+                "status": Status.APPROVED,
+                "team": None,
+                "cheffe_reviewed_by": "marie.dupont@insillyclo.com",
+                "cheffe_review_comment": "Correspondance claire et utile.",
+                "cheffe_reviewed_at": timezone.now() - timedelta(days=6),
+                "admin_reviewed_by": "admin@insillyclo.com",
+                "admin_review_comment": "Validé pour diffusion publique.",
+                "admin_reviewed_at": timezone.now() - timedelta(days=5),
+            },
         ]
+
+        created = 0
+        skipped = 0
 
         for data in demo_requests:
             target = data.get("target")
             if target is None:
+                skipped += 1
                 continue
 
             ct = ContentType.objects.get_for_model(target)
 
-            # Contrainte unique: pas plus d'une demande "pending" par target
-            if data["status"] in (self.Publication.Status.PENDING_CHEFFE, self.Publication.Status.PENDING_ADMIN):
+            # Unique constraint guard: no more than one pending request per target
+            if data["status"] in (Status.PENDING_CHEFFE, Status.PENDING_ADMIN):
                 exists = self.Publication.objects.filter(
                     target_content_type=ct,
                     target_object_id=target.id,
-                    status__in=[self.Publication.Status.PENDING_CHEFFE, self.Publication.Status.PENDING_ADMIN],
+                    status__in=[Status.PENDING_CHEFFE, Status.PENDING_ADMIN],
                 ).exists()
                 if exists:
+                    skipped += 1
                     continue
 
             kwargs = {
@@ -1050,7 +1267,8 @@ class Command(BaseCommand):
                 "status": data["status"],
             }
 
-            if data.get("team"):
+            # Team is optional AND model-dependent
+            if has_team_field and data.get("team") is not None:
                 kwargs["team"] = data["team"]
 
             # Cheffe review fields
@@ -1070,10 +1288,14 @@ class Command(BaseCommand):
                 kwargs["admin_reviewed_at"] = data["admin_reviewed_at"]
 
             try:
-                pub = self.Publication.objects.create(**kwargs)
+                self.Publication.objects.create(**kwargs)
+                created += 1
                 self.stdout.write(self.style.SUCCESS(f"  ✓ Created publication request for {target}"))
             except Exception as e:
+                skipped += 1
                 self.stdout.write(self.style.ERROR(f"  ✗ Failed to create publication request for {target}: {e}"))
+
+        self.stdout.write(self.style.SUCCESS(f"\n>>> Publication requests: {created} created, {skipped} skipped"))
 
 
     # =====================================================================
@@ -1084,31 +1306,74 @@ class Command(BaseCommand):
         self.stdout.write(self.style.SUCCESS("SUMMARY"))
         self.stdout.write("=" * 80)
 
-        self.stdout.write(f"\n✓ Users cached: {len(self.users)}")
-        self.stdout.write(f"✓ Teams cached: {len(self.teams)}")
-        self.stdout.write(f"✓ Templates cached: {len(self.templates)}")
-        self.stdout.write(f"✓ Collections cached: {len(self.collections)}")
-        self.stdout.write(f"✓ Plasmids cached: {len(self.plasmids)}")
-        self.stdout.write(f"✓ Correspondences cached: {len(self.correspondences)}")
-        self.stdout.write(f"✓ Campaigns cached: {len(self.campaigns)}")
+        self.stdout.write(f"\n✓ Users created: {len(self.users)}")
+        self.stdout.write(f"✓ Teams created: {len(self.teams)}")
+        self.stdout.write(f"✓ Campaign templates created: {len(self.templates)}")
+        self.stdout.write(f"✓ Plasmid collections created: {len(self.collections)}")
+        self.stdout.write(f"✓ Plasmids created: {len(self.plasmids)}")
+        self.stdout.write(f"✓ Correspondence tables created: {len(self.correspondences)}")
+        self.stdout.write(f"✓ Campaigns created: {len(self.campaigns)}")
 
         self.stdout.write("\n" + "=" * 80)
-        self.stdout.write(self.style.SUCCESS("LOGIN CREDENTIALS"))
+        self.stdout.write(self.style.SUCCESS("LOGIN CREDENTIALS (DEMO ACCOUNTS)"))
         self.stdout.write("=" * 80)
 
-        self.stdout.write("\nSUPERUSER:")
+        # ------------------------------------------------------------------
+        # Superuser
+        # ------------------------------------------------------------------
+        self.stdout.write("\nSUPERUSER (admin validation):")
         self.stdout.write("  Email: admin@insillyclo.com")
         self.stdout.write("  Password: admin123")
 
-        self.stdout.write("\nTEAM LEADS (staff):")
-        self.stdout.write("  Email: marie.dupont@insillyclo.com | Password: marie123")
-        self.stdout.write("  Email: jean.martin@insillyclo.com | Password: jean123")
-        self.stdout.write("  Email: claire.bernard@insillyclo.com | Password: claire123")
+        # ------------------------------------------------------------------
+        # Example team owners (mixed staff / non-staff)
+        # ------------------------------------------------------------------
+        self.stdout.write("\nTEAM OWNERS (mixed roles):")
+        self.stdout.write("  marie.dupont@insillyclo.com | Password: marie123 | staff")
+        self.stdout.write("  jean.martin@insillyclo.com  | Password: jean123  | staff")
+        self.stdout.write("  claire.bernard@insillyclo.com | Password: claire123 | staff")
+        self.stdout.write("  sophie.rousseau@insillyclo.com | Password: sophie123 | non-staff")
+        self.stdout.write("  lea.fournier@insillyclo.com | Password: lea123 | non-staff")
+        self.stdout.write("  antoine.martin@insillyclo.com | Password: antoine123 | non-staff")
 
-        self.stdout.write("\nREGULAR USERS:")
-        self.stdout.write("  Email: sophie.rousseau@insillyclo.com | Password: sophie123")
-        self.stdout.write("  Email: lucas.petit@insillyclo.com | Password: lucas123")
-        self.stdout.write("  Email: emma.moreau@insillyclo.com | Password: emma123")
+        # ------------------------------------------------------------------
+        # Regular users
+        # ------------------------------------------------------------------
+        self.stdout.write("\nREGULAR USERS (contributors / members):")
+        self.stdout.write("  lucas.petit@insillyclo.com | Password: lucas123")
+        self.stdout.write("  emma.moreau@insillyclo.com | Password: emma123")
+        self.stdout.write("  thomas.leroy@insillyclo.com | Password: thomas123")
+        self.stdout.write("  julie.simon@insillyclo.com | Password: julie123")
+        self.stdout.write("  clara.dubois@insillyclo.com | Password: clara123")
+        self.stdout.write("  nicolas.bernard@insillyclo.com | Password: nicolas123")
+        self.stdout.write("  pierre.garcia@insillyclo.com | Password: pierre123")
+        self.stdout.write("  camille.roux@insillyclo.com | Password: camille123")
+
+        # ------------------------------------------------------------------
+        # Usage hints
+        # ------------------------------------------------------------------
+        self.stdout.write("\n" + "=" * 80)
+        self.stdout.write(self.style.SUCCESS("USAGE NOTES"))
+        self.stdout.write("=" * 80)
+
+        self.stdout.write(
+            "\n• Some publication requests are:\n"
+            "  - pending cheffe (team validation)\n"
+            "  - pending admin (no team or cheffe-approved)\n"
+            "  - rejected (with mandatory comments)\n"
+            "  - approved (cheffe + admin)\n"
+        )
+
+        self.stdout.write(
+            "• Some correspondence tables and collections:\n"
+            "  - belong to teams\n"
+            "  - are personal (no team)\n"
+            "  - are public or private\n"
+        )
+
+        self.stdout.write(
+            "• Team owners are not always staff (intentional).\n"
+        )
 
         self.stdout.write("\n" + "=" * 80)
         self.stdout.write(self.style.SUCCESS("Run: python manage.py runserver"))

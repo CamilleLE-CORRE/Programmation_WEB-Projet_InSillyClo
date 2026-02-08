@@ -1,123 +1,160 @@
 {% extends "core/base.html" %}
+{% load static %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/accounts.css' %}">
+{% endblock %}
+
+{% block title %}{{ team.name }}{% endblock %}
 
 {% block content %}
+<div class="card">
+  <div class="header-row">
+    <div>
+      <h1 class="page-title">{{ team.name }}</h1>
+      <p class="muted"><strong>Owner:</strong> {{ team.owner.email }}</p>
+    </div>
+  </div>
 
-<h1>{{ team.name }}</h1>
-<p><strong>Owner:</strong> {{ team.owner.email }}</p>
+  <!-- Members Section -->
+  <div class="section">
+    <h2 class="section-title">Members ({{ members|length }})</h2>
+    {% if members %}
+      <div class="members-list">
+        {% for user in members %}
+          <div class="member-item">
+            <div>
+              <span class="member-email">{{ user.email }}</span>
+              {% if user.id == team.owner_id %}
+                <span class="badge badge-owner">Owner</span>
+              {% endif %}
+            </div>
+            {% if is_owner and user.id != team.owner_id %}
+              <form method="post" action="{% url 'accounts:remove_member' team.id %}" style="display:inline;">
+                {% csrf_token %}
+                <input type="hidden" name="user_id" value="{{ user.id }}">
+                <button type="submit" class="btn-remove">Remove</button>
+              </form>
+            {% endif %}
+          </div>
+        {% endfor %}
+      </div>
+    {% endif %}
 
-<hr>
+    {% if is_owner %}
+      <div class="action-forms">
+        <div class="form-section">
+          <h3 class="subsection-title">Add member</h3>
+          <form method="post" action="{% url 'accounts:add_member' team.id %}" class="inline-form">
+            {% csrf_token %}
+            {{ add_member_form.as_p }}
+            <button type="submit" class="btn">Add member</button>
+          </form>
+        </div>
 
-<h2>Members</h2>
-<ul>
-  {% for user in members %}
-    <li>
-      {{ user.email }}
-      {% if is_owner and user.id != team.owner_id %}
-        <form method="post"
-              action="{% url 'accounts:remove_member' team.id %}"
-              style="display:inline;">
-          {% csrf_token %}
-          <input type="hidden" name="user_id" value="{{ user.id }}">
-          <button type="submit">Remove</button>
-        </form>
-      {% endif %}
-    </li>
-  {% endfor %}
-</ul>
+        <div class="form-section">
+          <h3 class="subsection-title">Transfer ownership</h3>
+          <form method="post" action="{% url 'accounts:transfer_owner' team.id %}" class="inline-form">
+            {% csrf_token %}
+            {{ transfer_owner_form.as_p }}
+            <button type="submit" class="btn btn-secondary">Transfer ownership</button>
+          </form>
+        </div>
+      </div>
+    {% endif %}
+  </div>
 
-{% if is_owner %}
-  <h3>Add member</h3>
-  <form method="post" action="{% url 'accounts:add_member' team.id %}">
-    {% csrf_token %}
-    {{ add_member_form.as_p }}
-    <button type="submit">Add</button>
-  </form>
+  <!-- Plasmid Collections Section -->
+  <div class="section">
+    <h2 class="section-title">Plasmid Collections ({{ collections|length }})</h2>
+    {% if collections %}
+      <ul class="resource-list">
+        {% for c in collections %}
+          <li>
+            <span class="resource-name">{{ c.name }}</span>
+            {% if c.is_public %}
+              <span class="badge badge-public">Public</span>
+            {% else %}
+              <span class="badge badge-private">Private</span>
+            {% endif %}
+          </li>
+        {% endfor %}
+      </ul>
+    {% else %}
+      <p class="muted">No plasmid collections for this team.</p>
+    {% endif %}
+  </div>
 
-  <h3>Transfer ownership</h3>
-  <form method="post" action="{% url 'accounts:transfer_owner' team.id %}">
-    {% csrf_token %}
-    {{ transfer_owner_form.as_p }}
-    <button type="submit">Transfer</button>
-  </form>
-{% endif %}
+  <!-- Plasmids Section -->
+  <div class="section">
+    <h2 class="section-title">Plasmids ({{ plasmids|length }})</h2>
+    {% if plasmids %}
+      <ul class="resource-list">
+        {% for p in plasmids %}
+          <li>
+            <a href="{% url 'plasmids:plasmid_detail' p.id %}" class="resource-link">
+              {{ p.name }}
+            </a>
+            {% if p.identifier %}
+              <span class="muted mono">{{ p.identifier }}</span>
+            {% endif %}
+            {% if p.collection %}
+              <span class="badge">{{ p.collection.name }}</span>
+            {% endif %}
+          </li>
+        {% endfor %}
+      </ul>
+    {% else %}
+      <p class="muted">No plasmids linked to this team.</p>
+    {% endif %}
+  </div>
 
-<hr>
+  <!-- Correspondences Section -->
+  <div class="section">
+    <h2 class="section-title">Correspondences ({{ correspondences|length }})</h2>
+    {% if correspondences %}
+      <ul class="resource-list">
+        {% for corr in correspondences %}
+          <li>
+            <a href="{% url 'correspondences:detail' corr.id %}" class="resource-link">
+              {{ corr.name }}
+            </a>
+            <span class="muted">{{ corr.owner.email }}</span>
+            {% if corr.is_public %}
+              <span class="badge badge-public">Public</span>
+            {% else %}
+              <span class="badge badge-private">Private</span>
+            {% endif %}
+          </li>
+        {% endfor %}
+      </ul>
+    {% else %}
+      <p class="muted">No correspondences for this team.</p>
+    {% endif %}
+  </div>
 
-<h2>Plasmid collections</h2>
-{% if collections %}
-  <ul>
-    {% for c in collections %}
-      <li>
-        {{ c.name }}
-        {% if c.is_public %}(public){% else %}(private){% endif %}
-      </li>
-    {% endfor %}
-  </ul>
-{% else %}
-  <p><em>No plasmid collections for this team.</em></p>
-{% endif %}
-
-<hr>
-
-<h2>Plasmids</h2>
-{% if plasmids %}
-  <ul>
-    {% for p in plasmids %}
-      <li>
-        <a href="{% url 'plasmids:plasmid_detail' p.id %}">
-          {{ p.name }}
-        </a>
-        {% if p.identifier %} — {{ p.identifier }}{% endif %}
-        {% if p.collection %} ({{ p.collection.name }}){% endif %}
-      </li>
-    {% endfor %}
-  </ul>
-{% else %}
-  <p><em>No plasmids linked to this team.</em></p>
-{% endif %}
-
-<hr>
-
-<h2>Correspondences</h2>
-{% if correspondences %}
-  <ul>
-    {% for corr in correspondences %}
-    <li>
-      <a href="{% url 'correspondences:detail' corr.id %}">
-        {{ corr.name }}
-      </a>
-      — owner: {{ corr.owner.email }}
-      {% if corr.is_public %}(public){% else %}(private){% endif %}
-    </li>
-    
-    {% endfor %}
-  </ul>
-{% else %}
-  <p><em>No correspondences for this team.</em></p>
-{% endif %}
-
-<hr>
-
-<h2>Publication requests</h2>
-
-{% if publication_requests %}
-  <ul>
-    {% for pub in publication_requests %}
-      <li>
-        {% if is_owner and pub.status == pub.Status.PENDING_CHEFFE %}
-          <a href="{% url 'publications:cheffe_requests' %}">
-            {{ pub.target }} — {{ pub.status }} — requested by {{ pub.requested_by.email }}
-          </a>
-        {% else %}
-          {{ pub.target }} — {{ pub.status }} — requested by {{ pub.requested_by.email }}
-        {% endif %}
-
-      </li>
-    {% endfor %}
-  </ul>
-{% else %}
-  <p><em>No publication requests for this team.</em></p>
-{% endif %}
-
-
+  <!-- Publication Requests Section -->
+  <div class="section">
+    <h2 class="section-title">Publication Requests ({{ publication_requests|length }})</h2>
+    {% if publication_requests %}
+      <ul class="resource-list">
+        {% for pub in publication_requests %}
+          <li>
+            {% if is_owner and pub.status == pub.Status.PENDING_CHEFFE %}
+              <a href="{% url 'publications:cheffe_requests' %}" class="resource-link">
+                {{ pub.target }}
+              </a>
+            {% else %}
+              <span class="resource-name">{{ pub.target }}</span>
+            {% endif %}
+            <span class="badge">{{ pub.status }}</span>
+            <span class="muted">by {{ pub.requested_by.email }}</span>
+          </li>
+        {% endfor %}
+      </ul>
+    {% else %}
+      <p class="muted">No publication requests for this team.</p>
+    {% endif %}
+  </div>
+</div>
 {% endblock %}

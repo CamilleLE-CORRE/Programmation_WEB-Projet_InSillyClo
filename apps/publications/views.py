@@ -257,20 +257,71 @@ def cheffe_detail(request, pk):
 @require_http_methods(["GET"])
 def admin_publication_requests(request):
     """
-    Admin view to list all publication requests.
+    Admin view to list all publication requests with filtering options.
+    Shows all requests: pending, approved, rejected.
     """
-    status = request.GET.get('status')
-    qs = Publication.objects.filter(status=Publication.Status.PENDING_ADMIN)\
-        .select_related('requested_by', 'admin_reviewed_by', 'target_content_type')\
-        .order_by('-created_at')
-    
-    status = request.GET.get('status')
-    if status:
-        qs = qs.filter(status=status)
+    Status = Publication.Status  # raccourci
 
-    qs = qs.order_by('-created_at')
-    return render(request, 'publications/admin_requests.html', {'publications': qs, "status":status})
+    # 1) base queryset
+    qs = Publication.objects.select_related(
+        "requested_by",
+        "admin_reviewed_by",
+        "cheffe_reviewed_by",
+        "target_content_type",
+        "team",
+    ).order_by("-created_at")
 
+    # 2) mapping URL -> valeur DB (évite le mismatch)
+    status_param = (request.GET.get("status") or "").strip()
+
+    status_map = {
+        "": None,
+        "all": None,
+
+        # accepte plusieurs écritures côté URL
+        "pending_admin": Status.PENDING_ADMIN,
+        "PENDING_ADMIN": Status.PENDING_ADMIN,
+
+        "pending_cheffe": Status.PENDING_CHEFFE,
+        "PENDING_CHEFFE": Status.PENDING_CHEFFE,
+
+        "approved": Status.APPROVED,
+        "APPROVED": Status.APPROVED,
+
+        "rejected_by_cheffe": Status.REJECTED_BY_CHEFFE,
+        "REJECTED_BY_CHEFFE": Status.REJECTED_BY_CHEFFE,
+
+        "rejected_by_admin": Status.REJECTED_BY_ADMIN,
+        "REJECTED_BY_ADMIN": Status.REJECTED_BY_ADMIN,
+    }
+
+    status_value = status_map.get(status_param, None)
+
+    # 3) applique le filtre seulement si reconnu
+    if status_param and status_value is None:
+        # param inconnu -> on n’applique pas de filtre (ou tu peux afficher une erreur)
+        status_filter = ""
+    else:
+        status_filter = status_param
+        if status_value is not None:
+            qs = qs.filter(status=status_value)
+
+    # 4) compteurs (même table, pas besoin de refaire Publication.objects...)
+    base = Publication.objects
+    status_counts = {
+        "total": base.count(),
+        "pending_admin": base.filter(status=Status.PENDING_ADMIN).count(),
+        "pending_cheffe": base.filter(status=Status.PENDING_CHEFFE).count(),
+        "approved": base.filter(status=Status.APPROVED).count(),
+        "rejected_cheffe": base.filter(status=Status.REJECTED_BY_CHEFFE).count(),
+        "rejected_admin": base.filter(status=Status.REJECTED_BY_ADMIN).count(),
+    }
+
+    return render(request, "publications/admin_requests.html", {
+        "publications": qs,
+        "status_filter": status_filter,
+        "status_counts": status_counts,
+    })
 
 @user_passes_test(is_admin_user)
 @require_http_methods(["POST"])

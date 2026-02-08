@@ -2,98 +2,127 @@
 {% load static %}
 
 {% block extra_css %}
-<link rel="stylesheet" href="{% static 'css/publications.css' %}">
+<link rel="stylesheet" href="{% static 'css/admin_publications.css' %}">
+
 {% endblock %}
 
+{% block title %}Publication Requests · Admin{% endblock %}
+
 {% block content %}
-<h1 class="page-title">Publication requests (admin)</h1>
-
 <div class="card">
-  <p class="muted">Approve or reject publication requests. Rejection requires a reason.</p>
+  <h1 class="page-title">Publication Requests</h1>
+  <p class="muted">Review and manage all publication requests.</p>
 
-  <div class="table-wrap">
-    <table class="nice-table">
-      <thead>
-        <tr>
-          <th>ID</th>
-          <th>Requested by</th>
-          <th>Target</th>
-          <th>Team</th>
-          <th>Status</th>
-          <th>Comment</th>
-          <th style="width: 460px;">Actions</th>
-        </tr>
-      </thead>
+  <div class="tabs">
+    <a class="tab {% if not status_filter or status_filter == 'all' %}active{% endif %}" href="{% url 'publications:admin_requests' %}?status=all">
+      All <span class="pill">{{ status_counts.total }}</span>
+    </a>
 
-      <tbody>
-        {% for pub in publications %}
-        <tr>
-          <td>#{{ pub.id }}</td>
+    <a class="tab {% if status_filter == 'pending_admin' %}active{% endif %}" href="{% url 'publications:admin_requests' %}?status=pending_admin">
+      Pending Admin <span class="pill">{{ status_counts.pending_admin }}</span>
+    </a>
 
-          <td>{{ pub.requested_by.email }}</td>
+    <a class="tab {% if status_filter == 'pending_cheffe' %}active{% endif %}" href="{% url 'publications:admin_requests' %}?status=pending_cheffe">
+      Pending Cheffe <span class="pill">{{ status_counts.pending_cheffe }}</span>
+    </a>
 
-          <td>
-            <div>
-                <strong>
-                  <a href="{% url 'publications:admin_detail' pub.id %}">
-                    {{ pub.target }}
-                  </a>
-                </strong>
-            </div>
+    <a class="tab {% if status_filter == 'approved' %}active{% endif %}" href="{% url 'publications:admin_requests' %}?status=approved">
+      Approved <span class="pill">{{ status_counts.approved }}</span>
+    </a>
 
-            <div class="muted">
-              {{ pub.target_content_type.app_label }}/{{ pub.target_content_type.model }}
-              (id={{ pub.target_object_id }})
-            </div>
-          </td>
+    <a class="tab {% if status_filter == 'rejected_by_cheffe' %}active{% endif %}" href="{% url 'publications:admin_requests' %}?status=rejected_by_cheffe">
+      Rejected by Cheffe <span class="pill">{{ status_counts.rejected_cheffe }}</span>
+    </a>
 
-          <td>{{pub.team}}</td>
-
-          <td>
-            {% if pub.status == "PENDING_ADMIN" %}
-              <span class="badge pending">Pending</span>
-            {% elif pub.status == "APPROVED" %}
-              <span class="badge approved">Approved</span>
-            {% elif pub.status == "REJECTED_BY_ADMIN" %}
-              <span class="badge rejected">Rejected</span>
-            {% else %}
-              <span class="badge">{{ pub.status }}</span>
-            {% endif %}
-          </td>
-
-          <td>{{ pub.reviewed_comment|default:"—" }}</td>
-
-          <td>
-            {% if pub.status == "PENDING_ADMIN" %}
-              <div class="actions">
-                <!-- Approve -->
-                <form method="post" action="{% url 'publications:admin_review' pub.id %}">
-                  {% csrf_token %}
-                  <input type="hidden" name="action" value="approve">
-                  <button class="btn primary" type="submit">Approve</button>
-                </form>
-
-                <!-- Reject -->
-                <form method="post" action="{% url 'publications:admin_review' pub.id %}">
-                  {% csrf_token %}
-                  <input type="hidden" name="action" value="reject">
-                  <input class="input" type="text" name="comment" placeholder="Rejection reason" required>
-                  <button class="btn danger" type="submit">Reject</button>
-                </form>
-              </div>
-            {% else %}
-              <span class="muted">Reviewed</span>
-            {% endif %}
-          </td>
-        </tr>
-
-        {% empty %}
-        <tr>
-          <td colspan="6" class="empty">No publication requests.</td>
-        </tr>
-        {% endfor %}
-      </tbody>
-    </table>
+    <a class="tab {% if status_filter == 'rejected_by_admin' %}active{% endif %}" href="{% url 'publications:admin_requests' %}?status=rejected_by_admin">
+      Rejected by Admin <span class="pill">{{ status_counts.rejected_admin }}</span>
+    </a>
   </div>
+
+  {% if publications %}
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>ID</th>
+            <th>Target</th>
+            <th>Requested by</th>
+            <th>Team</th>
+            <th>Status</th>
+            <th>Created</th>
+            <th>Review</th>
+          </tr>
+        </thead>
+        <tbody>
+        {% for pub in publications %}
+          <tr>
+            <td class="mono">#{{ pub.id }}</td>
+
+            <td>
+              <div class="mono">{{ pub.target_content_type.app_label }}/{{ pub.target_content_type.model }}</div>
+              <div class="small">object_id={{ pub.target_object_id }}</div>
+            </td>
+
+            <td class="mono">{{ pub.requested_by.email }}</td>
+
+            <td>
+              {% if pub.team %}
+                {{ pub.team.name }}
+              {% else %}
+                <span class="muted">—</span>
+              {% endif %}
+            </td>
+
+            <td>
+              {% if pub.status == pub.Status.APPROVED %}
+                <span class="badge badge-approved">APPROVED</span>
+              {% elif pub.status == pub.Status.PENDING_ADMIN or pub.status == pub.Status.PENDING_CHEFFE %}
+                <span class="badge badge-pending">{{ pub.status }}</span>
+              {% else %}
+                <span class="badge badge-rejected">{{ pub.status }}</span>
+              {% endif %}
+            </td>
+
+            <td class="mono">{{ pub.created_at|date:"Y-m-d H:i" }}</td>
+
+            <td>
+              {% if pub.status == pub.Status.PENDING_ADMIN %}
+                <form method="post" action="{% url 'publications:admin_review' pub.id %}">
+                  {% csrf_token %}
+                  <div class="actions">
+                    <button class="btn" type="submit" name="action" value="approve">Approve</button>
+                    <input class="comment" type="text" name="comment" placeholder="Reason required for reject">
+                    <button class="btn btn-danger" type="submit" name="action" value="reject">Reject</button>
+                  </div>
+                </form>
+              {% else %}
+                <span class="muted">—</span>
+              {% endif %}
+            </td>
+          </tr>
+
+          {% if pub.status == pub.Status.REJECTED_BY_CHEFFE and pub.cheffe_review_comment %}
+            <tr>
+              <td colspan="7" class="small">
+                <strong>Cheffe comment:</strong> {{ pub.cheffe_review_comment }}
+              </td>
+            </tr>
+          {% endif %}
+
+          {% if pub.status == pub.Status.REJECTED_BY_ADMIN and pub.admin_review_comment %}
+            <tr>
+              <td colspan="7" class="small">
+                <strong>Admin comment:</strong> {{ pub.admin_review_comment }}
+              </td>
+            </tr>
+          {% endif %}
+
+        {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  {% else %}
+    <p class="muted">No publication requests found.</p>
+  {% endif %}
 </div>
 {% endblock %}

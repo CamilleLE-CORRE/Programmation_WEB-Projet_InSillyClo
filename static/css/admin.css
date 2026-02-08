@@ -1,0 +1,10 @@
+/* Admin page */
+.admin-links{display:flex;flex-direction:column;gap:10px}
+.admin-link{display:block;padding:14px 16px;background:#fafafa;border:1px solid #e6e6ef;border-radius:12px;text-decoration:none;color:inherit;transition:all 0.15s}
+.admin-link:hover{background:#f3f4ff;border-color:#4f46e5}
+.link-title{font-weight:600;font-size:15px;color:#1f2937;margin-bottom:2px}
+.link-description{font-size:13px;color:#6b7280}
+.stats-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:16px}
+.stat-card{padding:20px;background:#fafafa;border:1px solid #e6e6ef;border-radius:12px;text-align:center}
+.stat-value{font-size:32px;font-weight:700;color:#1f2937;margin-bottom:4px}
+.stat-label{font-size:13px;color:#6b7280;font-weight:500;text-transform:uppercase;letter-spacing:0.5px}
