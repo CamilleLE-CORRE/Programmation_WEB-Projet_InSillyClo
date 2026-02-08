@@ -1,28 +1,53 @@
 {% extends "core/base.html" %}
+{% load static %}
 
-{% block title %}Home · InSillyClo{% endblock %}
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/home.css' %}">
+{% endblock %}
 
 {% block content %}
-<h1>Home</h1>
+<div class="home-wrap">
+  <h1 class="home-title">Home</h1>
+<!-- Ajoute ceci dans ton template home.html, juste après le titre "Home" -->
 
-<p class="home-intro">
-  InSillyClo is a platform designed to manage synthetic biology campaigns.
-  You can create and reuse campaign templates, explore plasmid libraries,
-  run simulations, collaborate within teams, and handle publication requests
-  from a single interface.
-</p>
+<div class="home-intro">
+  <p class="intro-text">
+    InSillyClo facilitates the planning and execution of plasmid assembly campaigns using MoClo and Golden Gate Assembly. Manage your sequence collections, create campaign templates, simulate expected outcomes, and collaborate with your team.
 
-<h2>Quick Access</h2>
-<ul>
-  <li><a href="{% url 'campaigns:template_list' %}">Browse Templates  </a></li>
-  <li><a href="{% url 'campaigns:create_template' %}">New Template</a></li>
-  <li><a href="{% url 'simulations:simu' %}">Run Simulation</a></li>
-  <li><a href="{% url 'plasmids:plasmid_list' %}">Plasmids Library</a></li>
-  <li><a href="{% url 'plasmids:search' %}">Search plasmids</a></li>
-  <li><a href="{% url 'plasmids:collection_list' %}">Plasmid Collections</a></li>
-  <li><a href="{% url 'accounts:teams' %}">My Teams</a></li>
-  <li><a href="{% url 'publications:my_requests'%}">My Publication Requests</a></li>
-  <li><a href="{% url 'publications:cheffe_requests'%}">Team Publication Review</a></li>
-  <li><a href="{% url 'correspondences:list' %}">Open Correspondences</a></li>
-</ul>
+  </p>
+</div>
+  <div class="home-grid">
+
+    <section class="card">
+      <h2 class="card-title">Campaigns</h2>
+      <ul class="card-list">
+        <li><a href="{% url 'campaigns:template_list' %}">Browse templates</a></li>
+        <li><a href="{% url 'campaigns:create_template' %}">New template</a></li>
+        <li><a href="{% url 'simulations:simu' %}">Run simulation</a></li>
+      </ul>
+    </section>
+
+    <section class="card">
+      <h2 class="card-title">Plasmids</h2>
+      <ul class="card-list">
+        <li><a href="{% url 'plasmids:plasmid_list' %}">Plasmids library</a></li>
+      </ul>
+    </section>
+
+    <section class="card">
+      <h2 class="card-title">Correspondences</h2>
+      <ul class="card-list">
+        <li><a href="{% url 'correspondences:list' %}">My correspondences</a></li>
+      </ul>
+    </section>
+
+    <section class="card card--tall">
+      <h2 class="card-title">Collaboration</h2>
+      <ul class="card-list">
+        <li><a href="{% url 'accounts:teams' %}">My teams</a></li>
+        <li><a href="{% url 'publications:my_requests' %}">My publication requests</a></li>
+      </ul>
+    </section>
+  </div>
+</div>
 {% endblock %}
