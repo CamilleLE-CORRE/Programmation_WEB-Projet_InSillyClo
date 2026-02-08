@@ -61,10 +61,10 @@
             {% endif %}
           </td>
 
-          <td>{{ pub.reviewed_comment|default:"—" }}</td>
+          <td>{{ pub.cheffe_review_comment|default:"—" }}</td>
 
           <td>
-            {% if pub.status == "PENDING_CHEFFE" %}
+            {% if pub.status == pub.Status.PENDING_CHEFFE %}
               <div class="actions">
                 <!-- Approve -->
                 <form method="post" action="{% url 'publications:cheffe_review' pub.id %}">

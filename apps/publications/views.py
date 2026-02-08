@@ -130,13 +130,16 @@ def my_publication_requests(request):
 @user_passes_test(is_cheffe_user)
 @require_http_methods(["GET"])
 def cheffe_publication_requests(request):
-    qs = Publication.objects.filter(status=Publication.Status.PENDING_CHEFFE)\
-        .select_related("requested_by", "cheffe_reviewed_by","target_content_type")\
+    qs = (
+        Publication.objects
+        .filter(
+            status=Publication.Status.PENDING_CHEFFE,
+            team__owner=request.user,          # SOURCE DE VÉRITÉ
+        )
+        .select_related("requested_by", "cheffe_reviewed_by", "target_content_type", "team")
         .order_by("-created_at")
-
-    pubs = [p for p in qs if _target_team_owner_id(p) == request.user.id]
-    return render(request, "publications/cheffe_requests.html", {"publications": pubs})
-
+    )
+    return render(request, "publications/cheffe_requests.html", {"publications": qs})
 
 @user_passes_test(is_cheffe_user)
 @require_http_methods(["POST"])
@@ -156,9 +159,10 @@ def cheffe_review_publication_request(request, publication_id: int):
         return redirect("publications:cheffe_requests")
 
     # Authorization: only team owner can review
-    if _target_team_owner_id(pub) != request.user.id:
+    if pub.team_id is None or pub.team.owner_id != request.user.id:
         messages.error(request, "You are not allowed to review this request.")
         return redirect("publications:cheffe_requests")
+
 
     if action == "approve":
         pub.status = Publication.Status.PENDING_ADMIN

@@ -17,4 +17,6 @@ urlpatterns = [
     path("admin/requests/", views.admin_publication_requests, name="admin_requests"),
     path("admin/review/<int:publication_id>/", views.admin_review_publication_request, name="admin_review"),
     path("admin/<int:pk>/", views.admin_detail, name="admin_detail"),
+    path("cheffe/requests/<int:publication_id>/review/", views.cheffe_review_publication_request, name="cheffe_review_publication_request"),
+
 ]
