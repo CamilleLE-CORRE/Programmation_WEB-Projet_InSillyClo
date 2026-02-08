@@ -5,13 +5,15 @@ import zipfile
 import pathlib
 import traceback
 import glob
+import re
 
 from django.shortcuts import render, redirect
 from django.conf import settings
-from django.core.files.storage import FileSystemStorage
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.db.models import Count
+
+from Bio import SeqIO
 
 # Imports du projet
 import insillyclo.observer
@@ -19,16 +21,168 @@ import insillyclo.simulator
 import insillyclo.data_source
 
 from .models import Campaign
-
-from Bio import SeqIO  # Pour lire les fichiers .gb
 from apps.plasmids.models import Plasmid, PlasmidCollection, PlasmidAnnotation
-import glob
 
-# --- FONCTION UTILITAIRE ---
+from django.views.decorators.http import require_POST
+
+# ==========================================
+# 1. CONSTANTES & CONFIGURATION
+# ==========================================
+
+COLORS = {
+    "tRNA": "#070087",
+    "CDS": "#0000FF",
+    "rep_origin": "#1C9BFF",
+    "promoter": "#66CCFF",
+    "misc_feature": "#C2E0FF",
+    "misc_RNA": "#C2E0FF",
+    "protein_bind": "#FF9900",
+    "RBS": "#F8B409",
+    "terminator": "#FFCD36",
+}
+
+
+# ==========================================
+# 2. FONCTIONS UTILITAIRES (VISUALISATION)
+# ==========================================
+
+def detect_overlaps_and_adjust(features_list):
+    """Détecte les chevauchements visuels et ajuste les niveaux des labels."""
+    # Trier par position centrale
+    features_sorted = sorted(features_list, key=lambda f: f["visual_center"])
+    
+    for current_feature in features_sorted:
+        current_feature["label_level"] = 0
+        
+        for test_level in range(3):
+            has_overlap = False
+            
+            for other_feature in features_sorted:
+                if other_feature == current_feature: continue
+                
+                if other_feature.get("label_level", 0) != test_level: continue
+                
+                # Calcul des positions horizontales (avec marge de 5px)
+                c_left = current_feature["visual_center"] - current_feature["label_text_width"] / 2
+                c_right = current_feature["visual_center"] + current_feature["label_text_width"] / 2
+                o_left = other_feature["visual_center"] - other_feature["label_text_width"] / 2
+                o_right = other_feature["visual_center"] + other_feature["label_text_width"] / 2
+                
+                if not (c_right + 5 < o_left or o_right + 5 < c_left):
+                    has_overlap = True
+                    break
+            
+            if not has_overlap:
+                current_feature["label_level"] = test_level
+                break
+
+def get_plasmid_visual_data(gb_path):
+    """
+    Lit un fichier .gb et prépare les données pour le rendu SVG/HTML.
+    """
+    try:
+        record = next(SeqIO.parse(gb_path, "genbank"))
+    except:
+        return None
+
+    # --- Extraction des features ---
+    features = []
+    for f in record.features:
+        if f.type == 'source': continue
+        
+        # Récupération Label
+        label = ""
+        if 'label' in f.qualifiers: label = f.qualifiers['label'][0]
+        elif 'gene' in f.qualifiers: label = f.qualifiers['gene'][0]
+        elif 'note' in f.qualifiers: label = f.qualifiers['note'][0]
+        else: label = f.type
+
+        features.append({
+            "start": int(f.location.start),
+            "end": int(f.location.end),
+            "length": int(f.location.end) - int(f.location.start),
+            "label": label,
+            "type": f.type,
+            "strand": f.location.strand if f.location.strand else 1,
+            "color": COLORS.get(f.type, "#CCCCCC"),
+        })
+
+    # --- Calculs graphiques ---
+    VISUAL_WIDTH = 900
+    seq_length = len(record.seq)
+    ratio = VISUAL_WIDTH / max(seq_length, 1)
+    
+    # Trier les features par position de départ
+    features = sorted(features, key=lambda f: f["start"])
+    
+    external_label_counter = 0
+    for f in features:
+        f["visual_width"] = max(2, int(f["length"] * ratio))
+        f["visual_left"] = int(f["start"] * ratio)
+        f["visual_center"] = f["visual_left"] + f["visual_width"] // 2
+
+        # Calcul des points SVG pour les flèches
+        w = f["visual_width"]
+        h = 20
+        d = 6 # Profondeur pointe
+
+        if f["strand"] == 1: # Forward
+            f["svg_points"] = f"0,0 {w-d},0 {w},{h//2} {w-d},{h} 0,{h}"
+        elif f["strand"] == -1: # Reverse
+            f["svg_points"] = f"{d},0 {w},0 {w},{h} {d},{h} 0,{h//2}"
+        else: # Rectangle
+            f["svg_points"] = f"0,0 {w},0 {w},{h} 0,{h}"
+
+        # Gestion des Labels
+        label_text_width = len(f.get("label", "")) * 8
+        f["label_text_width"] = label_text_width
+
+        if label_text_width <= f["visual_width"] - 10:
+            f["label_position"] = "inside"
+            f["label_side"] = None
+            f["label_level"] = 0
+        else:
+            f["label_position"] = "outside"
+            f["label_side"] = "above" if external_label_counter % 2 == 0 else "below"
+            f["label_level"] = 0
+            external_label_counter += 1
+
+    # --- Chevauchement et niveaux ---
+    features_above = [f for f in features if f.get("label_position") == "outside" and f.get("label_side") == "above"]
+    features_below = [f for f in features if f.get("label_position") == "outside" and f.get("label_side") == "below"]
+    
+    detect_overlaps_and_adjust(features_above)
+    detect_overlaps_and_adjust(features_below)
+
+    # --- CSS Final ---
+    for f in features:
+        if f.get("label_position") == "outside":
+            level = f.get("label_level", 0)
+            if f["label_side"] == "above":
+                f["css_top"] = f"{-15 - (level * 15)}px"
+                f["css_connector"] = "bottom: -15px;"
+            else:
+                f["css_top"] = f"{60 + (level * 15)}px"
+                f["css_connector"] = "top: -15px;"
+
+    return {
+        "filename": gb_path.name,
+        "name": record.description or record.id,
+        "length": seq_length,
+        "features": features,
+        "visual_width": VISUAL_WIDTH
+    }
+
+
+# ==========================================
+# 3. FONCTIONS UTILITAIRES (FILES)
+# ==========================================
+
 def handle_file_upload_or_recover(request, file_key, folder_name, work_dir, old_path_src=None, clear_flag=False):
     dest_dir = work_dir / folder_name
     dest_dir.mkdir(parents=True, exist_ok=True)
     
+    # Cas 1 : Nouveau fichier uploadé
     if file_key in request.FILES:
         f = request.FILES[file_key]
         dest_path = dest_dir / f.name
@@ -36,15 +190,21 @@ def handle_file_upload_or_recover(request, file_key, folder_name, work_dir, old_
             for chunk in f.chunks(): destination.write(chunk)
         return dest_path
 
+    # Cas 2 : Demande de suppression
     if clear_flag: return None
 
+    # Cas 3 : Récupération depuis historique
     if old_path_src:
         old_subfolder = old_path_src / folder_name
+        
+        # S'il y a un dossier dédié (structure standard)
         if old_subfolder.exists():
             files = list(old_subfolder.glob('*'))
             if files:
                 shutil.copy(files[0], dest_dir / files[0].name)
                 return dest_dir / files[0].name
+        
+        # Sinon recherche à la racine (rétro-compatibilité)
         else:
             candidates = []
             if folder_name == 'template':
@@ -62,12 +222,14 @@ def handle_file_upload_or_recover(request, file_key, folder_name, work_dir, old_
     return None
 
 
+# ==========================================
+# 4. VUES DJANGO
+# ==========================================
+
 def simulation_view(request):
-    import re 
-    
     context = {}
     
-    # --- 1. RÉCUPÉRATION DES COLLECTIONS POUR LE FORMULAIRE ---
+    # --- A. RÉCUPÉRATION DES COLLECTIONS ---
     if request.user.is_authenticated:
         context['user_collections'] = PlasmidCollection.objects.filter(
             owner=request.user, is_public=False
@@ -77,7 +239,7 @@ def simulation_view(request):
         is_public=True
     ).annotate(plasmid_count=Count('plasmids'))
 
-    # --- B. PRÉ-REMPLISSAGE (GET) ---
+    # --- B. PRÉ-REMPLISSAGE (GET from History) ---
     prefill = {}
     if request.method == 'GET' and 'from_sim' in request.GET:
         sim_id = request.GET.get('from_sim')
@@ -93,7 +255,7 @@ def simulation_view(request):
             prefill['use_collections'] = params.get('use_collections', False)
             prefill['selected_collection_ids'] = params.get('collection_ids', [])
 
-            # Détection fichiers
+            # Détection fichiers existants
             old_abs_path = pathlib.Path(settings.MEDIA_ROOT) / 'simulations' / sim_id
             if old_abs_path.exists():
                 if (old_abs_path / 'template').exists() and list((old_abs_path / 'template').glob('*')):
@@ -127,6 +289,7 @@ def simulation_view(request):
     # --- C. TRAITEMENT (POST) ---
     if request.method == 'POST':
         try:
+            # Création du dossier de simulation
             sim_id = str(uuid.uuid4())[:8]
             sim_rel_path = os.path.join('simulations', sim_id)
             sim_abs_path = pathlib.Path(settings.MEDIA_ROOT) / sim_rel_path
@@ -136,7 +299,7 @@ def simulation_view(request):
             old_sim_id_post = request.POST.get('old_sim_id')
             old_path_src = (pathlib.Path(settings.MEDIA_ROOT) / 'simulations' / old_sim_id_post) if old_sim_id_post else None
 
-            # Fichiers standards
+            # --- GESTION DES FICHIERS ---
             path_template = handle_file_upload_or_recover(request, 'template_file', 'template', work_dir, old_path_src)
             if not path_template: raise Exception("Missing Template file.")
 
@@ -157,7 +320,7 @@ def simulation_view(request):
             zip_name_display = "sequences.zip"
             selected_ids_str = [] 
 
-            # CAS 1 : Utilisation des Collections (BDD)
+            # >>> OPTION A : Utilisation des Collections (BDD)
             if use_collections:
                 selected_ids = request.POST.getlist('selected_collections')
                 selected_ids_str = selected_ids 
@@ -180,7 +343,6 @@ def simulation_view(request):
                         for plasmid in col.plasmids.all():
                             # Nettoyage ID
                             clean_name = plasmid.identifier
-                            # Si suffixe _xxxx (hexadécimal) à la fin, on coupe
                             if re.search(r'_[0-9a-f]{4}$', clean_name):
                                 clean_name = clean_name[:-5]
                             
@@ -190,7 +352,7 @@ def simulation_view(request):
                             
                             dest_path = sequences_dir / f"{safe_name}.gb"
 
-                            # STRATÉGIE 1 : Copier le fichier existant
+                            # Copier le fichier existant
                             file_found = False
                             if plasmid.file_path:
                                 src_path = pathlib.Path(plasmid.file_path)
@@ -204,13 +366,12 @@ def simulation_view(request):
                                     except Exception:
                                         pass 
 
-                            # STRATÉGIE 2 : Générer un fichier propre si manquant
+                            # Générer un fichier propre si manquant
                             if not file_found:
                                 raw_seq = "".join(plasmid.sequence.split()).lower() if plasmid.sequence else ""
                                 length = len(raw_seq)
                                 short_name = safe_name[:16] # Nom court pour LOCUS
                                 
-                                # 1. On prépare l'en-tête
                                 header = (
                                     f"LOCUS       {short_name:<16} {length:>10} bp    DNA     linear   UNK 01-JAN-1980\n"
                                     f"DEFINITION  {plasmid.name}\n"
@@ -221,52 +382,30 @@ def simulation_view(request):
                                     f"  ORGANISM  .\n"
                                 )
 
-                                # 2. On construit le bloc FEATURES en récupérant les annotations de la BDD
                                 features_block = "FEATURES             Location/Qualifiers\n"
                                 
-                                # On récupère les annotations liées à ce plasmide
                                 db_annotations = plasmid.annotations.all().order_by('start')
-                                
                                 if db_annotations.exists():
                                     for ann in db_annotations:
-                                        # Conversion BDD (base 0) -> GenBank (base 1)
-                                        # Start +1, End reste End
                                         s = ann.start + 1
                                         e = ann.end
-                                        
-                                        # Gestion du brin (Strand)
                                         loc_str = f"{s}..{e}"
-                                        if ann.strand == -1:
-                                            loc_str = f"complement({s}..{e})"
+                                        if ann.strand == -1: loc_str = f"complement({s}..{e})"
                                         
-                                        # Nettoyage du type (ex: 'CDS' ou 'promoter')
                                         ftype = ann.feature_type.strip()
                                         if not ftype: ftype = "misc_feature"
 
-                                        # Écriture de la ligne Feature (Colonne 5) et Location (Colonne 21)
                                         features_block += f"     {ftype:<16}{loc_str}\n"
-                                        
-                                        # Écriture du Label (Colonne 21)
                                         label = ann.label or ftype
                                         features_block += f"                     /label=\"{label}\"\n"
                                         features_block += f"                     /note=\"Imported from Collection\"\n"
                                 else:
-                                    # Fallback : Si aucune annotation en base, on met tout en misc_feature
                                     features_block += f"     misc_feature    1..{length}\n"
                                     features_block += f"                     /label=\"{plasmid.name}\"\n"
                                     features_block += f"                     /note=\"No annotations in DB\"\n"
 
-                                # 3. On assemble le tout
-                                content = (
-                                    f"{header}"
-                                    f"{features_block}"
-                                    f"ORIGIN\n"
-                                    f"        1 {raw_seq}\n"
-                                    f"//\n"
-                                )
-                                
-                                with open(dest_path, "w") as out:
-                                    out.write(content)
+                                content = f"{header}{features_block}ORIGIN\n        1 {raw_seq}\n//\n"
+                                with open(dest_path, "w") as out: out.write(content)
                             
                             count_generated += 1
                     except PlasmidCollection.DoesNotExist:
@@ -275,7 +414,7 @@ def simulation_view(request):
                 if count_generated == 0:
                     raise Exception("Selected collections are empty or inaccessible.")
 
-            # CAS 2 : Utilisation d'un fichier ZIP
+            # >>> OPTION B : Utilisation d'un fichier ZIP
             else:
                 path_zip = None
                 if 'sequences_archive' in request.FILES:
@@ -299,7 +438,6 @@ def simulation_view(request):
                 # --- LOGIQUE D'IMPORT VERS COLLECTION ---
                 if request.user.is_authenticated and request.POST.get('save_to_collection') == 'on':
                     try:
-                        # 1. Nom de collection
                         custom_name = request.POST.get('new_collection_name')
                         if custom_name and custom_name.strip():
                             new_col_name = custom_name.strip()
@@ -319,7 +457,6 @@ def simulation_view(request):
                             try:
                                 record = next(SeqIO.parse(gb_file, "genbank"))
                                 
-                                # Nettoyage ID
                                 identifier = record.id
                                 if not identifier or identifier == '.' or '<unknown' in identifier:
                                     identifier = gb_file.stem 
@@ -328,12 +465,10 @@ def simulation_view(request):
                                 while Plasmid.objects.filter(identifier=clean_id).exists():
                                     clean_id = f"{identifier}_{uuid.uuid4().hex[:4]}"
 
-                                # Sauvegarde fichier
                                 safe_filename = f"{clean_id}_{gb_file.name}"
                                 permanent_path = permanent_storage_dir / safe_filename
                                 shutil.copy(gb_file, permanent_path)
 
-                                # Création Plasmide
                                 new_plasmid = Plasmid.objects.create(
                                     identifier=clean_id,
                                     name=record.description[:200] if record.description else clean_id,
@@ -346,7 +481,6 @@ def simulation_view(request):
                                     is_public=False
                                 )
 
-                                # Création Annotations
                                 for feature in record.features:
                                     if feature.type == 'source': continue
                                     
@@ -383,7 +517,7 @@ def simulation_view(request):
                         traceback.print_exc()
                         messages.warning(request, f"Collection import failed: {str(e)}")
 
-            # --- InSillyClo ---
+            # --- LANCEMENT DE InSillyClo ---
             pcr_primers = []
             if request.POST.get('pcr_primers'):
                 for line in request.POST.get('pcr_primers').splitlines():
@@ -433,7 +567,6 @@ def simulation_view(request):
                         'default_concentration': def_conc,
                         'use_collections': use_collections,
                         'collection_ids': [int(i) for i in selected_ids_str], 
-                        
                         'template_name': path_template.name,
                         'correspondence_name': path_mapping.name,
                         'archive_name': zip_name_display,
@@ -453,174 +586,16 @@ def simulation_view(request):
 
     return render(request, 'simulations/simu.html', context)
 
-# --- 2. HISTORIQUE ---
+
+# ==========================================
+# 5. AUTRES VUES (HISTORIQUE, DÉTAILS)
+# ==========================================
+
 @login_required
 def simulation_history_view(request):
     campaigns = Campaign.objects.filter(owner=request.user).order_by('-created_at')
     return render(request, 'simulations/history.html', {'campaigns': campaigns})
 
-# --- 3. DÉTAILS / RÉSULTATS ---
-# --- LOGIQUE DE VISUALISATION ---
-
-# 1. Couleurs définies
-COLORS = {
-    "tRNA": "#070087",
-    "CDS": "#0000FF",
-    "rep_origin": "#1C9BFF",
-    "promoter": "#66CCFF",
-    "misc_feature": "#C2E0FF",
-    "misc_RNA": "#C2E0FF",
-    "protein_bind": "#FF9900",
-    "RBS": "#F8B409",
-    "terminator": "#FFCD36",
-}
-
-# 2. La fonction de détection de chevauchement
-def detect_overlaps_and_adjust(features_list):
-    """Détecte les chevauchements et ajuste les niveaux (jusqu'à 3 niveaux)"""
-    # Trier par position
-    features_sorted = sorted(features_list, key=lambda f: f["visual_center"])
-    
-    for current_feature in features_sorted:
-        # Trouver le niveau approprié en testant les chevauchements à chaque niveau
-        current_feature["label_level"] = 0
-        
-        for test_level in range(3):  # Tester les niveaux 0, 1, 2
-            has_overlap = False
-            
-            # Vérifier si ce niveau est libre
-            for other_feature in features_sorted:
-                if other_feature == current_feature:
-                    continue
-                
-                if other_feature.get("label_level", 0) != test_level:
-                    continue
-                
-                # Calculer les positions horizontales des labels
-                current_left = current_feature["visual_center"] - current_feature["label_text_width"] / 2
-                current_right = current_feature["visual_center"] + current_feature["label_text_width"] / 2
-                other_left = other_feature["visual_center"] - other_feature["label_text_width"] / 2
-                other_right = other_feature["visual_center"] + other_feature["label_text_width"] / 2
-                
-                # Vérifier le chevauchement (avec une marge de 5px)
-                if not (current_right + 5 < other_left or other_right + 5 < current_left):
-                    has_overlap = True
-                    break
-            
-            # Si pas de chevauchement à ce niveau, on l'assigne
-            if not has_overlap:
-                current_feature["label_level"] = test_level
-                break
-
-def get_plasmid_visual_data(gb_path):
-    """
-    Lit un fichier .gb et applique la logique de visualisation du projet.
-    """
-    try:
-        record = next(SeqIO.parse(gb_path, "genbank"))
-    except:
-        return None
-
-    # Extraction des features (Adaptation BioPython -> Structure dict)
-    features = []
-    for f in record.features:
-        if f.type == 'source': continue
-        
-        # Récupération Label
-        label = ""
-        if 'label' in f.qualifiers: label = f.qualifiers['label'][0]
-        elif 'gene' in f.qualifiers: label = f.qualifiers['gene'][0]
-        elif 'note' in f.qualifiers: label = f.qualifiers['note'][0]
-        else: label = f.type
-
-        features.append({
-            "start": int(f.location.start),
-            "end": int(f.location.end),
-            "length": int(f.location.end) - int(f.location.start),
-            "label": label,
-            "type": f.type,
-            "strand": f.location.strand if f.location.strand else 1,
-            "color": COLORS.get(f.type, "#CCCCCC"),
-        })
-
-    # Calculs graphiques
-    VISUAL_WIDTH = 900
-    seq_length = len(record.seq)
-    ratio = VISUAL_WIDTH / max(seq_length, 1)
-    
-    # Trier les features
-    features = sorted(features, key=lambda f: f["start"])
-    
-    external_label_counter = 0
-    for f in features:
-        f["visual_width"] = max(2, int(f["length"] * ratio))
-        f["visual_left"] = int(f["start"] * ratio)
-        f["visual_center"] = f["visual_left"] + f["visual_width"] // 2
-
-        # Largeur du texte
-        label_text_width = len(f.get("label", "")) * 8
-        f["label_text_width"] = label_text_width # On le stocke car utilisé dans detect_overlaps
-
-        # On utilise clip-path pour faire une pointe de 6px
-        w = f["visual_width"]
-        h = 20  # Hauteur de la barre (doit être la même que dans le HTML)
-        d = 6   # Profondeur de la pointe de la flèche (6px)
-
-        if f["strand"] == 1:
-            # Flèche vers la DROITE (Forward)
-            # On dessine 5 points : Haut-G, Haut-D(reculé), Pointe, Bas-D(reculé), Bas-G
-            f["svg_points"] = f"0,0 {w-d},0 {w},{h//2} {w-d},{h} 0,{h}"
-            
-        elif f["strand"] == -1:
-            # Flèche vers la GAUCHE (Reverse)
-            # On dessine 5 points : Haut-G(avancé), Haut-D, Bas-D, Bas-G(avancé), Pointe
-            f["svg_points"] = f"{d},0 {w},0 {w},{h} {d},{h} 0,{h//2}"
-            
-        else:
-            # Rectangle (Pas de sens)
-            # 4 points coins classiques
-            f["svg_points"] = f"0,0 {w},0 {w},{h} 0,{h}"
-
-        # Largeur du texte (inchangé)
-        label_text_width = len(f.get("label", "")) * 8
-        f["label_text_width"] = label_text_width
-
-        if label_text_width <= f["visual_width"] - 10:
-            f["label_position"] = "inside"
-            f["label_side"] = None
-            f["label_level"] = 0
-        else:
-            f["label_position"] = "outside"
-            f["label_side"] = "above" if external_label_counter % 2 == 0 else "below"
-            f["label_level"] = 0
-            external_label_counter += 1
-
-    # Chevauchement et niveaux (Appel de la fonction copiée)
-    features_above = [f for f in features if f.get("label_position") == "outside" and f.get("label_side") == "above"]
-    features_below = [f for f in features if f.get("label_position") == "outside" and f.get("label_side") == "below"]
-    
-    detect_overlaps_and_adjust(features_above)
-    detect_overlaps_and_adjust(features_below)
-
-    for f in features:
-        if f.get("label_position") == "outside":
-            level = f.get("label_level", 0)
-            if f["label_side"] == "above":
-                # top = -10px - (level * 15px)
-                f["css_top"] = f"{-15 - (level * 15)}px"
-                f["css_connector"] = "bottom: -15px;"
-            else:
-                # top = 70px + (level * 15px)
-                f["css_top"] = f"{60 + (level * 15)}px"
-                f["css_connector"] = "top: -15px;"
-
-    return {
-        "filename": gb_path.name,
-        "name": record.description or record.id,
-        "length": seq_length,
-        "features": features,
-        "visual_width": VISUAL_WIDTH
-    }
 
 def simulation_detail_view(request, sim_id):
     campaign = None
@@ -666,3 +641,46 @@ def simulation_detail_view(request, sim_id):
     }
     
     return render(request, 'simulations/simulation_results.html', context)
+
+# ==========================================
+# 6. SUPPRESSION
+# ==========================================
+
+@login_required
+@require_POST
+def delete_campaigns_view(request):
+    try:
+        # On récupère la liste des IDs cochés dans le formulaire HTML
+        campaign_ids = request.POST.getlist('campaign_ids')
+        
+        if not campaign_ids:
+            messages.warning(request, "No campaigns selected.")
+            return redirect('simulations:history')
+
+        # On récupère les campagnes, mais seulement celles qui appartiennent à l'utilisateur
+        campaigns_to_delete = Campaign.objects.filter(id__in=campaign_ids, owner=request.user)
+        count = campaigns_to_delete.count()
+
+        if count == 0:
+            messages.warning(request, "No valid campaigns found to delete.")
+            return redirect('simulations:history')
+
+        # Suppression des fichiers sur le disque
+        for campaign in campaigns_to_delete:
+            if campaign.run_id:
+                sim_path = pathlib.Path(settings.MEDIA_ROOT) / 'simulations' / campaign.run_id
+                if sim_path.exists() and sim_path.is_dir():
+                    try:
+                        shutil.rmtree(sim_path) # Supprime le dossier et tout son contenu
+                    except Exception as e:
+                        print(f"Error deleting folder {sim_path}: {e}")
+
+        # Suppression en base de données
+        campaigns_to_delete.delete()
+
+        messages.success(request, f"Successfully deleted {count} campaign(s).")
+
+    except Exception as e:
+        messages.error(request, f"An error occurred during deletion: {e}")
+
+    return redirect('simulations:history')

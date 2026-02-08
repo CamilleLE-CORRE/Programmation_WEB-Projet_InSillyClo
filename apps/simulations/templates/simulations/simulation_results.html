@@ -8,16 +8,16 @@
 
 <div class="container">
 
-    <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 24px; flex-wrap: wrap; gap: 10px;">
+    <div class="header-container">
         <div>
             <h1>Results</h1>
             {% if results.sim_name %}
-                <p style="color: var(--primary); font-weight: bold; font-size: 1.2em; margin-bottom: 4px;">{{ results.sim_name }}</p>
+                <p class="sim-name">{{ results.sim_name }}</p>
             {% endif %}
-            <p style="color: var(--muted); font-size: 0.9em;">Run ID: {{ results.sim_id }}</p>
+            <p class="sim-id">Run ID: {{ results.sim_id }}</p>
         </div>
 
-        <div style="display: flex; gap: 10px;">
+        <div class="btn-group-header">
             <a href="{% url 'simulations:simu' %}?from_sim={{ results.sim_id }}" class="btn btn-secondary">
                 Edit / Rerun
             </a>
@@ -25,95 +25,73 @@
                 New
             </a>
             {% if results.zip_url %}
-            <a href="{{ results.zip_url }}" class="btn" style="background-color: #0f5132;"> Download Zip
+            <a href="{{ results.zip_url }}" class="btn btn-zip">
+                Download Zip
             </a>
             {% endif %}
         </div>
     </div>
 
     {% if messages %}
-    <ul class="messages" style="list-style: none; padding: 0; margin-bottom: 20px;">
+    <ul class="messages-list">
         {% for message in messages %}
-        <li class="{{ message.tags }}" style="padding: 15px; border-radius: 4px; margin-bottom: 10px; font-weight: 500;">
-            {{ message }}
-        </li>
+        <li class="{{ message.tags }}">{{ message }}</li>
         {% endfor %}
     </ul>
     {% endif %}
 
     {% if campaign %}
-    <div class="card" style="margin-bottom: 30px; padding: 0; overflow: hidden;">
-        
-        <div id="summary-header"
-             style="padding: 12px 16px; background: var(--bg); border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; cursor: pointer; user-select: none;">
-            
-            <strong style="color: var(--primary);"> Configuration Summary</strong>
-            
-            <div style="display: flex; align-items: center; gap: 15px;">
-                <span style="font-size: 0.85em; color: var(--muted);">{{ campaign.created_at|date:"d M Y H:i" }}</span>
-                <i class="bi bi-chevron-up" id="summary-chevron" style="transition: transform 0.2s;"></i>
-            </div>
+    <div class="card result-card">
+        <div id="summary-header" class="card-header-clickable">
+            <strong class="text-primary">Configuration Summary</strong>
+            <span class="date-meta">{{ campaign.created_at|date:"d M Y H:i" }}</span>
         </div>
         
         <div id="configSummary" style="display: block;">
             <div style="padding: 20px;">
                 <div class="row">
-                    <div class="col-md-6" style="border-right: 1px solid var(--border);">
-                        <h6 style="text-transform: uppercase; font-size: 0.75em; color: var(--muted); letter-spacing: 1px; margin-bottom: 15px;">Input Files</h6>
-                        
-                        <ul style="list-style: none; padding: 0; margin: 0; font-size: 0.95em;">
-                            <li style="margin-bottom: 10px;">
-                                Template: <strong>{{ campaign.parameters.template_name|default:"-" }}</strong>
-                            </li>
-                            
-                            <li style="margin-bottom: 10px;">
+                    <div class="col-md-6 border-right">
+                        <h6 class="section-subtitle">Input Files</h6>
+                        <ul class="info-list">
+                            <li>Template: <strong>{{ campaign.parameters.template_name|default:"-" }}</strong></li>
+                            <li>
                                 {% if campaign.parameters.use_collections %}
                                     Sequences Source: <strong>{{ campaign.parameters.archive_name }} (Collection) </strong>
                                 {% else %}
                                     Sequences Archive: <strong>{{ campaign.parameters.archive_name|default:"-" }}</strong>
                                 {% endif %}
                             </li>
-                            
-                            <li style="margin-bottom: 10px;">
-                                Correspondence: <strong>{{ campaign.parameters.correspondence_name|default:"-" }}</strong>
-                            </li>
-
+                            <li>Correspondence: <strong>{{ campaign.parameters.correspondence_name|default:"-" }}</strong></li>
                             {% if campaign.parameters.primers_name %}
-                            <li style="margin-bottom: 10px;">
-                                Primers DB: <strong>{{ campaign.parameters.primers_name }}</strong>
-                            </li>
+                            <li>Primers DB: <strong>{{ campaign.parameters.primers_name }}</strong></li>
                             {% endif %}
-
                             {% if campaign.parameters.concentrations_name %}
-                            <li style="margin-bottom: 10px;">
-                                Concentrations: <strong>{{ campaign.parameters.concentrations_name }}</strong>
-                            </li>
+                            <li>Concentrations: <strong>{{ campaign.parameters.concentrations_name }}</strong></li>
                             {% endif %}
                         </ul>
                     </div>
 
-                    <div class="col-md-6" style="padding-left: 24px;">
-                        <h6 style="text-transform: uppercase; font-size: 0.75em; color: var(--muted); letter-spacing: 1px; margin-bottom: 15px;">Parameters</h6>
-                        
+                    <div class="col-md-6 padding-left">
+                        <h6 class="section-subtitle">Parameters</h6>
                         <div class="row">
-                            <div class="col-6" style="margin-bottom: 15px;">
-                                <span style="display: block; font-size: 0.85em; color: var(--muted);">Digestion Enzymes</span>
+                            <div class="col-6 mb-15">
+                                <span class="label-muted">Digestion Enzymes</span>
                                 {% if campaign.parameters.digestion_enzymes %}
-                                    <strong style="font-size: 1.05em;">{{ campaign.parameters.digestion_enzymes }}</strong>
+                                    <strong class="text-lg">{{ campaign.parameters.digestion_enzymes }}</strong>
                                 {% else %}
-                                    <span style="font-style: italic; color: var(--muted);">Auto-detected</span>
+                                    <span class="text-italic">Auto-detected</span>
                                 {% endif %}
                             </div>
 
-                            <div class="col-6" style="margin-bottom: 15px;">
-                                <span style="display: block; font-size: 0.85em; color: var(--muted);">Concentration</span>
-                                <strong style="font-size: 1.05em;">{{ campaign.parameters.default_concentration }} ng/µL</strong>
+                            <div class="col-6 mb-15">
+                                <span class="label-muted">Concentration</span>
+                                <strong class="text-lg">{{ campaign.parameters.default_concentration }} ng/µL</strong>
                             </div>
 
                             <div class="col-12">
-                                <span style="display: block; font-size: 0.85em; color: var(--muted);">PCR Primers</span>
+                                <span class="label-muted">PCR Primers</span>
                                 {% if campaign.parameters.pcr_primers_text %}
-                                    <code style="background: var(--bg); padding: 4px 8px; border-radius: 4px; color: var(--primary);">{{ campaign.parameters.pcr_primers_text }}</code>
+                                    <code class="code-badge">{{ campaign.parameters.pcr_primers_text }}</code>
                                 {% else %}
                                     <span style="font-size: 0.9em;">No specific restrictions</span>
                                 {% endif %}
@@ -127,32 +105,26 @@
     {% endif %}
 
     {% if results.files %}
-    
-    <div class="card" style="padding: 0; margin-bottom: 30px; overflow: hidden;">
-        <div id="files-header" 
-             style="padding: 12px 16px; border-bottom: 1px solid var(--border); background: var(--bg); display: flex; justify-content: space-between; align-items: center; cursor: pointer; user-select: none;">
-            
-            <strong style="color: var(--primary);"> Generated Files</strong>
-            
-            <i class="bi bi-chevron-up" id="files-chevron" style="transition: transform 0.2s;"></i>
+    <div class="card result-card">
+        <div id="files-header" class="card-header-clickable">
+            <strong class="text-primary">Generated Files</strong>
+            <span class="label-muted" style="font-size: 0.8em;">(Click to toggle)</span>
         </div>
 
         <div id="filesContent" style="display: block;">
             <table class="table plasmid-table">
                 <thead>
                     <tr>
-                        <th style="padding-left: 20px;">File Name</th>
-                        <th style="text-align: right; padding-right: 20px;">Action</th>
+                        <th class="pl-20">File Name</th>
+                        <th class="text-right pr-20">Action</th>
                     </tr>
                 </thead>
                 <tbody>
                     {% for file in results.files %}
                     <tr>
-                        <td style="padding-left: 20px;">{{ file }}</td>
-                        <td style="text-align: right; padding-right: 20px;">
-                            <a href="{{ results.output_dir_url }}/{{ file }}" download style="font-weight: 600;">
-                                Download
-                            </a>
+                        <td class="pl-20">{{ file }}</td>
+                        <td class="text-right pr-20">
+                            <a href="{{ results.output_dir_url }}/{{ file }}" download class="font-bold">Download</a>
                         </td>
                     </tr>
                     {% endfor %}
@@ -162,60 +134,36 @@
     </div>
 
     {% if results.plasmid_visuals %}
-    <div style="margin-top: 40px; margin-bottom: 20px;">
-        <h3 style="border-bottom: 2px solid var(--border); padding-bottom: 10px; margin-bottom: 20px;">
-            Generated Plasmids Visualization
-        </h3>
+    <div class="visual-section-container">
+        <h3 class="section-title">Generated Plasmids Visualization</h3>
 
         {% for p in results.plasmid_visuals %}
-        <div class="card" style="margin-bottom: 30px; padding: 20px;">
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
-                
-                <div style="display: flex; align-items: center; gap: 10px;">
-                    <h5 style="color: var(--primary); margin: 0;">
-                        {{ p.filename }}
-                    </h5>
+        <div class="card result-card" style="padding: 20px;">
+            <div class="visual-header">
+                <div class="visual-title">
+                    <h5 class="text-primary m-0">{{ p.filename }}</h5>
                     <span class="badge bg-secondary">{{ p.length }} bp</span>
                 </div>
 
-                <div style="display: flex; gap: 5px;">
-                    
-                    <a href="#" 
-                       onclick="downloadPlasmidImage('plasmid-drawing-{{ forloop.counter }}', '{{ p.filename }}.png'); return false;" 
-                       class="btn btn-secondary" 
-                       style="padding: 6px 12px; font-size: 0.9em; font-weight: 600;">
-                        .png
-                    </a>
-
-                    <a href="{{ results.output_dir_url }}/{{ p.filename }}" 
-                       class="btn btn-secondary" 
-                       style="padding: 6px 12px; font-size: 0.9em; font-weight: 600;" 
-                       download>
-                        .gb
-                    </a>
+                <div class="btn-group-visual">
+                    <a href="#" onclick="downloadPlasmidImage('plasmid-drawing-{{ forloop.counter }}', '{{ p.filename }}.png'); return false;" class="btn btn-secondary btn-sm-custom">.png</a>
+                    <a href="{{ results.output_dir_url }}/{{ p.filename }}" class="btn btn-secondary btn-sm-custom" download>.gb</a>
                 </div>
             </div>
             
-            <p style="color: var(--muted); font-size: 0.9em; margin-bottom: 30px;">
-                {{ p.name }}
-            </p>
+            <p class="visual-name">{{ p.name }}</p>
 
-            <div id="plasmid-drawing-{{ forloop.counter }}" 
-                 style="position: relative; width: 100%; overflow-x: auto; padding: 60px 50px; background-color: #fff; border-radius: 4px;">
-                
-                <div style="width: 900px; margin: 0 auto; position: relative; height: 60px;">
-                    
-                    <div style="position: absolute; top: 30px; left: 0; width: 100%; height: 4px; background: #ccc; border-radius: 2px;"></div>
+            <div id="plasmid-drawing-{{ forloop.counter }}" class="drawing-container">
+                <div class="drawing-canvas">
+                    <div class="central-line"></div>
                     
                     {% if not p.features %}
-                        <div style="text-align: center; padding-top: 70px; color: #999; font-style: italic; font-size: 0.9em;">
-                            No annotations found in this file.
-                        </div>
+                        <div class="no-features">No annotations found in this file.</div>
                     {% endif %}
 
                     {% for f in p.features %}
                         <div class="plasmid-feature-bar"
-                             style="left: {{ f.visual_left }}px; width: {{ f.visual_width }}px; background: transparent; border: none;"
+                             style="left: {{ f.visual_left }}px; width: {{ f.visual_width }}px;"
                              title="{{ f.type }}: {{ f.label }}">
                             
                             <svg width="100%" height="20px" viewBox="0 0 {{ f.visual_width }} 20" preserveAspectRatio="none">
@@ -223,17 +171,14 @@
                             </svg>
 
                             {% if f.label_position == 'inside' %}
-                                <div style="position: absolute; top: 0; left: 0; width: 100%; height: 20px; display: flex; align-items: center; justify-content: center;">
-                                    <span class="plasmid-label-inside" style="position: static; line-height: normal;">
-                                        {{ f.label }}
-                                    </span>
+                                <div class="label-inside-container">
+                                    <span class="label-text-inside">{{ f.label }}</span>
                                 </div>
                             {% endif %}
                         </div>
 
                         {% if f.label_position == 'outside' %}
-                            <div class="plasmid-label-outside" 
-                                 style="left: {{ f.visual_center }}px; top: {{ f.css_top }};">
+                            <div class="plasmid-label-outside" style="left: {{ f.visual_center }}px; top: {{ f.css_top }};">
                                 <div class="plasmid-connector" style="{{ f.css_connector }}"></div>
                                 {{ f.label }}
                             </div>
@@ -246,28 +191,22 @@
     </div>
     {% endif %}
 
-    <div id="generated-images-title" style="display: none; margin-top: 40px; margin-bottom: 20px;">
-        <h3 style="border-bottom: 2px solid var(--border); padding-bottom: 10px; margin-bottom: 20px;">
-            Generated Images
-        </h3>
+    <div id="generated-images-title" style="display: none;" class="visual-section-container">
+        <h3 class="section-title">Generated Images</h3>
     </div>
 
     <div class="row">
         {% for file in results.files %}
             {% if ".png" in file or ".jpg" in file or ".jpeg" in file or ".svg" in file %}
-                
                 <script>document.getElementById('generated-images-title').style.display = 'block';</script>
-
-                <div class="col-md-6" style="margin-bottom: 24px;">
-                    <div class="card" style="height: 100%; display: flex; flex-direction: column;">
-                         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
-                            <strong style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 70%;">{{ file }}</strong>
-                            <a href="{{ results.output_dir_url }}/{{ file }}" class="btn btn-secondary" style="padding: 6px 12px; font-size: 0.9em;" download>
-                                Download
-                            </a>
+                <div class="col-md-6 mb-24">
+                    <div class="card card-image">
+                         <div class="image-header">
+                            <strong class="image-name">{{ file }}</strong>
+                            <a href="{{ results.output_dir_url }}/{{ file }}" class="btn btn-secondary btn-sm-custom" download>Download</a>
                         </div>
-                        <div style="flex-grow: 1; display: flex; align-items: center; justify-content: center; background: var(--bg); border-radius: 8px; padding: 10px;">
-                            <img src="{{ results.output_dir_url }}/{{ file }}" alt="{{ file }}" style="max-width: 100%; max-height: 350px; border-radius: 4px;">
+                        <div class="image-preview">
+                            <img src="{{ results.output_dir_url }}/{{ file }}" alt="{{ file }}">
                         </div>
                     </div>
                 </div>
@@ -275,123 +214,117 @@
         {% endfor %}
     </div>
 
-    <style>
-    .plasmid-table {
-        width: 100%;
-        border-collapse: separate;
-        border-spacing: 0;
-        font-size: 15px;
-    }
-    .plasmid-table thead tr {
-        background-color: var(--primary);
-        color: #fff;
-        text-align: left;
-    }
-    .plasmid-table th, .plasmid-table td {
-        padding: 14px 12px;
-        border-bottom: 1px solid var(--border);
-    }
-    .plasmid-table tbody tr:nth-child(odd) { background-color: var(--card); }
-    .plasmid-table tbody tr:nth-child(even) { background-color: var(--primary-soft); }
-    
-    .messages .success {
-        background-color: #d1e7dd;
-        color: #0f5132;
-        border: 1px solid #badbcc;
-    }
-    .messages .error {
-        background-color: #f8d7da;
-        color: #842029;
-        border: 1px solid #f5c2c7;
-    }
-
-    .plasmid-feature-bar {
-        position: absolute;
-        top: 22px; 
-        height: 20px; 
-        z-index: 10;
-        cursor: pointer;
-    }
-    
-    .plasmid-label-inside {
-        position: absolute; 
-        width: 100%; 
-        text-align: center; 
-        font-size: 10px; 
-        color: white; 
-        font-weight: bold;
-        line-height: 20px; 
-        white-space: nowrap; 
-        overflow: hidden;
-    }
-
-    .plasmid-label-outside {
-        position: absolute;
-        transform: translateX(-50%);
-        font-size: 11px;
-        color: #555;
-        white-space: nowrap;
-        font-weight: 500;
-        z-index: 5;
-    }
-
-    .plasmid-connector {
-        position: absolute; 
-        left: 50%; 
-        width: 1px; 
-        background: #ccc; 
-        height: 15px; 
-    }
-    </style>
-
     {% else %}
-    <div class="card" style="text-align: center; padding: 40px;">
+    <div class="card empty-state">
         <h3>No files generated</h3>
     </div>
     {% endif %}
 
 </div>
 
+<style>
+    /* Headers & Layout */
+    .header-container { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 24px; flex-wrap: wrap; gap: 10px; }
+    .sim-name { color: var(--primary); font-weight: bold; font-size: 1.2em; margin-bottom: 4px; }
+    .sim-id { color: var(--muted); font-size: 0.9em; }
+    .btn-group-header { display: flex; gap: 10px; }
+    .btn-zip { background-color: #0f5132; color: white; }
+    
+    /* Cartes & Collapsible */
+    .result-card { margin-bottom: 30px; padding: 0; overflow: hidden; border: 1px solid var(--border); }
+    .card-header-clickable { padding: 12px 16px; background: var(--bg); border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; cursor: pointer; user-select: none; }
+    .card-header-clickable:hover { background-color: #e9ecef; } /* Petit effet au survol */
+    .date-meta { font-size: 0.85em; color: var(--muted); }
+    
+    /* Textes & Listes */
+    .section-subtitle { text-transform: uppercase; font-size: 0.75em; color: var(--muted); letter-spacing: 1px; margin-bottom: 15px; }
+    .info-list { list-style: none; padding: 0; margin: 0; font-size: 0.95em; }
+    .info-list li { margin-bottom: 10px; }
+    .label-muted { display: block; font-size: 0.85em; color: var(--muted); }
+    .text-lg { font-size: 1.05em; }
+    .text-italic { font-style: italic; color: var(--muted); }
+    .text-primary { color: var(--primary); }
+    .font-bold { font-weight: 600; }
+    .code-badge { background: var(--bg); padding: 4px 8px; border-radius: 4px; color: var(--primary); }
+    
+    /* Layout Helpers */
+    .border-right { border-right: 1px solid var(--border); }
+    .padding-left { padding-left: 24px; }
+    .mb-15 { margin-bottom: 15px; }
+    .mb-24 { margin-bottom: 24px; }
+    .pl-20 { padding-left: 20px; }
+    .pr-20 { padding-right: 20px; }
+    .text-right { text-align: right; }
+
+    /* Tableaux */
+    .plasmid-table { width: 100%; border-collapse: separate; border-spacing: 0; font-size: 15px; }
+    .plasmid-table thead tr { background-color: var(--primary); color: #fff; text-align: left; }
+    .plasmid-table th, .plasmid-table td { padding: 14px 12px; border-bottom: 1px solid var(--border); }
+    .plasmid-table tbody tr:nth-child(odd) { background-color: var(--card); }
+    .plasmid-table tbody tr:nth-child(even) { background-color: var(--primary-soft); }
+
+    /* Visualisation */
+    .visual-section-container { margin-top: 40px; margin-bottom: 20px; }
+    .section-title { border-bottom: 2px solid var(--border); padding-bottom: 10px; margin-bottom: 20px; }
+    .visual-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; }
+    .visual-title { display: flex; align-items: center; gap: 10px; }
+    .visual-name { color: var(--muted); font-size: 0.9em; margin-bottom: 30px; }
+    .btn-group-visual { display: flex; gap: 5px; }
+    .btn-sm-custom { padding: 6px 12px; font-size: 0.9em; font-weight: 600; }
+    
+    /* Dessin Plasmide */
+    .drawing-container { position: relative; width: 100%; overflow-x: auto; padding: 60px 50px; background-color: #fff; border-radius: 4px; }
+    .drawing-canvas { width: 900px; margin: 0 auto; position: relative; height: 60px; }
+    .central-line { position: absolute; top: 30px; left: 0; width: 100%; height: 4px; background: #ccc; border-radius: 2px; }
+    .no-features { text-align: center; padding-top: 70px; color: #999; font-style: italic; font-size: 0.9em; }
+    
+    .plasmid-feature-bar { position: absolute; top: 22px; height: 20px; z-index: 10; cursor: pointer; background: transparent; border: none; }
+    .label-inside-container { position: absolute; top: 0; left: 0; width: 100%; height: 20px; display: flex; align-items: center; justify-content: center; pointer-events: none; }
+    .label-text-inside { font-size: 10px; color: white; font-weight: bold; line-height: 20px; white-space: nowrap; overflow: hidden; }
+    
+    .plasmid-label-outside { position: absolute; transform: translateX(-50%); font-size: 11px; color: #555; white-space: nowrap; font-weight: 500; z-index: 5; }
+    .plasmid-connector { position: absolute; left: 50%; width: 1px; background: #ccc; height: 15px; }
+
+    /* Images */
+    .card-image { height: 100%; display: flex; flex-direction: column; padding: 16px; border: 1px solid var(--border); }
+    .image-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
+    .image-name { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 70%; }
+    .image-preview { flex-grow: 1; display: flex; align-items: center; justify-content: center; background: var(--bg); border-radius: 8px; padding: 10px; }
+    .image-preview img { max-width: 100%; max-height: 350px; border-radius: 4px; }
+
+    /* Utilitaires */
+    .empty-state { text-align: center; padding: 40px; }
+    .messages-list { list-style: none; padding: 0; margin-bottom: 20px; }
+    .messages-list li { padding: 15px; border-radius: 4px; margin-bottom: 10px; font-weight: 500; }
+    .messages-list .success { background-color: #d1e7dd; color: #0f5132; border: 1px solid #badbcc; }
+    .messages-list .error { background-color: #f8d7da; color: #842029; border: 1px solid #f5c2c7; }
+</style>
+
 <script>
     document.addEventListener('DOMContentLoaded', function() {
         
-        // --- 1. Gestion du Configuration Summary (Existant) ---
-        const sumHeader = document.getElementById('summary-header');
-        const sumContent = document.getElementById('configSummary');
-        const sumChevron = document.getElementById('summary-chevron');
+        // Fonction générique pour le "Toggle"
+        function setupToggle(headerId, contentId) {
+            const header = document.getElementById(headerId);
+            const content = document.getElementById(contentId);
 
-        if (sumHeader && sumContent && sumChevron) {
-            sumHeader.addEventListener('click', function() {
-                toggleVisibility(sumContent, sumChevron);
-            });
-        }
-
-        // --- 2. Gestion du Generated Files (Nouveau) ---
-        const fileHeader = document.getElementById('files-header');
-        const fileContent = document.getElementById('filesContent');
-        const fileChevron = document.getElementById('files-chevron');
-
-        if (fileHeader && fileContent && fileChevron) {
-            fileHeader.addEventListener('click', function() {
-                toggleVisibility(fileContent, fileChevron);
-            });
-        }
-
-        // --- Fonction générique pour afficher/cacher ---
-        function toggleVisibility(content, chevron) {
-            if (content.style.display !== 'none') {
-                content.style.display = 'none';
-                chevron.classList.remove('bi-chevron-up');
-                chevron.classList.add('bi-chevron-down');
-            } else {
-                content.style.display = 'block';
-                chevron.classList.remove('bi-chevron-down');
-                chevron.classList.add('bi-chevron-up');
+            if (header && content) {
+                header.addEventListener('click', function() {
+                    if (content.style.display !== 'none') {
+                        content.style.display = 'none';
+                    } else {
+                        content.style.display = 'block';
+                    }
+                });
             }
         }
+
+        // Appliquer aux deux sections
+        setupToggle('summary-header', 'configSummary');
+        setupToggle('files-header', 'filesContent');
     });
 
-    // Fonction pour télécharger la visualisation en PNG
+    // Fonction de téléchargement image
     function downloadPlasmidImage(elementId, filename) {
         const element = document.getElementById(elementId);
         

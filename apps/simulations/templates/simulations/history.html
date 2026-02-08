@@ -5,100 +5,193 @@
 {% block content %}
 <div class="container">
     
-    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px;">
-        <h1>My History</h1>
-        <a href="{% url 'simulations:simu' %}" class="btn">
-            New Simulation
-        </a>
-    </div>
+    <form method="POST" action="{% url 'simulations:delete_campaigns' %}" id="historyForm">
+        {% csrf_token %}
 
-    {% if campaigns %}
-    <div class="card" style="padding: 0; overflow: hidden;"> <table class="table plasmid-table"> <thead>
-                <tr>
-                    <th style="padding-left: 20px;">Campaign Name</th>
-                    <th>Date</th>
-                    <th>Parameters</th>
-                    <th style="text-align: right; padding-right: 20px;">Actions</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for campaign in campaigns %}
-                <tr class="clickable-row" data-href="{% url 'simulations:simulation_detail' campaign.run_id %}" style="cursor: pointer;">
-                    <td style="padding-left: 20px;">
-                        <strong>{{ campaign.name|default:"Untitled" }}</strong>
-                        <div style="font-size: 0.85em; color: var(--muted);">ID: {{ campaign.run_id }}</div>
-                    </td>
-                    <td>
-                        {% if campaign.created_at %}
-                            {{ campaign.created_at|date:"d M Y, H:i" }}
-                        {% else %}
-                            --
-                        {% endif %}
-                    </td>
-                    <td>
-                        {% if campaign.parameters.digestion_enzymes %}
-                            <span style="background: var(--bg); padding: 4px 8px; border-radius: 6px; font-size: 0.9em; border: 1px solid var(--border);">
-                                {{ campaign.parameters.digestion_enzymes|truncatechars:30 }}
-                            </span>
-                        {% else %}
-                            <span style="color: var(--muted); font-size: 0.9em;">Assembly only</span>
-                        {% endif %}
-                    </td>
-                    <td style="text-align: right; padding-right: 20px;">
-                        <a href="{% url 'simulations:simulation_detail' campaign.run_id %}" style="text-decoration: none; font-weight: bold;">
-                            View
-                        </a>
-                    </td>
-                </tr>
-                {% endfor %}
-            </tbody>
-        </table>
-    </div>
+        <div class="history-header">
+            <h1>My History</h1>
+            
+            <div class="header-actions">
+                <button type="submit" id="btn-delete" class="btn btn-danger" disabled onclick="return confirm('Are you sure you want to delete the selected campaigns? This cannot be undone.');">
+                    Delete Selected
+                </button>
 
-    <style>
-    .plasmid-table {
-        width: 100%;
-        border-collapse: separate;
-        border-spacing: 0;
-        font-size: 15px;
-    }
-    .plasmid-table thead tr {
-        background-color: var(--primary);
-        color: #fff;
-        text-align: left;
-    }
-    .plasmid-table th, .plasmid-table td {
-        padding: 14px 12px;
-        border-bottom: 1px solid var(--border);
-    }
-    .plasmid-table tbody tr:nth-child(odd) {
-        background-color: var(--card);
-    }
-    .plasmid-table tbody tr:nth-child(even) {
-        background-color: var(--primary-soft);
-    }
-    .plasmid-table tbody tr:hover td {
-        background-color: var(--primary-soft); 
-    }
-    </style>
+                <a href="{% url 'simulations:simu' %}" class="btn">
+                    New Simulation
+                </a>
+            </div>
+        </div>
 
-    {% else %}
-    <div class="card" style="text-align: center; padding: 40px;">
-        <p class="text-muted">No history found.</p>
-        <a href="{% url 'simulations:simu' %}" class="btn">Start a simulation</a>
-    </div>
-    {% endif %}
+        {% if messages %}
+        <ul class="messages-list">
+            {% for message in messages %}
+            <li class="{{ message.tags }}">{{ message }}</li>
+            {% endfor %}
+        </ul>
+        {% endif %}
+
+        {% if campaigns %}
+        <div class="card history-card"> 
+            <table class="table plasmid-table"> 
+                <thead>
+                    <tr>
+                        <th style="width: 40px; padding-left: 15px; text-align: center;">
+                            <input type="checkbox" id="select-all" class="checkbox-custom">
+                        </th>
+                        <th>Campaign Name</th>
+                        <th>Date</th>
+                        <th>Parameters</th>
+                        <th class="text-right pr-20">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for campaign in campaigns %}
+                    <tr class="clickable-row" data-href="{% url 'simulations:simulation_detail' campaign.run_id %}">
+                        
+                        <td style="padding-left: 15px; text-align: center;">
+                            <input type="checkbox" name="campaign_ids" value="{{ campaign.id }}" class="campaign-checkbox checkbox-custom">
+                        </td>
+
+                        <td>
+                            <strong class="campaign-name">{{ campaign.name|default:"Untitled" }}</strong>
+                            <div class="campaign-id">ID: {{ campaign.run_id }}</div>
+                        </td>
+                        <td>
+                            {% if campaign.created_at %}
+                                {{ campaign.created_at|date:"d M Y, H:i" }}
+                            {% else %}
+                                --
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if campaign.parameters.digestion_enzymes %}
+                                <span class="param-badge">
+                                    {{ campaign.parameters.digestion_enzymes|truncatechars:30 }}
+                                </span>
+                            {% else %}
+                                <span class="text-muted-small">Assembly only</span>
+                            {% endif %}
+                        </td>
+                        <td class="text-right pr-20">
+                            <a href="{% url 'simulations:simulation_detail' campaign.run_id %}" class="link-action">
+                                View
+                            </a>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        {% else %}
+        <div class="card empty-state">
+            <p class="text-muted">No history found.</p>
+            <a href="{% url 'simulations:simu' %}" class="btn">Start a simulation</a>
+        </div>
+        {% endif %}
+    </form>
 
 </div>
 
+<style>
+    /* Layout & Header */
+    .history-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; }
+    .header-actions { display: flex; gap: 10px; }
+    .history-card { padding: 0; overflow: hidden; border: 1px solid var(--border); }
+    
+    /* Boutons */
+    .btn-danger { background-color: #dc3545; color: white; border: none; opacity: 0.6; cursor: not-allowed; transition: 0.2s; }
+    /* Quand le bouton est actif */
+    .btn-danger.active { opacity: 1; cursor: pointer; }
+    .btn-danger.active:hover { background-color: #bb2d3b; }
+
+    /* Tableaux */
+    .plasmid-table { width: 100%; border-collapse: separate; border-spacing: 0; font-size: 15px; }
+    .plasmid-table thead tr { background-color: var(--primary); color: #fff; text-align: left; }
+    .plasmid-table th, .plasmid-table td { padding: 14px 12px; border-bottom: 1px solid var(--border); vertical-align: middle; }
+    
+    /* Couleurs des lignes (Zebra + Hover) */
+    .plasmid-table tbody tr:nth-child(odd) { background-color: var(--card); }
+    .plasmid-table tbody tr:nth-child(even) { background-color: var(--primary-soft); }
+    .plasmid-table tbody tr:hover td { background-color: #e9ecef; cursor: pointer; } 
+
+    /* Typographie & Badges */
+    .campaign-name { display: block; color: var(--text-main); }
+    .campaign-id { font-size: 0.85em; color: var(--muted); }
+    
+    .param-badge { 
+        background: var(--bg); 
+        padding: 4px 8px; 
+        border-radius: 6px; 
+        font-size: 0.9em; 
+        border: 1px solid var(--border); 
+        display: inline-block;
+    }
+    
+    .text-muted-small { color: var(--muted); font-size: 0.9em; }
+    .link-action { text-decoration: none; font-weight: bold; color: var(--primary); }
+    .link-action:hover { text-decoration: underline; }
+
+    /* Utilitaires */
+    .checkbox-custom { transform: scale(1.2); cursor: pointer; }
+    .pr-20 { padding-right: 20px !important; }
+    .text-right { text-align: right; }
+    
+    .empty-state { text-align: center; padding: 40px; }
+    .messages-list { list-style: none; padding: 0; margin-bottom: 20px; }
+    .messages-list li { padding: 15px; border-radius: 4px; margin-bottom: 10px; font-weight: 500; }
+    .messages-list .success { background-color: #d1e7dd; color: #0f5132; border: 1px solid #badbcc; }
+    .messages-list .warning { background-color: #fff3cd; color: #856404; border: 1px solid #ffeeba; }
+    .messages-list .error { background-color: #f8d7da; color: #842029; border: 1px solid #f5c2c7; }
+</style>
+
 <script>
 document.addEventListener("DOMContentLoaded", function() {
+    
+    // 1. GESTION DES LIGNES CLIQUABLES
     const rows = document.querySelectorAll(".clickable-row");
     rows.forEach(row => {
-        row.addEventListener("click", () => {
+        row.addEventListener("click", (e) => {
+            // Si on clique sur une checkbox ou le bouton delete, on ne redirige pas
+            if (e.target.type === 'checkbox' || e.target.tagName === 'A') {
+                return;
+            }
             if (row.dataset.href) {
                 window.location = row.dataset.href;
             }
+        });
+    });
+
+    // 2. GESTION DU BOUTON DELETE ET SELECT ALL
+    const selectAll = document.getElementById('select-all');
+    const checkboxes = document.querySelectorAll('.campaign-checkbox');
+    const btnDelete = document.getElementById('btn-delete');
+
+    function updateDeleteButton() {
+        const anyChecked = Array.from(checkboxes).some(cb => cb.checked);
+        if (anyChecked) {
+            btnDelete.disabled = false;
+            btnDelete.classList.add('active');
+        } else {
+            btnDelete.disabled = true;
+            btnDelete.classList.remove('active');
+        }
+    }
+
+    if (selectAll) {
+        selectAll.addEventListener('change', function() {
+            checkboxes.forEach(cb => {
+                cb.checked = this.checked;
+            });
+            updateDeleteButton();
+        });
+    }
+
+    checkboxes.forEach(cb => {
+        cb.addEventListener('change', updateDeleteButton);
+        // Empêcher le clic sur la checkbox de déclencher le clic sur la ligne
+        cb.addEventListener('click', function(e) {
+            e.stopPropagation();
         });
     });
 });

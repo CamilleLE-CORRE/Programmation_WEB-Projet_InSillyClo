@@ -6,9 +6,8 @@
 
 <div class="container">
 
-    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px;">
+    <div class="header-container">
         <h1>Campaign Simulation</h1>
-        
         {% if user.is_authenticated %}
         <a href="{% url 'simulations:history' %}" class="btn btn-secondary">
             History
@@ -17,7 +16,7 @@
     </div>
 
     {% if messages %}
-    <ul class="messages">
+    <ul class="messages-list">
         {% for message in messages %}
         <li class="{{ message.tags }}">
             {{ message }}
@@ -36,142 +35,131 @@
         <input type="hidden" name="clear_primers" id="clear_primers" value="false">
         <input type="hidden" name="clear_concentrations" id="clear_concentrations" value="false">
 
-        <div class="card" style="margin-bottom: 24px;">
-            <h2 style="color: var(--primary); font-weight: bold; margin-bottom: 20px;">
-                Identification
-            </h2>
-            <label for="simulation_name">Campaign Name (Optional)</label>
+        <div class="card form-card">
+            <h2 class="section-title">Identification</h2>
+            <label for="simulation_name" class="form-label">Campaign Name (Optional)</label>
             <input type="text" 
                    id="simulation_name" 
                    name="simulation_name" 
                    value="{{ prefill.name|default:'' }}"
-                   placeholder="Ex: Golden Gate Assembly - Batch 1">
-            <p style="font-size: 0.9em; color: var(--muted); margin-top: 6px;">
+                   placeholder="Ex: Golden Gate Assembly - Batch 1"
+                   class="form-input">
+            <p class="help-text">
                 Give a name to easily find this simulation in your history.
             </p>
         </div>
 
-        <div class="card" style="margin-bottom: 24px;">
-            <h2 style="color: var(--primary); font-weight: bold; margin-bottom: 20px;">
-                Required Files
-            </h2>            
+        <div class="card form-card">
+            <h2 class="section-title">Required Files</h2>           
             <div class="row">
-                <div class="col-md-12" style="margin-bottom: 24px;"> 
-                    <label for="template_file">Campaign Template (Excel/CSV) <span style="color: var(--danger);">*</span></label>
+                <div class="col-md-12 mb-24"> 
+                    <label for="template_file" class="form-label">Campaign Template (Excel/CSV) <span class="text-danger">*</span></label>
                     
                     {% if prefill.prev_template %}
-                        <div class="messages" style="margin-bottom: 5px;">
-                            <li class="success" style="padding: 5px 10px; font-size: 0.9em;">
-                                Previous file detected: <strong>{{ prefill.prev_template }}</strong>
-                            </li>
+                        <div class="msg-box success-msg">
+                            Previous file detected: <strong>{{ prefill.prev_template }}</strong>
                         </div>
                     {% endif %}
                     
                     <input type="file" id="template_file" name="template_file" accept=".xlsx,.csv" 
+                           class="input-file"
                            {% if not prefill.prev_template %}required{% endif %}>
-                    <p style="font-size: 0.85em; color: var(--muted); margin-top: 4px;">
-                        File describing the assemblies to be made.
-                    </p>
+                    <p class="help-text">File describing the assemblies to be made.</p>
                 </div>
 
-                <div class="col-md-6" style="margin-bottom: 24px;">
-                    <label for="correspondence_file">Correspondence Table (CSV) <span style="color: var(--danger);">*</span></label>
+                <div class="col-md-6 mb-24">
+                    <label for="correspondence_file" class="form-label">Correspondence Table (CSV) <span class="text-danger">*</span></label>
                     
                     {% if prefill.prev_correspondence %}
-                        <div class="messages" style="margin-bottom: 5px;">
-                            <li class="success" style="padding: 5px 10px; font-size: 0.9em;">
-                                Previous table: <strong>{{ prefill.prev_correspondence }}</strong>
-                            </li>
+                        <div class="msg-box success-msg">
+                            Previous table: <strong>{{ prefill.prev_correspondence }}</strong>
                         </div>
                     {% endif %}
 
                     <input type="file" id="correspondence_file" name="correspondence_file" accept=".csv"
+                           class="input-file"
                            {% if not prefill.prev_correspondence %}required{% endif %}>
-                    <p style="font-size: 0.85em; color: var(--muted); margin-top: 4px;">
-                        File for linking plasmid identifiers.
-                    </p>
+                    <p class="help-text">File for linking plasmid identifiers.</p>
                 </div>
 
-                <div class="col-md-6" style="margin-bottom: 24px;">
-                    <label>Sequences Source <span style="color: var(--danger);">*</span></label> 
+                <div class="col-md-6 mb-24">
+                    <label class="form-label">Sequences Source <span class="text-danger">*</span></label> 
 
-                    <div class="form-group" style="margin-bottom: 15px; background: #f8f9fa; padding: 10px; border-radius: 5px; border: 1px solid var(--border);">
-                        <div style="display: flex; align-items: center; gap: 8px;">
+                    <div class="gray-panel">
+                        <div class="flex-row-start">
                             <input type="checkbox" id="use_collections" name="use_collections" 
-                                   style="width: auto; cursor: pointer;" 
+                                   class="checkbox-custom"
                                    {% if prefill.use_collections %}checked{% endif %}>
-                            <label for="use_collections" style="margin:0; cursor:pointer;">
+                            <label for="use_collections" class="label-inline">
                                 Use Plasmid Collections (Database) 
                             </label> 
                         </div>
                     </div>
 
-                    <div id="collections-section" style="display: none; padding-left: 10px; border-left: 3px solid var(--primary); margin-bottom: 20px;">
-                        <p class="help-text" style="margin-bottom: 10px; font-size: 0.9em;">Select one or more collections:</p>
+                    <div id="collections-section" class="collections-container" style="display: none;">
+                        <p class="help-text mb-10">Select one or more collections:</p>
                         
-                        <div style="max-height: 200px; overflow-y: auto; background: white; border: 1px solid var(--border); padding: 10px; border-radius: 4px;">
-                            
+                        <div class="scrollable-list">
                             {% if user.is_authenticated %}
-                                <h5 style="font-size: 0.8em; text-transform: uppercase; color: var(--muted); margin-bottom: 8px;">My Collections</h5>
+                                <h5 class="list-title">My Collections</h5>
                                 {% if user_collections %}
                                     {% for col in user_collections %}
-                                    <label style="display: flex; align-items: center; gap: 8px; margin-bottom: 6px; cursor: pointer; font-weight: normal;">
-                                        <input type="checkbox" name="selected_collections" value="{{ col.id }}" style="width: auto;" 
+                                    <label class="list-item">
+                                        <input type="checkbox" name="selected_collections" value="{{ col.id }}" 
+                                        class="checkbox-custom"
                                         {% if col.id in prefill.selected_collection_ids %}checked{% endif %}>
-                                        <span>{{ col.name }} <span style="font-size: 0.8em; color: var(--muted);">({{ col.plasmid_count }})</span></span>
+                                        <span>{{ col.name }} <span class="count-text">({{ col.plasmid_count }})</span></span>
                                     </label>
                                     {% endfor %}
                                 {% else %}
-                                    <p style="font-size: 0.8em; font-style: italic; color: var(--muted);">No private collections.</p>
+                                    <p class="empty-text">No private collections.</p>
                                 {% endif %}
-                                <hr style="margin: 8px 0;">
+                                <hr class="divider">
                             {% endif %}
 
-                            <h5 style="font-size: 0.8em; text-transform: uppercase; color: var(--muted); margin-bottom: 8px;">Public Collections</h5>
+                            <h5 class="list-title">Public Collections</h5>
                             {% if public_collections %}
                                 {% for col in public_collections %}
-                                <label style="display: flex; align-items: center; gap: 8px; margin-bottom: 6px; cursor: pointer; font-weight: normal;">
-                                    <input type="checkbox" name="selected_collections" value="{{ col.id }}" style="width: auto;" 
+                                <label class="list-item">
+                                    <input type="checkbox" name="selected_collections" value="{{ col.id }}" 
+                                    class="checkbox-custom"
                                     {% if col.id in prefill.selected_collection_ids %}checked{% endif %}>
-                                    <span>{{ col.name }} <span style="font-size: 0.8em; color: var(--muted);">({{ col.plasmid_count }})</span></span>
+                                    <span>{{ col.name }} <span class="count-text">({{ col.plasmid_count }})</span></span>
                                 </label>
                                 {% endfor %}
                             {% else %}
-                                <p style="font-size: 0.8em; font-style: italic; color: var(--muted);">No public collections.</p>
+                                <p class="empty-text">No public collections.</p>
                             {% endif %}
                         </div>
                     </div>
 
                     <div id="upload-section">
                         {% if prefill.prev_zip %}
-                            <div id="prev-zip-msg" class="messages" style="margin-bottom: 5px;">
-                                <li class="success" style="padding: 5px 10px; font-size: 0.9em;">
-                                    Previous archive: <strong>{{ prefill.prev_zip }}</strong>
-                                </li>
+                            <div id="prev-zip-msg" class="msg-box success-msg">
+                                Previous archive: <strong>{{ prefill.prev_zip }}</strong>
                             </div>
                         {% endif %}
                         
                         <input type="file" id="sequences_archive" name="sequences_archive" accept=".zip"
+                               class="input-file"
                                {% if not prefill.prev_zip %}required{% endif %}
                                {% if prefill.prev_zip %}data-prev-exists="true"{% endif %}>
-                        <p style="font-size: 0.85em; color: var(--muted); margin-top: 4px;">
-                            A .zip archive containing all .gb files.
-                        </p>
+                        <p class="help-text">A .zip archive containing all .gb files.</p>
 
                         {% if user.is_authenticated %}
-                        <div style="margin-top: 15px; padding: 10px; background-color: #e8f5e9; border: 1px solid #c8e6c9; border-radius: 5px;">
-                            <div style="display: flex; align-items: center; gap: 8px;">
-                                <input type="checkbox" id="save_to_collection" name="save_to_collection" style="width: auto; cursor: pointer;">
-                                <label for="save_to_collection" style="margin:0; cursor:pointer; color: #2e7d32; font-weight: bold;">
+                        <div class="green-panel">
+                            <div class="flex-row-start">
+                                <input type="checkbox" id="save_to_collection" name="save_to_collection" class="checkbox-custom">
+                                <label for="save_to_collection" class="label-inline label-green">
                                     Save plasmids to my collections
                                 </label>
                             </div>
                             
                             <div id="collection_name_input_div" style="display: none; margin-top: 10px; margin-left: 24px;">
-                                <label for="new_collection_name" style="font-size: 0.9em; color: #2e7d32;">Name for this new collection:</label>
+                                <label for="new_collection_name" class="sub-label-green">Name for this new collection:</label>
                                 <input type="text" id="new_collection_name" name="new_collection_name" 
                                        placeholder="Ex: Import Project Alpha" 
-                                       style="border: 1px solid #81c784; background: white;">
+                                       class="input-green">
                             </div>
                         </div>
                         {% endif %}
@@ -180,65 +168,60 @@
             </div>
         </div>
 
-        <div style="margin-bottom: 24px;">
-            <button type="button" id="btn-options-toggle" class="btn btn-secondary" style="width: 100%; text-align: left; display: flex; justify-content: space-between; align-items: center;">
+        <div class="mb-24">
+            <button type="button" id="btn-options-toggle" class="btn btn-secondary btn-full-toggle">
                 <span> Advanced Parameters</span>
+                <svg id="chevron-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="transition: transform 0.2s;">
+                    <polyline points="6 9 12 15 18 9"></polyline>
+                </svg>
             </button>
             
-            <div id="options-content" class="card" 
-                 {% if not prefill.pcr_primers and not prefill.digestion_enzymes and not prefill.prev_primers and not prefill.prev_concentrations %}hidden{% endif %} 
-                 style="border-top-left-radius: 0; border-top-right-radius: 0; margin-top: -10px; padding-top: 20px;">
+            <div id="options-content" class="card options-card" 
+                 {% if not prefill.pcr_primers and not prefill.digestion_enzymes and not prefill.prev_primers and not prefill.prev_concentrations %}style="display: none;"{% endif %}>
+                
                 <div class="row">
-                    <div class="col-md-6" style="margin-bottom: 16px;">
-                        <label>Primer Pairs (IDs)</label>
-                        <textarea name="pcr_primers" rows="2" placeholder="Ex: P29, P30">{{ prefill.pcr_primers|default:'' }}</textarea>
+                    <div class="col-md-6 mb-16">
+                        <label class="form-label">Primer Pairs (IDs)</label>
+                        <textarea name="pcr_primers" rows="2" placeholder="Ex: P29, P30" class="form-input">{{ prefill.pcr_primers|default:'' }}</textarea>
                         
-                        <label style="margin-top: 10px; font-weight: normal; font-size: 0.9em;">Primers Database (CSV)</label>
+                        <label class="form-label mt-10">Primers Database (CSV)</label>
                         
                         {% if prefill.prev_primers %}
-                            <div class="messages" id="msg-prev-primers" style="margin-bottom: 5px;">
-                                <li class="success" style="padding: 5px 10px; font-size: 0.9em; display: flex; justify-content: space-between; align-items: center;">
-                                    <span>Detected: <strong>{{ prefill.prev_primers }}</strong></span>
-                                    <button type="button" class="btn btn-sm btn-outline-danger" onclick="clearOptionalFile('primers')" style="padding: 0px 6px; font-size: 0.8em; margin-left: 10px;">
-                                        Remove
-                                    </button>
-                                </li>
+                            <div class="msg-box success-msg flex-space-between" id="msg-prev-primers">
+                                <span>Detected: <strong>{{ prefill.prev_primers }}</strong></span>
+                                <button type="button" class="btn-remove" onclick="clearOptionalFile('primers')">Remove</button>
                             </div>
                         {% endif %}
                         
-                        <input type="file" name="primers_file" accept=".csv">
+                        <input type="file" name="primers_file" accept=".csv" class="input-file">
                     </div>
 
-                    <div class="col-md-6" style="margin-bottom: 16px;">
-                        <label for="digestion_enzymes">Digestion Enzymes</label>
-                        <input type="text" id="digestion_enzymes" name="digestion_enzymes" value="{{ prefill.digestion_enzymes|default:'' }}" placeholder="Ex: BsmBI, NotI">
+                    <div class="col-md-6 mb-16">
+                        <label for="digestion_enzymes" class="form-label">Digestion Enzymes</label>
+                        <input type="text" id="digestion_enzymes" name="digestion_enzymes" value="{{ prefill.digestion_enzymes|default:'' }}" placeholder="Ex: BsmBI, NotI" class="form-input">
                         
-                        <label style="margin-top: 10px; font-weight: normal; font-size: 0.9em;">Specific Concentrations (CSV)</label>
+                        <label class="form-label mt-10">Specific Concentrations (CSV)</label>
                         
                         {% if prefill.prev_concentrations %}
-                            <div class="messages" id="msg-prev-concentrations" style="margin-bottom: 5px;">
-                                <li class="success" style="padding: 5px 10px; font-size: 0.9em; display: flex; justify-content: space-between; align-items: center;">
-                                    <span>Detected: <strong>{{ prefill.prev_concentrations }}</strong></span>
-                                    <button type="button" class="btn btn-sm btn-outline-danger" onclick="clearOptionalFile('concentrations')" style="padding: 0px 6px; font-size: 0.8em; margin-left: 10px;">
-                                        Remove
-                                    </button>
-                                </li>
+                            <div class="msg-box success-msg flex-space-between" id="msg-prev-concentrations">
+                                <span>Detected: <strong>{{ prefill.prev_concentrations }}</strong></span>
+                                <button type="button" class="btn-remove" onclick="clearOptionalFile('concentrations')">Remove</button>
                             </div>
                         {% endif %}
 
-                        <input type="file" name="concentrations_file" accept=".csv">
+                        <input type="file" name="concentrations_file" accept=".csv" class="input-file">
                     </div>
                     
                     <div class="col-md-6">
-                        <label>Default Concentration (ng/µL)</label>
-                        <input type="number" name="default_concentration" placeholder="200" value="{{ prefill.default_concentration|default:'200' }}">
+                        <label class="form-label">Default Concentration (ng/µL)</label>
+                        <input type="number" name="default_concentration" placeholder="200" value="{{ prefill.default_concentration|default:'200' }}" class="form-input">
                     </div>
                 </div>
             </div>
         </div>
 
-        <div style="margin-top: 32px;">
-            <button type="submit" class="btn" style="width: 100%; padding: 16px; font-size: 1.1em;">
+        <div class="submit-container">
+            <button type="submit" class="btn btn-submit">
                 START SIMULATION
             </button>
         </div>
@@ -246,20 +229,109 @@
     </form>
 </div>
 
+<style>
+    /* Layout Global */
+    .header-container { display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; }
+    .form-card { margin-bottom: 24px; padding: 24px; border: 1px solid var(--border); }
+    .section-title { color: var(--primary); font-weight: bold; margin-bottom: 20px; font-size: 1.5rem; }
+    
+    /* Inputs Standard */
+    .form-label { display: block; margin-bottom: 8px; font-weight: 500; }
+    .form-input { width: 100%; padding: 8px 12px; border: 1px solid #ccc; border-radius: 4px; font-size: 1rem; }
+    .input-file { margin-top: 5px; font-size: 0.95em; width: 100%; }
+    .help-text { font-size: 0.85em; color: var(--muted); margin-top: 6px; margin-bottom: 0; }
+    .text-danger { color: #dc3545; }
+
+    /* Messages Box */
+    .msg-box { margin-bottom: 8px; padding: 5px 10px; border-radius: 4px; font-size: 0.9em; }
+    .success-msg { background-color: #d1e7dd; color: #0f5132; border: 1px solid #badbcc; }
+    .flex-space-between { display: flex; justify-content: space-between; align-items: center; }
+    .btn-remove { background: transparent; border: 1px solid #dc3545; color: #dc3545; border-radius: 4px; padding: 2px 8px; font-size: 0.85em; cursor: pointer; }
+
+    /* BOITE GRISE (Use Collections) */
+    .gray-panel { margin-bottom: 15px; background: #f8f9fa; padding: 10px; border-radius: 5px; border: 1px solid var(--border); }
+    
+    /* BOITE VERTE (Save to Collections) */
+    .green-panel { margin-top: 15px; padding: 10px; background-color: #e8f5e9; border: 1px solid #c8e6c9; border-radius: 5px; }
+    .label-green { color: #2e7d32; font-weight: bold; }
+    .sub-label-green { font-size: 0.9em; color: #2e7d32; display: block; margin-bottom: 4px; }
+    .input-green { border: 1px solid #81c784; background: white; padding: 6px; border-radius: 4px; width: 100%; }
+
+    /* Checkboxes & Alignement */
+    .flex-row-start { 
+        display: flex; 
+        align-items: center; 
+        justify-content: flex-start;
+        gap: 8px; 
+    }
+    .checkbox-custom { 
+        width: auto !important;
+        margin: 0; 
+        cursor: pointer; 
+    }
+    .label-inline { 
+        margin: 0; 
+        cursor: pointer; 
+        font-weight: normal; 
+        text-align: left;
+    }
+
+    /* Section Collections (Hidden) */
+    .collections-container { padding-left: 10px; border-left: 3px solid var(--primary); margin-bottom: 20px; }
+    .scrollable-list { max-height: 200px; overflow-y: auto; background: white; border: 1px solid var(--border); padding: 10px; border-radius: 4px; }
+    .list-title { font-size: 0.8em; text-transform: uppercase; color: var(--muted); margin-bottom: 8px; font-weight: bold; }
+    
+    .list-item { 
+        display: flex; 
+        align-items: center; 
+        justify-content: flex-start;
+        gap: 8px; 
+        margin-bottom: 6px; 
+        cursor: pointer; 
+        font-weight: normal;
+        text-align: left;
+    }
+    .count-text { font-size: 0.8em; color: var(--muted); }
+    .empty-text { font-size: 0.8em; font-style: italic; color: var(--muted); }
+    .divider { margin: 8px 0; border: 0; border-top: 1px solid #eee; }
+
+    /* Advanced Options */
+    .btn-full-toggle { width: 100%; text-align: left; display: flex; justify-content: space-between; align-items: center; padding: 12px 16px; border-radius: 4px; }
+    .options-card { border-top-left-radius: 0; border-top-right-radius: 0; margin-top: -5px; padding: 20px; border-top: none; padding-top: 25px; border: 1px solid var(--border); border-top: 0; }
+
+    /* Bouton Submit */
+    .submit-container { margin-top: 32px; margin-bottom: 40px; }
+    .btn-submit { width: 100%; padding: 16px; font-size: 1.1em; background-color: var(--primary); color: white; border: none; border-radius: 4px; cursor: pointer; transition: opacity 0.2s; }
+    .btn-submit:hover { opacity: 0.9; }
+
+    /* Utilitaires Marges */
+    .mb-10 { margin-bottom: 10px; }
+    .mb-16 { margin-bottom: 16px; }
+    .mb-24 { margin-bottom: 24px; }
+    .mt-10 { margin-top: 10px; }
+
+    /* Messages List */
+    .messages-list { list-style: none; padding: 0; margin-bottom: 20px; }
+    .messages-list li { padding: 15px; border-radius: 4px; margin-bottom: 10px; font-weight: 500; }
+    .messages-list .success { background-color: #d1e7dd; color: #0f5132; border: 1px solid #badbcc; }
+    .messages-list .error { background-color: #f8d7da; color: #842029; border: 1px solid #f5c2c7; }
+</style>
+
 <script>
-// Fonction pour supprimer un fichier optionnel pré-rempli
 function clearOptionalFile(type) {
     if (type === 'primers') {
-        document.getElementById('msg-prev-primers').style.display = 'none';
+        const msg = document.getElementById('msg-prev-primers');
+        if(msg) msg.style.display = 'none';
         document.getElementById('clear_primers').value = 'true';
     } else if (type === 'concentrations') {
-        document.getElementById('msg-prev-concentrations').style.display = 'none';
+        const msg = document.getElementById('msg-prev-concentrations');
+        if(msg) msg.style.display = 'none';
         document.getElementById('clear_concentrations').value = 'true';
     }
 }
 
 document.addEventListener('DOMContentLoaded', function() {
-    // 1. GESTION ZIP vs COLLECTIONS EXISTANTES
+    // 1. GESTION ZIP vs COLLECTIONS
     const useCollections = document.getElementById('use_collections');
     const collectionsSection = document.getElementById('collections-section');
     const uploadSection = document.getElementById('upload-section');
@@ -273,19 +345,17 @@ document.addEventListener('DOMContentLoaded', function() {
             // MODE COLLECTION ACTIVÉ
             collectionsSection.style.display = 'block';
             
-            // On grise et désactive l'upload zip
             uploadSection.style.opacity = '0.5';
-            uploadSection.style.pointerEvents = 'none'; // Empêche le clic
+            uploadSection.style.pointerEvents = 'none'; 
             
             if(seqArchive) {
-                // Si on utilise les collections, le ZIP n'est plus obligatoire
                 seqArchive.removeAttribute('required'); 
-                seqArchive.disabled = true; // Désactivé pour l'envoi
+                seqArchive.disabled = true; 
             }
-            if(prevZipMsg) prevZipMsg.style.display = 'none'; // Cache le message "Previous file"
+            if(prevZipMsg) prevZipMsg.style.display = 'none';
 
         } else {
-            // MODE ZIP ACTIVÉ (Classique)
+            // MODE ZIP ACTIVÉ
             collectionsSection.style.display = 'none';
             
             uploadSection.style.opacity = '1';
@@ -293,7 +363,6 @@ document.addEventListener('DOMContentLoaded', function() {
             
             if(seqArchive) {
                 seqArchive.disabled = false;
-                // Si on n'a pas de fichier précédent, le zip redevient obligatoire
                 if (!seqArchive.getAttribute('data-prev-exists')) {
                     seqArchive.setAttribute('required', 'required');
                 }
@@ -307,12 +376,11 @@ document.addEventListener('DOMContentLoaded', function() {
         updateCollectionsState();
     }
 
-    // 2. GESTION DU NOM DE LA COLLECTION
+    // 2. SAVE TO COLLECTION
     const saveCheckbox = document.getElementById('save_to_collection');
     const nameInputDiv = document.getElementById('collection_name_input_div');
     const nameInput = document.getElementById('new_collection_name');
 
-    // On vérifie que les éléments existent (car l'utilisateur peut être déconnecté)
     if (saveCheckbox && nameInputDiv) {
         saveCheckbox.addEventListener('change', function() {
             if (this.checked) {
@@ -324,23 +392,23 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
     
-    // 3. OPTIONS AVANCÉES
+    // 3. ADVANCED OPTIONS TOGGLE
     const btnToggle = document.getElementById('btn-options-toggle');
     const contentDiv = document.getElementById('options-content');
     const chevron = document.getElementById('chevron-icon');
 
     if (btnToggle && contentDiv) {
-        if (!contentDiv.hidden && chevron) { chevron.className = 'bi bi-chevron-up'; }
         btnToggle.addEventListener('click', function() {
-            const isHidden = contentDiv.style.display === 'none' || contentDiv.hidden;
-            if (isHidden) {
-                contentDiv.hidden = false;
+            if (contentDiv.style.display === 'none') {
                 contentDiv.style.display = 'block';
-                if(chevron) chevron.className = 'bi bi-chevron-up';
+                if(chevron) chevron.style.transform = 'rotate(180deg)';
+                btnToggle.style.borderBottomLeftRadius = '0';
+                btnToggle.style.borderBottomRightRadius = '0';
             } else {
                 contentDiv.style.display = 'none';
-                contentDiv.hidden = true;
-                if(chevron) chevron.className = 'bi bi-chevron-down';
+                if(chevron) chevron.style.transform = 'rotate(0deg)';
+                btnToggle.style.borderBottomLeftRadius = '4px';
+                btnToggle.style.borderBottomRightRadius = '4px';
             }
         });
     }
