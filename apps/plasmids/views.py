@@ -23,22 +23,23 @@ from .forms import PlasmidSearchForm,AddPlasmidsToCollectionForm, ImportPlasmids
 from .models import PlasmidCollection, Plasmid
 from .service import import_plasmids_from_upload, get_or_create_target_collection
 
-
-
-
-
-
-
+from django.db.models import Q
 
 def plasmid_list(request):
-    if request.user.is_authenticated:
-        plasmids = Plasmid.objects.all()
-    else:
-        plasmids = Plasmid.objects.filter(collection__is_public=True)
+    qs = Plasmid.objects.select_related("collection", "collection__team")
 
-    return render(request, 'plasmids/plasmid_list.html', {
-        'plasmids': plasmids
-    })
+    if not request.user.is_authenticated:
+        plasmids = qs.filter(collection__is_public=True)
+    else:
+        u = request.user
+        plasmids = qs.filter(
+            Q(collection__is_public=True) |
+            Q(collection__owner=u) |
+            Q(collection__team__owner=u) |
+            Q(collection__team__members=u)
+        ).distinct()
+
+    return render(request, "plasmids/plasmid_list.html", {"plasmids": plasmids})
 
 
 class PlasmidSearchView(TemplateView):
@@ -213,7 +214,21 @@ def has_similar_sequence(sequence, pattern, min_similarity):
 
 def plasmid_detail(request, id):
     plasmid = get_object_or_404(Plasmid, id=id)
-
+    if not request.user.is_authenticated:
+        if not plasmid.collection.is_public:
+            raise Http404("Not found")
+    else:
+        u = request.user
+        allowed = (
+            plasmid.collection.is_public or
+            plasmid.collection.owner_id == u.id or
+            (plasmid.collection.team_id and (
+                plasmid.collection.team.owner_id == u.id or
+                plasmid.collection.team.members.filter(id=u.id).exists()
+            ))
+        )
+        if not allowed:
+            raise Http404("Not found")
     # Récupérer la séquence
     sequence = plasmid.sequence
 
