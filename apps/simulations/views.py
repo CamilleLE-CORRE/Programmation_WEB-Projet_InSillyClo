@@ -6,6 +6,7 @@ import pathlib
 import traceback
 import glob
 import re
+import pandas as pd
 
 from django.shortcuts import render, redirect
 from django.conf import settings
@@ -535,6 +536,42 @@ def simulation_view(request):
             
             if not gb_files: 
                 raise Exception("No valid .gb files found.")
+
+            try:
+                # 1. On lit le fichier de correspondance (CSV)
+                df_mapping = pd.read_csv(path_mapping, sep=None, engine='python')
+                
+                required_ids = df_mapping.iloc[:, 0].dropna().astype(str).str.strip().tolist()
+                
+                # 2. On fait l'inventaire des fichiers présents
+                available_stems = {f.stem.lower() for f in sequences_dir.glob('**/*.gb')}
+                
+                missing_files = []
+                
+                for req_id in required_ids:
+                    # On ignore les en-têtes potentiels ou lignes vides
+                    if req_id.lower() in ['part', 'name', 'id', 'identifier', 'plasmid_id', '']: 
+                        continue
+                        
+                    # La comparaison : est-ce que 'plasmid_A' est dans le dossier ?
+                    if req_id.lower() not in available_stems:
+                        missing_files.append(req_id)
+                
+                # 3. Si des fichiers manquent, on lève une erreur précise
+                if missing_files:
+                    # On affiche les 5 premiers pour ne pas inonder l'écran
+                    missing_str = ", ".join(missing_files[:5])
+                    if len(missing_files) > 5:
+                        missing_str += f" and {len(missing_files) - 5} others..."
+                    
+                    raise Exception(f"Missing plasmid files! The template asks for these, but they are not in your source: {missing_str}")
+
+            except Exception as e:
+                # Si c'est notre erreur "Missing plasmid", on la remonte pour l'afficher à l'utilisateur
+                if "Missing plasmid" in str(e):
+                    raise e
+                # Si pandas n'arrive pas à lire le CSV, on ne bloque pas (on laisse le simulateur essayer)
+                print(f"Warning: Could not pre-validate mapping file: {e}")
 
             insillyclo.simulator.compute_all(
                 observer=observer,
