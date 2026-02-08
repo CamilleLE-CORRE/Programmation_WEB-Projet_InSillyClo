@@ -1,16 +1,40 @@
 {% extends "core/base.html" %}
+{% load static %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/correspondences.css' %}">
+{% endblock %}
 
 {% block content %}
-<h1>Delete correspondence</h1>
+<div class="card">
+  <h1 class="page-title">Delete correspondence</h1>
+  <p class="muted">
+    You are about to delete : <strong>{{ correspondence.name }}</strong>
+  </p>
+  
+  <div class="warning-box">
+    <svg class="warning-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+        d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
+    </svg>
+    <div>
+      <p class="warning-title">This action cannot be undone.</p>
+      <p class="warning-text">
+        All entries linked to this correspondence will be permanently removed.
+      </p>
+    </div>
+  </div>
 
-<p>
-  Are you sure you want to delete <strong>{{ correspondence.name }}</strong>?
-  This will also delete all its entries.
-</p>
-
-<form method="post">
-  {% csrf_token %}
-  <button type="submit">Yes, delete</button>
-  <a href="{% url 'correspondences:detail' correspondence.id %}">Cancel</a>
-</form>
+  <form method="post" class="form-block">
+    {% csrf_token %}
+    <div class="form-actions">
+      <button type="submit" class="btn btn-danger">Delete permanently</button>
+      <a class="btn btn-secondary" href="{% url 'correspondences:detail' correspondence.id %}">Cancel</a>
+    </div>
+  </form>
+  
+  <p class="muted form-tip">
+    Tip: if you only want to remove entries, use "Upload / Replace entries" instead of deleting the whole table.
+  </p>
+</div>
 {% endblock %}

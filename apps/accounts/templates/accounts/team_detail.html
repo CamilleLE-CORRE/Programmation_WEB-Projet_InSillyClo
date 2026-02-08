@@ -98,23 +98,6 @@
 
 <hr>
 
-<h2>Campaigns</h2>
-{% if campaigns %}
-  <ul>
-    {% for camp in campaigns %}
-      <li>
-        {{ camp.name }}
-        {% if camp.template %} — {{ camp.template.name }}{% endif %}
-        {% if camp.owner %} — by {{ camp.owner.email }}{% endif %}
-      </li>
-    {% endfor %}
-  </ul>
-{% else %}
-  <p><em>No campaigns for this team.</em></p>
-{% endif %}
-
-<hr>
-
 <h2>Publication requests</h2>
 
 {% if publication_requests %}

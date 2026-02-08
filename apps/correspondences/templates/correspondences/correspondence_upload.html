@@ -1,7 +1,12 @@
 {% extends "core/base.html" %}
 {% load static %}
 
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/correspondences.css' %}">
+{% endblock %}
+
 {% block content %}
+
 {% if messages %}
   <ul class="messages">
     {% for message in messages %}
@@ -10,25 +15,43 @@
   </ul>
 {% endif %}
 
-<h1>Upload entries for: {{ correspondence.name }}</h1>
+<div class="card">
+  <h1 class="page-title">Upload entries</h1>
+  <p class="muted">For : <strong>{{ correspondence.name }}</strong></p>
 
-<p><strong>Expected correspondence table format:</strong><br>
-Each line must contain:
-<ul>
-  <li><strong>identifier</strong> (required)</li>
-  <li><strong>display_name</strong> (required)</li>
-  <li><strong>type</strong> (optional)</li>
-</ul>
-Must be csv,tsv, txt or xlsx files.
-</p>
+  <div class="info-box">
+    <h3 class="info-title">Expected file format</h3>
+    <p class="muted" style="margin-top:6px;">
+      CSV / TSV / TXT / XLSX. Each row must contain:
+    </p>
+    <ul class="info-list">
+      <li><strong>identifier</strong> (required)</li>
+      <li><strong>display_name</strong> (required)</li>
+      <li><strong>type</strong> (optional)</li>
+    </ul>
+  </div>
 
-<form method="post" enctype="multipart/form-data">
-  {% csrf_token %}
-  {{ form.as_p }}
-  <button type="submit">📤Upload</button>
-</form>
+  <form method="post" enctype="multipart/form-data" class="form-block">
+    {% csrf_token %}
+    <div class="form-group">
+      {{ form.file.label_tag }}
+      {{ form.file }}
+      <div class="form-help">{{ form.file.help_text }}</div>
+    </div>
+    <div class="checkbox-row">
+      {{ form.replace_existing }}
+      <label for="{{ form.replace_existing.id_for_label }}">
+        {{ form.replace_existing.label }}
+      </label>
+    </div>
+    
+    <div class="form-actions">
+      <button type="submit" class="btn">Upload</button>
+      <a class="btn btn-secondary" href="{% url 'correspondences:detail' correspondence.id %}">
+        Back to detail
+      </a>
+    </div>
+  </form>
+</div>
 
-<p>
-  <a href="{% url 'correspondences:detail' correspondence.id %}">← Back to Correspondence Detail</a>
 {% endblock %}
-

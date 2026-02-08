@@ -63,7 +63,10 @@ def correspondence_create(request):
             obj.owner = request.user
             # obj.team = Team.objects.filter(members=request.user).first()
             obj.save()
-            messages.success(request, "Correspondence created.")
+            messages.success(
+                request,
+                "Correspondence created. Now upload a file to add entries."
+            )
             return redirect("correspondences:detail", pk=obj.pk)
     else:
         form = CorrespondenceCreateForm(user=request.user)
@@ -80,7 +83,14 @@ def correspondence_upload(request, pk: int):
     - Validates for conflicts
     - Writes to DB
     """
-    corr = get_object_or_404(Correspondence, pk=pk, owner=request.user)
+    corr = get_object_or_404(Correspondence, pk=pk)
+
+    is_owner = (corr.owner_id == request.user.id)
+    is_team_owner = (corr.team_id is not None and corr.team.owner_id == request.user.id)
+
+    if not (is_owner or is_team_owner):
+        raise PermissionDenied("You are not allowed to upload entries for this correspondence.")
+
 
     if request.method == "POST":
         form = CorrespondenceUploadForm(request.POST, request.FILES)

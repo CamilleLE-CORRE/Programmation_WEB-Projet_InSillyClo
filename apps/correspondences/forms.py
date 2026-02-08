@@ -21,14 +21,33 @@ class CorrespondenceCreateForm(forms.ModelForm):
                 self.fields["team"].queryset = Team.objects.filter(
                     Q(owner=user) | Q(members=user)
                 ).distinct()
+                self.fields["team"].required = False
+                self.fields["team"].help_text = (
+                    "Optional. Select a team to share this correspondence table with its members. Leave it empty to keep it personal."
+
+                )
             else:
                 self.fields["team"].queryset = Team.objects.none()
 
 
 class CorrespondenceUploadForm(forms.Form):
-    file = forms.FileField(help_text="Upload a correspondence file (2 or 3 columns).")
+    file = forms.FileField(
+        label="File",
+        help_text="CSV / TSV / TXT / XLSX file with 2 or 3 columns.",
+        widget=forms.ClearableFileInput(
+            attrs={
+                "class": "form-control",
+            }
+        ),
+    )
+
     replace_existing = forms.BooleanField(
         required=False,
         initial=True,
-        help_text="Replace all existing entries in this correspondence.",
-    ) # Checkbox to indicate if existing entries should be replaced
+        label="Replace all existing entries in this correspondence.",
+        widget=forms.CheckboxInput(
+            attrs={
+                "class": "form-check-input",
+            }
+        ),
+)

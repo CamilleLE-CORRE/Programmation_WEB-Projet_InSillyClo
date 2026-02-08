@@ -1,63 +1,77 @@
 {% extends "core/base.html" %}
 {% load static %}
+
 {% block extra_css %}
-<link rel="stylesheet" href="{% static 'css/plasmids.css' %}">
+<link rel="stylesheet" href="{% static 'css/correspondences.css' %}">
 {% endblock %}
 
-{% block title %}My correspondence Table{% endblock %}
+{% block title %}My Correspondence Tables{% endblock %}
 
 {% block content %}
-{% if request.user.is_authenticated %}
-<h1> My correspondence Table</h1>
-<a class="btn" href="{% url 'correspondences:create' %}">Create correspondence</a>
-{% endif %}
-<br><br>
+<div class="card">
+  <div class="header-row">
+    <div>
+      <h1 class="page-title">Correspondence Tables</h1>
+      {% if correspondences %}
+        <p class="muted">{{ correspondences|length }} table{{ correspondences|length|pluralize }}</p>
+      {% endif %}
+    </div>
+    {% if request.user.is_authenticated %}
+      <a class="btn" href="{% url 'correspondences:create' %}">Create table</a>
+    {% endif %}
+  </div>
 
-{% if correspondences %}
-  <p class="text-center">
-        {{ correspondences|length }} correspondences available.
-  </p>
-  <table class="table correspondence-table">
-        <thead>
-            <tr>
-                <th>Name</th>
-                <th>Entries Count</th>
-                <th>Visibility</th>
-                <th>Actions</th>
-            </tr>
-        </thead>
-        <tbody>
-            {% for c in correspondences %}
-                <tr class="clickable-row" data-href="{% url 'correspondences:detail' c.pk %}">
-                    <td>{{ c.name }}</td>
-                    <td>{{ c.entries.count }}</td>
-                    <td>
-                        {% if c.is_public %}
-                            <span class="badge bg-success">Public</span>
-                        {% else %}
-                            <span class="badge bg-secondary">Private</span>
-                        {% endif %}
-                    </td>
-                    <td>
-                        <a href="{% url 'correspondences:delete' c.id %}">🗑️</a>
-                    </td>
-                </tr>
-            {% endfor %}
-        </tbody>
+  {% if correspondences %}
+    <table class="data-table">
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Owner</th>
+          <th>Entries</th>
+          <th>Visibility</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for c in correspondences %}
+          <tr class="clickable-row" data-href="{% url 'correspondences:detail' c.pk %}">
+            <td><strong>{{ c.name }}</strong></td>
+            <td>{{ c.owner.email }}</td>
+            <td>{{ c.entries.count }}</td>
+            <td>
+              {% if c.is_public %}
+                <span class="badge badge-public">Public</span>
+              {% else %}
+                <span class="badge badge-private">Private</span>
+              {% endif %}
+            </td>
+            <td class="actions-cell">
+                {% if request.user.is_authenticated %}
+                  {% if c.owner_id == request.user.id %}
+                    <a href="{% url 'correspondences:delete' c.id %}" class="action-link" onclick="event.stopPropagation();">
+                      Delete
+                    </a>
+                  {% elif c.team_id and c.team.owner_id == request.user.id %}
+                    <a href="{% url 'correspondences:delete' c.id %}" class="action-link" onclick="event.stopPropagation();">
+                      Delete
+                    </a>
+                  {% endif %}
+                {% endif %}
+              </td>
+              
+              
+          </tr>
+        {% endfor %}
+      </tbody>
     </table>
+  {% else %}
+    <p class="muted">No correspondence tables yet.</p>
+  {% endif %}
+</div>
 
-    <script>
-        document.addEventListener("DOMContentLoaded", function() {
-            const rows = document.querySelectorAll(".clickable-row");
-            rows.forEach(row => {
-                row.addEventListener("click", function() {
-                    window.location.href = this.dataset.href;
-                });
-            });
-        });
-    </script>
-
-{% else %}
-<p>No correspondences found.</p>
-{% endif %}
+<script>
+document.querySelectorAll(".clickable-row").forEach(row => {
+  row.addEventListener("click", () => window.location.href = row.dataset.href);
+});
+</script>
 {% endblock %}

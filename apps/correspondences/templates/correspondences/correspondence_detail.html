@@ -1,61 +1,103 @@
 {% extends "core/base.html" %}
 {% load static %}
 
-{% block content %}
-<h1>{{ correspondence.name }}</h1>
-
-<p>
-  Owner :{{ correspondence.owner.username }} | 
-  Email: {{ correspondence.owner.email }} <br>
-  Status: <strong>
-    {% if correspondence.is_public %}(Public){% else %}(Private){% endif %}
-  </strong>
-</p>
-
-
-  <a href="{% url 'correspondences:upload' correspondence.id %}"> 📤Upload / Replace entries</a>
-  <a href="{% url 'correspondences:delete' correspondence.id %}">🗑️Delete</a>
-  <form method="post"
-      action="{% url 'publications:request_publication' 'correspondence' correspondence.id %}">
-  {% csrf_token %}
-  <button type="submit">Publicate</button>
-  {% if messages %}
-  <ul class="messages">
-    {% for message in messages %}
-      <li class="{{ message.tags }}">{{ message }}</li>
-    {% endfor %}
-  </ul>
-{% endif %}
-
-</form>
-
-
-</p>
-
-<table>
-  <thead>
-    <tr>
-      <th>Identifiers</th>
-      <th>Display Name</th>
-      <th>Type</th>
-    </tr>
-  </thead>
-  <tbody>
-    {% for e in entries %}
-    <tr>
-      <td>{{ e.identifier }}</td>
-      <td>{{ e.display_name }}</td>
-      <td>{{ e.entry_type }}</td>
-    </tr>
-    {% empty %}
-    <tr>
-      <td colspan="3">No entries found.</td>
-    </tr>
-    {% endfor %}
-  </tbody>
-</table>
-
-<p>
-  <a href="{% url 'correspondences:list' %}">← Back to My correspondence Table</a>
-</p>
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/correspondences.css' %}">
 {% endblock %}
+
+{% block title %}{{ correspondence.name }}{% endblock %}
+
+{% block content %}
+<div class="card">
+  <div class="header-row">
+    <div>
+      <h1 class="page-title">{{ correspondence.name }}</h1>
+      <div class="meta-info">
+        <span><strong>Owner:</strong> {{ correspondence.owner.email }}</span>
+        {% if correspondence.team %}
+          <span><strong>Team:</strong> {{ correspondence.team.name }}</span>
+        {% endif %}
+        <span>
+          {% if correspondence.is_public %}
+            <span class="badge badge-public">Public</span>
+          {% else %}
+            <span class="badge badge-private">Private</span>
+          {% endif %}
+        </span>
+        <span><strong>{{ entries|length }}</strong> entr{{ entries|length|pluralize:"y,ies" }}</span>
+      </div>
+    </div>
+    <div class="action-buttons">
+      {% if request.user.is_authenticated %}
+        {% if correspondence.owner_id == request.user.id %}
+          <a class="btn" href="{% url 'correspondences:upload' correspondence.id %}">Upload entries</a>
+          <form method="post" action="{% url 'publications:request_publication' 'correspondence' correspondence.id %}" style="display:inline;">
+            {% csrf_token %}
+            <button type="submit" class="btn btn-secondary">Request publication</button>
+          </form>
+        {% elif correspondence.team_id and correspondence.team.owner_id == request.user.id %}
+          <a class="btn" href="{% url 'correspondences:upload' correspondence.id %}">Upload entries</a>
+          <form method="post" action="{% url 'publications:request_publication' 'correspondence' correspondence.id %}" style="display:inline;">
+            {% csrf_token %}
+            <button type="submit" class="btn btn-secondary">Request publication</button>
+          </form>
+        {% endif %}
+      {% endif %}
+    </div>
+    
+    
+  </div>
+
+  {% if messages %}
+    <div class="messages-box">
+      {% for message in messages %}
+        <div class="message message-{{ message.tags }}">{{ message }}</div>
+      {% endfor %}
+    </div>
+  {% endif %}
+
+  <div class="table-wrap">
+    <table class="nice-table">
+      <thead>
+        <tr>
+          <th>Identifier</th>
+          <th>Display name</th>
+          <th>Type</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for e in entries %}
+        <tr>
+          <td class="mono">{{ e.identifier }}</td>
+          <td>{{ e.display_name }}</td>
+          <td>
+            {% if e.entry_type %}
+              <span class="badge">{{ e.entry_type }}</span>
+            {% else %}
+              <span class="muted">—</span>
+            {% endif %}
+          </td>
+        </tr>
+        {% empty %}
+        <tr>
+          <td colspan="3" class="muted">No entries found.</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  <div class="footer-actions">
+    <a class="btn btn-secondary" href="{% url 'correspondences:list' %}">Back to list</a>
+  
+    {% if request.user.is_authenticated %}
+      {% if correspondence.owner_id == request.user.id %}
+        <a class="action-link" href="{% url 'correspondences:delete' correspondence.id %}">Delete table</a>
+      {% elif correspondence.team_id and correspondence.team.owner_id == request.user.id %}
+        <a class="action-link" href="{% url 'correspondences:delete' correspondence.id %}">Delete table</a>
+      {% endif %}
+    {% endif %}
+  </div>
+  
+  
+{% endblock %}
+
