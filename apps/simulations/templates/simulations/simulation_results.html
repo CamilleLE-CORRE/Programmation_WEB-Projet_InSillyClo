@@ -47,7 +47,7 @@
         <div id="summary-header"
              style="padding: 12px 16px; background: var(--bg); border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; cursor: pointer; user-select: none;">
             
-            <strong style="color: var(--primary);"><i class="bi bi-sliders"></i> Configuration Summary</strong>
+            <strong style="color: var(--primary);"> Configuration Summary</strong>
             
             <div style="display: flex; align-items: center; gap: 15px;">
                 <span style="font-size: 0.85em; color: var(--muted);">{{ campaign.created_at|date:"d M Y H:i" }}</span>
@@ -129,29 +129,36 @@
     {% if results.files %}
     
     <div class="card" style="padding: 0; margin-bottom: 30px; overflow: hidden;">
-        <div style="padding: 16px; border-bottom: 1px solid var(--border); background: var(--bg); font-weight: bold;">
-            Generated Files
+        <div id="files-header" 
+             style="padding: 12px 16px; border-bottom: 1px solid var(--border); background: var(--bg); display: flex; justify-content: space-between; align-items: center; cursor: pointer; user-select: none;">
+            
+            <strong style="color: var(--primary);"> Generated Files</strong>
+            
+            <i class="bi bi-chevron-up" id="files-chevron" style="transition: transform 0.2s;"></i>
         </div>
-        <table class="table plasmid-table">
-            <thead>
-                <tr>
-                    <th style="padding-left: 20px;">File Name</th>
-                    <th style="text-align: right; padding-right: 20px;">Action</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for file in results.files %}
-                <tr>
-                    <td style="padding-left: 20px;">{{ file }}</td>
-                    <td style="text-align: right; padding-right: 20px;">
-                        <a href="{{ results.output_dir_url }}/{{ file }}" download style="font-weight: 600;">
-                            Download
-                        </a>
-                    </td>
-                </tr>
-                {% endfor %}
-            </tbody>
-        </table>
+
+        <div id="filesContent" style="display: block;">
+            <table class="table plasmid-table">
+                <thead>
+                    <tr>
+                        <th style="padding-left: 20px;">File Name</th>
+                        <th style="text-align: right; padding-right: 20px;">Action</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for file in results.files %}
+                    <tr>
+                        <td style="padding-left: 20px;">{{ file }}</td>
+                        <td style="text-align: right; padding-right: 20px;">
+                            <a href="{{ results.output_dir_url }}/{{ file }}" download style="font-weight: 600;">
+                                Download
+                            </a>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
     </div>
 
     {% if results.plasmid_visuals %}
@@ -166,7 +173,7 @@
                 
                 <div style="display: flex; align-items: center; gap: 10px;">
                     <h5 style="color: var(--primary); margin: 0;">
-                        <i class="bi bi-circle"></i> {{ p.filename }}
+                        {{ p.filename }}
                     </h5>
                     <span class="badge bg-secondary">{{ p.length }} bp</span>
                 </div>
@@ -177,14 +184,14 @@
                        onclick="downloadPlasmidImage('plasmid-drawing-{{ forloop.counter }}', '{{ p.filename }}.png'); return false;" 
                        class="btn btn-secondary" 
                        style="padding: 6px 12px; font-size: 0.9em; font-weight: 600;">
-                        <i class="bi bi-card-image"></i> .png
+                        .png
                     </a>
 
                     <a href="{{ results.output_dir_url }}/{{ p.filename }}" 
                        class="btn btn-secondary" 
                        style="padding: 6px 12px; font-size: 0.9em; font-weight: 600;" 
                        download>
-                        <i class="bi bi-file-earmark-code"></i> .gb
+                        .gb
                     </a>
                 </div>
             </div>
@@ -347,26 +354,40 @@
 
 <script>
     document.addEventListener('DOMContentLoaded', function() {
-        const header = document.getElementById('summary-header');
-        const content = document.getElementById('configSummary');
-        const chevron = document.getElementById('summary-chevron');
+        
+        // --- 1. Gestion du Configuration Summary (Existant) ---
+        const sumHeader = document.getElementById('summary-header');
+        const sumContent = document.getElementById('configSummary');
+        const sumChevron = document.getElementById('summary-chevron');
 
-        if (header && content && chevron) {
-            header.addEventListener('click', function() {
-                // Si c'est visible, on cache
-                if (content.style.display !== 'none') {
-                    content.style.display = 'none';
-                    // Flèche vers le bas
-                    chevron.classList.remove('bi-chevron-up');
-                    chevron.classList.add('bi-chevron-down');
-                } else {
-                    // Sinon on affiche
-                    content.style.display = 'block';
-                    // Flèche vers le haut
-                    chevron.classList.remove('bi-chevron-down');
-                    chevron.classList.add('bi-chevron-up');
-                }
+        if (sumHeader && sumContent && sumChevron) {
+            sumHeader.addEventListener('click', function() {
+                toggleVisibility(sumContent, sumChevron);
             });
+        }
+
+        // --- 2. Gestion du Generated Files (Nouveau) ---
+        const fileHeader = document.getElementById('files-header');
+        const fileContent = document.getElementById('filesContent');
+        const fileChevron = document.getElementById('files-chevron');
+
+        if (fileHeader && fileContent && fileChevron) {
+            fileHeader.addEventListener('click', function() {
+                toggleVisibility(fileContent, fileChevron);
+            });
+        }
+
+        // --- Fonction générique pour afficher/cacher ---
+        function toggleVisibility(content, chevron) {
+            if (content.style.display !== 'none') {
+                content.style.display = 'none';
+                chevron.classList.remove('bi-chevron-up');
+                chevron.classList.add('bi-chevron-down');
+            } else {
+                content.style.display = 'block';
+                chevron.classList.remove('bi-chevron-down');
+                chevron.classList.add('bi-chevron-up');
+            }
         }
     });
 
@@ -379,12 +400,7 @@
             backgroundColor: '#ffffff',
             onclone: function(clonedDoc) {
                 const clonedElement = clonedDoc.getElementById(elementId);
-                
-                // 1. On force l'élément cloné à ne plus avoir de scroll
                 clonedElement.style.overflow = "visible"; 
-                
-                // 2. On force sa largeur à être assez grande pour contenir les 900px + les marges
-                // On met "fit-content" pour qu'il s'adapte, ou une valeur fixe large (ex: 1100px)
                 clonedElement.style.width = "1100px"; 
             }
         }).then(canvas => {
