@@ -57,16 +57,17 @@ def correspondence_detail(request, pk: int):
 @login_required
 def correspondence_create(request):
     if request.method == "POST":
-        form = CorrespondenceCreateForm(request.POST)
+        form = CorrespondenceCreateForm(request.POST, user=request.user)
         if form.is_valid():
             obj = form.save(commit=False)
             obj.owner = request.user
-            obj.team = Team.objects.filter(members=request.user).first()
+            # obj.team = Team.objects.filter(members=request.user).first()
             obj.save()
             messages.success(request, "Correspondence created.")
             return redirect("correspondences:detail", pk=obj.pk)
     else:
-        form = CorrespondenceCreateForm()
+        form = CorrespondenceCreateForm(user=request.user)
+
 
     return render(request, "correspondences/correspondence_create.html", {"form": form})
 
