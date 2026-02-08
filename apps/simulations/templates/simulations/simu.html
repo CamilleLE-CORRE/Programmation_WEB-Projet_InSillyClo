@@ -11,7 +11,7 @@
         
         {% if user.is_authenticated %}
         <a href="{% url 'simulations:history' %}" class="btn btn-secondary">
-            <i class="bi bi-clock-history"></i> History
+            History
         </a>
         {% endif %}
     </div>
@@ -163,7 +163,7 @@
                             <div style="display: flex; align-items: center; gap: 8px;">
                                 <input type="checkbox" id="save_to_collection" name="save_to_collection" style="width: auto; cursor: pointer;">
                                 <label for="save_to_collection" style="margin:0; cursor:pointer; color: #2e7d32; font-weight: bold;">
-                                    <i class="bi bi-save"></i> Save plasmids to my collections
+                                    Save plasmids to my collections
                                 </label>
                             </div>
                             
@@ -182,8 +182,7 @@
 
         <div style="margin-bottom: 24px;">
             <button type="button" id="btn-options-toggle" class="btn btn-secondary" style="width: 100%; text-align: left; display: flex; justify-content: space-between; align-items: center;">
-                <span><i class="bi bi-sliders"></i> Advanced Parameters</span>
-                <i class="bi bi-chevron-down" id="chevron-icon"></i>
+                <span> Advanced Parameters</span>
             </button>
             
             <div id="options-content" class="card" 
@@ -201,7 +200,7 @@
                                 <li class="success" style="padding: 5px 10px; font-size: 0.9em; display: flex; justify-content: space-between; align-items: center;">
                                     <span>Detected: <strong>{{ prefill.prev_primers }}</strong></span>
                                     <button type="button" class="btn btn-sm btn-outline-danger" onclick="clearOptionalFile('primers')" style="padding: 0px 6px; font-size: 0.8em; margin-left: 10px;">
-                                        <i class="bi bi-x-lg"></i> Remove
+                                        Remove
                                     </button>
                                 </li>
                             </div>
@@ -221,7 +220,7 @@
                                 <li class="success" style="padding: 5px 10px; font-size: 0.9em; display: flex; justify-content: space-between; align-items: center;">
                                     <span>Detected: <strong>{{ prefill.prev_concentrations }}</strong></span>
                                     <button type="button" class="btn btn-sm btn-outline-danger" onclick="clearOptionalFile('concentrations')" style="padding: 0px 6px; font-size: 0.8em; margin-left: 10px;">
-                                        <i class="bi bi-x-lg"></i> Remove
+                                        Remove
                                     </button>
                                 </li>
                             </div>
