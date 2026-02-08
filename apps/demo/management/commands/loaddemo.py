@@ -20,13 +20,13 @@ from datetime import timedelta
 
 from django.apps import apps as django_apps
 from django.contrib.auth import get_user_model
+from django.contrib.auth.models import Group, Permission
 from django.contrib.contenttypes.models import ContentType
 from django.core.management import call_command
 from django.core.management.base import BaseCommand
+from django.core.exceptions import FieldDoesNotExist
 from django.db import transaction
 from django.utils import timezone
-from django.contrib.contenttypes.models import ContentType
-from django.core.exceptions import FieldDoesNotExist
 
 
 User = get_user_model()
@@ -119,6 +119,10 @@ class Command(BaseCommand):
         self.campaigns: dict[str, object] = {}
 
         self.create_users()
+
+        # NEW: ensure staff have permissions in Django admin
+        self.setup_staff_admin_permissions()
+
         self.create_teams()
         self.create_campaign_templates()
         self.create_plasmid_collections()
@@ -138,6 +142,41 @@ class Command(BaseCommand):
         self.stdout.write(self.style.SUCCESS("DEMO DATA LOADED SUCCESSFULLY"))
         self.stdout.write(self.style.SUCCESS("=" * 80))
         self.print_summary()
+
+    # =====================================================================
+    # STAFF PERMISSIONS (Django admin)
+    # =====================================================================
+    def setup_staff_admin_permissions(self):
+        """
+        Creates a Group "Administratrices" and grants it view/change permissions
+        on campaigns.CampaignTemplate, then attaches all is_staff users to it.
+        """
+        self.stdout.write("\n>>> Setting up staff permissions (Django admin)...")
+
+        if self.CampaignTemplate is None:
+            self.stdout.write(self.style.WARNING("  ⚠ CampaignTemplate model not found. Skipping staff permissions."))
+            return
+
+        admin_group, _ = Group.objects.get_or_create(name="Administratrices")
+
+        ct = ContentType.objects.get_for_model(self.CampaignTemplate)
+        needed_codenames = ["view_campaigntemplate", "change_campaigntemplate"]
+
+        perms = Permission.objects.filter(content_type=ct, codename__in=needed_codenames)
+        found = set(perms.values_list("codename", flat=True))
+        missing = [c for c in needed_codenames if c not in found]
+        if missing:
+            self.stdout.write(self.style.WARNING(f"  ⚠ Missing permissions in DB: {missing}."))
+            self.stdout.write(self.style.WARNING("    Run migrations, ensure ContentType/Permission are created."))
+        else:
+            admin_group.permissions.add(*perms)
+
+        # Attach all staff users (excluding superuser is optional; keeping it is harmless)
+        staff_users = User.objects.filter(is_staff=True)
+        for u in staff_users:
+            u.groups.add(admin_group)
+
+        self.stdout.write(self.style.SUCCESS(f"  ✓ Group 'Administratrices' ready ({staff_users.count()} staff users attached)"))
 
     # =====================================================================
     # DNA + annotation helpers (to get a realistic plasmid map)
@@ -216,7 +255,7 @@ class Command(BaseCommand):
                 "is_superuser": True,
                 "is_staff": True,
             },
-            # Staff 
+            # Staff
             {
                 "email": "marie.dupont@insillyclo.com",
                 "password": "marie123",
@@ -274,7 +313,6 @@ class Command(BaseCommand):
                 "last_name": "Simon",
                 "is_staff": False,
             },
-
         ]
 
         if not self.minimal:
@@ -294,35 +332,34 @@ class Command(BaseCommand):
                         "last_name": "Roux",
                         "is_staff": False,
                     },
-
-                            {
-                    "email": "antoine.martin@insillyclo.com",
-                    "password": "antoine123",
-                    "first_name": "Antoine",
-                    "last_name": "Martin",
-                    "is_staff": False,
-                },
-                {
-                    "email": "clara.dubois@insillyclo.com",
-                    "password": "clara123",
-                    "first_name": "Clara",
-                    "last_name": "Dubois",
-                    "is_staff": False,
-                },
-                {
-                    "email": "nicolas.bernard@insillyclo.com",
-                    "password": "nicolas123",
-                    "first_name": "Nicolas",
-                    "last_name": "Bernard",
-                    "is_staff": False,
-                },
-                {
-                    "email": "lea.fournier@insillyclo.com",
-                    "password": "lea123",
-                    "first_name": "Léa",
-                    "last_name": "Fournier",
-                    "is_staff": False,
-                },
+                    {
+                        "email": "antoine.martin@insillyclo.com",
+                        "password": "antoine123",
+                        "first_name": "Antoine",
+                        "last_name": "Martin",
+                        "is_staff": False,
+                    },
+                    {
+                        "email": "clara.dubois@insillyclo.com",
+                        "password": "clara123",
+                        "first_name": "Clara",
+                        "last_name": "Dubois",
+                        "is_staff": False,
+                    },
+                    {
+                        "email": "nicolas.bernard@insillyclo.com",
+                        "password": "nicolas123",
+                        "first_name": "Nicolas",
+                        "last_name": "Bernard",
+                        "is_staff": False,
+                    },
+                    {
+                        "email": "lea.fournier@insillyclo.com",
+                        "password": "lea123",
+                        "first_name": "Léa",
+                        "last_name": "Fournier",
+                        "is_staff": False,
+                    },
                 ]
             )
 
@@ -712,7 +749,7 @@ class Command(BaseCommand):
             {"identifier": "pYTK008", "name": "mCherry", "type": "3b", "collection": "pYTK Public Library", "desc": "RFP reporter cassette"},
             {"identifier": "pYTK100", "name": "GFP", "type": "3a", "collection": "Yeast Toolkit Public", "desc": "GFP reporter cassette"},
             {"identifier": "pSR001", "name": "Sophie-TagTest", "type": "misc", "collection": "Sophie - Personal", "desc": "Personal test plasmid"},
-        # --- Personal / test / experimental plasmids ---
+            # --- Personal / test / experimental plasmids ---
             {"identifier": "pSR002", "name": "Tag-Linker-Test",        "type": "misc", "collection": "Sophie - Personal",               "desc": "Flexible linker length comparison"},
             {"identifier": "pSR003", "name": "FLAG-HA-Swap",          "type": "misc", "collection": "Sophie - Personal",               "desc": "Epitope tag replacement construct"},
             {"identifier": "pSR004", "name": "NLS-Screen",            "type": "misc", "collection": "Team Synthèse - Private",           "desc": "Nuclear localization signal screening"},
@@ -723,18 +760,16 @@ class Command(BaseCommand):
             {"identifier": "pSR009", "name": "MCS-Variant-Short",     "type": "misc", "collection": "Team BioSyn - Private",             "desc": "Alternative short multiple cloning site"},
             {"identifier": "pSR010", "name": "Reporter-Control-ON",   "type": "misc", "collection": "pYTK Public Library",               "desc": "Positive control reporter plasmid"},
             {"identifier": "pSR011", "name": "Reporter-Control-OFF",  "type": "misc", "collection": "pYTK Public Library",               "desc": "Negative control reporter plasmid"},
-            {"identifier": "pSR012", "name": "Domain-Deletion-Test",  "type": "misc", "collection": "Sophie - Personal",               "desc": "Protein domain deletion mutant"},
-            {"identifier": "pSR013", "name": "Orientation-Switch",   "type": "misc", "collection": "Team Synthèse - Private",           "desc": "Insert orientation inversion test"},
+            {"identifier": "pSR012", "name": "Domain-Deletion-Test",  "type": "misc", "collection": "Sophie - Personal",                "desc": "Protein domain deletion mutant"},
+            {"identifier": "pSR013", "name": "Orientation-Switch",    "type": "misc", "collection": "Team Synthèse - Private",           "desc": "Insert orientation inversion test"},
             {"identifier": "pSR014", "name": "Spacer-Length-Test",    "type": "misc", "collection": "Team Synthèse - Private",           "desc": "Inter-part spacer length evaluation"},
             {"identifier": "pSR015", "name": "Low-Copy-Backbone",     "type": "misc", "collection": "Yeast Toolkit Public",             "desc": "Low copy number backbone test"},
             {"identifier": "pSR016", "name": "High-Copy-Backbone",    "type": "misc", "collection": "Yeast Toolkit Public",             "desc": "High copy number backbone control"},
             {"identifier": "pSR017", "name": "Inducible-System-Test", "type": "misc", "collection": "Team BioSyn - Private",             "desc": "Inducible expression system validation"},
-            {"identifier": "pSR018", "name": "StopCodon-Readthrough", "type": "misc", "collection": "Sophie - Personal",               "desc": "Stop codon readthrough assessment"},
+            {"identifier": "pSR018", "name": "StopCodon-Readthrough", "type": "misc", "collection": "Sophie - Personal",                "desc": "Stop codon readthrough assessment"},
             {"identifier": "pSR019", "name": "Codon-Usage-Test",      "type": "misc", "collection": "Team BioSyn - Private",             "desc": "Codon optimization comparison"},
-            {"identifier": "pSR020", "name": "Minimal-Backbone",     "type": "misc", "collection": "pYTK Public Library",               "desc": "Minimal backbone construct"},
-
+            {"identifier": "pSR020", "name": "Minimal-Backbone",      "type": "misc", "collection": "pYTK Public Library",              "desc": "Minimal backbone construct"},
         ]
-
 
         for d in plasmids_data:
             coll_name = d["collection"]
@@ -1121,7 +1156,6 @@ class Command(BaseCommand):
             self.stdout.write(self.style.WARNING("  ⚠ No valid targets for publication requests."))
             return
 
-
         # Helper: safe get status enum (in case Status enum name differs)
         Status = getattr(self.Publication, "Status", None) or getattr(self.Publication, "Statuses", None)
 
@@ -1141,14 +1175,14 @@ class Command(BaseCommand):
 
         has_team_field = publication_has_field("team")
 
-    # ------------------------------------------------------------------
-    # DEMO REQUESTS
-    # ------------------------------------------------------------------
-    # Rules implemented:
-    # - Requests with team -> often start PENDING_CHEFFE (some rejected by cheffe, some advance to PENDING_ADMIN)
-    # - Requests without team -> start directly PENDING_ADMIN
-    # - Some rejected (cheffe/admin) with mandatory comment
-    # - Some approved (cheffe + admin)
+        # ------------------------------------------------------------------
+        # DEMO REQUESTS
+        # ------------------------------------------------------------------
+        # Rules implemented:
+        # - Requests with team -> often start PENDING_CHEFFE (some rejected by cheffe, some advance to PENDING_ADMIN)
+        # - Requests without team -> start directly PENDING_ADMIN
+        # - Some rejected (cheffe/admin) with mandatory comment
+        # - Some approved (cheffe + admin)
         demo_requests = [
             # =========================================================
             # HORS ÉQUIPE → DIRECT PENDING_ADMIN
@@ -1296,7 +1330,6 @@ class Command(BaseCommand):
                 self.stdout.write(self.style.ERROR(f"  ✗ Failed to create publication request for {target}: {e}"))
 
         self.stdout.write(self.style.SUCCESS(f"\n>>> Publication requests: {created} created, {skipped} skipped"))
-
 
     # =====================================================================
     # SUMMARY

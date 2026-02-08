@@ -14,28 +14,14 @@
   {% if user.is_authenticated %}
     <p class="muted">Admin dashboard for InSillyClo platform management.</p>
 
-    {% if user.is_superuser %}
-      <div class="section">
-        <h2 class="section-title">System Access</h2>
-        <div class="admin-links">
-          <a href="{% url 'admin:index' %}" class="admin-link">
-            <div>
-              <div class="link-title">Django Admin</div>
-              <div class="link-description">Full system administration interface</div>
-            </div>
-          </a>
-        </div>
-      </div>
-    {% endif %}
-      <br>
     {% if user.is_staff or user.is_superuser %}
       <div class="section">
         <h2 class="section-title">Management</h2>
         <div class="admin-links">
-          <a href="{% url 'campaigns:template_list' %}" class="admin-link">
+          <a href="{% url 'admin:index' %}" class="admin-link">
             <div>
-              <div class="link-title">Templates</div>
-              <div class="link-description">Manage campaign templates</div>
+              <div class="link-title">Manage Campaigns</div>
+              <div class="link-description">Full system administration interface</div>
             </div>
           </a>
           
@@ -46,26 +32,15 @@
             </div>
           </a>
           
-          <a href="{% url 'simulations:simu' %}" class="admin-link">
-            <div>
-              <div class="link-title">Simulations</div>
-              <div class="link-description">Access simulation tools</div>
-            </div>
-          </a>
-          
+
           <a href="{% url 'publications:admin_requests' %}" class="admin-link">
             <div>
               <div class="link-title">Publication Requests</div>
               <div class="link-description">
-                View <strong>all</strong> publication requests:
-                approved, pending cheffe, pending admin, and refused.
-                <br>
-                Administrators can approve or reject requests
-                that are <em>pending admin</em>.
+                View all publication requests: approved, pending cheffe, pending admin, and refused. Administrators can approve or reject requests that are pending admin.
               </div>
             </div>
           </a>
-
         </div>
       </div>
     {% endif %}

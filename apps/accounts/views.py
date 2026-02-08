@@ -79,7 +79,7 @@ def admin_team_list(request):
         .order_by("-id")
     )
 
-    return render(request, "admin_team_list.html", {"teams": teams})
+    return render(request, "accounts/admin_team_list.html", {"teams": teams})
 
 
 def admin_team_detail(request, pk):
@@ -93,7 +93,7 @@ def admin_team_detail(request, pk):
 
     return render(
         request,
-        "admin_team_detail.html",
+        "accounts/admin_team_detail.html",
         {
             "team": team,
             "members": team.members.all().order_by("email"),

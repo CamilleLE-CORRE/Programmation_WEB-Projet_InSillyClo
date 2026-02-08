@@ -425,3 +425,5 @@ def notify_admins_new_publication(pub: Publication, request):
         recipient_list=admin_emails,
         fail_silently=True,  
     )
+
+    

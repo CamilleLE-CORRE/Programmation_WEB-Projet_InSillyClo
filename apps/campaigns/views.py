@@ -270,3 +270,10 @@ def parse_template_xlsx(xlsx_file):
         "restriction_enzyme": str(restriction_enzyme).strip() if restriction_enzyme else "",
         "template_type": template_type,
     }
+
+from django.contrib.admin.views.decorators import staff_member_required
+
+@staff_member_required
+def admin_template_list(request):
+    templates = CampaignTemplate.objects.select_related("owner").order_by("-id")
+    return render(request, "campaigns/admin_template_list.html", {"templates": templates})

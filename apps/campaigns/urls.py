@@ -11,5 +11,7 @@ urlpatterns = [
     path('templates/<int:template_id>/delete/', views.delete_template, name='delete_template'),
     path('templates/<int:template_id>/edit/', views.edit_template, name='edit_template'),
     path('templates/<int:template_id>/replace-xlsx/', views.replace_template_xlsx, name='replace_template_xlsx'),
+    path("admin/templates/", views.admin_template_list, name="admin_template_list"),
+
 ]
 

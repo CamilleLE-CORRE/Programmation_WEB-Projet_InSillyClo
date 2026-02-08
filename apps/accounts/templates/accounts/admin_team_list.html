@@ -1,21 +1,43 @@
 {% extends "core/base.html" %}
+{% load static %}
 
-{% block title %}Teams · InSillyClo{% endblock %}
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/admin.css' %}">
+{% endblock %}
+
+{% block title %}Teams · Admin{% endblock %}
 
 {% block content %}
-  <h1>Teams</h1>
+<div class="card">
+  <h1>All Teams</h1>
 
-  {% if object_list %}
-    <ul>
-      {% for team in object_list %}
-        <li>
-          <a href="{% url 'accounts:team_detail' team.pk %}">{{ team.name }}</a>
-        </li>
-      {% endfor %}
-    </ul>
+  {% if teams %}
+    <table class="admin-table">
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Owner</th>
+          <th>Members</th>
+          <th>Action</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for team in teams %}
+        <tr>
+          <td>{{ team.name }}</td>
+          <td>{{ team.owner.email }}</td>
+          <td>{{ team.members.count }}</td>
+          <td>
+            <a class="btn-link" href="{% url 'accounts:admin_team_detail' team.id %}">
+              View
+            </a>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
   {% else %}
-    <p>No teams yet.</p>
+    <p class="muted">No teams yet.</p>
   {% endif %}
-
-  <p><a class="btn" href="{% url 'accounts:create_team' %}">Create team</a></p>
+</div>
 {% endblock %}
