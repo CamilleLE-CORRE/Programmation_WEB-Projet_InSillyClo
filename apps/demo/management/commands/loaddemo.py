@@ -745,11 +745,9 @@ class Command(BaseCommand):
         collection_field = pick_field(self.Plasmid, ["collection", "plasmid_collection", "plasmidCollection"])
 
         plasmids_data = [
-            # Public
             {"identifier": "pYTK008", "name": "mCherry", "type": "3b", "collection": "pYTK Public Library", "desc": "RFP reporter cassette"},
             {"identifier": "pYTK100", "name": "GFP", "type": "3a", "collection": "Yeast Toolkit Public", "desc": "GFP reporter cassette"},
             {"identifier": "pSR001", "name": "Sophie-TagTest", "type": "misc", "collection": "Sophie - Personal", "desc": "Personal test plasmid"},
-            # --- Personal / test / experimental plasmids ---
             {"identifier": "pSR002", "name": "Tag-Linker-Test",        "type": "misc", "collection": "Sophie - Personal",               "desc": "Flexible linker length comparison"},
             {"identifier": "pSR003", "name": "FLAG-HA-Swap",          "type": "misc", "collection": "Sophie - Personal",               "desc": "Epitope tag replacement construct"},
             {"identifier": "pSR004", "name": "NLS-Screen",            "type": "misc", "collection": "Team Synthèse - Private",           "desc": "Nuclear localization signal screening"},

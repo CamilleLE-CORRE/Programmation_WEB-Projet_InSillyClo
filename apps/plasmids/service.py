@@ -88,17 +88,26 @@ def import_plasmids_from_upload(
                 seq = str(rec.seq) if getattr(rec, "seq", None) is not None else ""
 
                 # If plasmid with same owner+identifier exists, skip
-                if Plasmid.objects.filter(owner=owner, identifier=identifier).exists():
+                # Champs requis par le modèle: identifier, name, type, sequence, length, collection
+                name = (getattr(rec, "name", "") or "").strip() or identifier
+                plasmid_type = "imported"  # valeur par défaut
+                length = len(seq)
+
+                # Skip si déjà dans cette collection
+                if collection and Plasmid.objects.filter(collection=collection, identifier=identifier).exists():
                     skipped += 1
                     continue
 
                 plasmid = Plasmid.objects.create(
-                    owner=owner,
                     identifier=identifier,
+                    name=name,
+                    type=plasmid_type,
                     sequence=seq,
-                    genbank_data=filename,     
-                    collection=collection,          
+                    length=length,
+                    collection=collection,
+                    genbank_data={"source_file": filename},
                 )
+
                 created += 1
 
         except Exception as e:
