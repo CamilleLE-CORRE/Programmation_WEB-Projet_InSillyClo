@@ -23,11 +23,11 @@ Commandes à exécuter :
 git clone https://github.com/CamilleLE-CORRE/Programmation_WEB-Projet_InSillyClo
 cd Programmation_WEB-Projet_InSillyClo
 pip install -r requirements.txt
-python manage.py makemigrations
 python manage.py migrate
-python manage.py createsuperuser
+python manage.py loaddemo
 python manage.py runserver
 ```
+
 
 
 
