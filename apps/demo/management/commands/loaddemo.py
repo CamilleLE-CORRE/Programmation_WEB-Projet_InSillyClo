@@ -90,6 +90,8 @@ class Command(BaseCommand):
     def handle(self, *args, **options):
         self.stdout.write(self.style.SUCCESS("Starting demo data load..."))
         self.minimal = bool(options.get("minimal", False))
+        random.seed(42)
+
 
         # Cache models (use installed app labels, not import paths)
         self.Team = get_model("accounts", "Team") or get_model("teams", "Team")

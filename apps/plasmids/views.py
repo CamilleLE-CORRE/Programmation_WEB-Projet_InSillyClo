@@ -232,7 +232,7 @@ def plasmid_detail(request, id):
     # Récupérer la séquence
     sequence = plasmid.sequence
 
-    # Diviser la séquence en lignes de 50 caractères (pour l'affichage)
+    # Diviser la séquence en lignes de 100 caractères (pour l'affichage)
     sequence_lines = [plasmid.sequence[i:i+100] for i in range(0, len(plasmid.sequence), 100)]
     formatted_sequence = "\n".join(sequence_lines)
 
