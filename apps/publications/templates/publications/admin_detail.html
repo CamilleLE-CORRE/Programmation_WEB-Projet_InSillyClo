@@ -2,43 +2,150 @@
 {% load static %}
 
 {% block extra_css %}
-<link rel="stylesheet" href="{% static 'css/publications.css' %}">
+<link rel="stylesheet" href="{% static 'css/admin_publications_detail.css' %}">
 {% endblock %}
 
 {% block content %}
-<h1 class="page-title">Publication request #{{ pub.id }}</h1>
-
 <div class="card">
-  <p><strong>Requested by:</strong> {{ pub.requested_by.email }}</p>
-  <p><strong>Status:</strong> {{ pub.status }}</p>
-  <p><strong>Created at:</strong> {{ pub.created_at }}</p>
 
-  <hr>
-
-  <h2>Target preview</h2>
-
-  <div class="muted">
-    {{ pub.target_content_type.app_label }}/{{ pub.target_content_type.model }}
-    (id={{ pub.target_object_id }})
+  <!-- HEADER -->
+  <div class="detail-header">
+    <div class="header-content">
+      <div class="header-left">
+        <h1 class="page-title">Publication Request #{{ pub.id }}</h1>
+  
+        {% if pub.status == pub.Status.PENDING_ADMIN %}
+          <span class="status-badge status-pending">Pending admin</span>
+        {% elif pub.status == pub.Status.PENDING_CHEFFE %}
+          <span class="status-badge status-pending">Pending cheffe</span>
+        {% elif pub.status == pub.Status.APPROVED %}
+          <span class="status-badge status-approved">Approved</span>
+        {% elif pub.status == pub.Status.REJECTED_BY_ADMIN %}
+          <span class="status-badge status-rejected">Rejected by admin</span>
+        {% elif pub.status == pub.Status.REJECTED_BY_CHEFFE %}
+          <span class="status-badge status-rejected">Rejected by cheffe</span>
+        {% endif %}
+      </div>
+  
+      <div class="header-right">
+        <a href="{% url 'publications:admin_requests' %}" class="btn btn-secondary">← Back to list</a>
+      </div>
+    </div>
   </div>
+  
+  <!-- DJANGO MESSAGES -->
+  {% if messages %}
+    <div class="messages">
+      {% for message in messages %}
+        <div class="alert alert-{{ message.tags }}">{{ message }}</div>
+      {% endfor %}
+    </div>
+  {% endif %}
 
-  <div style="margin-top:10px;">
-    <strong>{{ target }}</strong>
-  </div>
+  <!-- METADATA -->
+  <section class="section">
+    <h2>Metadata</h2>
+    <dl class="meta-grid">
+      <dt>Requester</dt>
+      <dd>{{ pub.requested_by.get_full_name|default:pub.requested_by.email }}</dd>
 
+      <dt>Created</dt>
+      <dd><span class="mono">{{ pub.created_at|date:"Y-m-d H:i" }}</span></dd>
+
+      <dt>Team</dt>
+      <dd>{% if pub.team %}{{ pub.team.name }}{% else %}<span class="muted">—</span>{% endif %}</dd>
+
+      <dt>Cheffe review</dt>
+      <dd>
+        {% if pub.cheffe_reviewed_at %}
+          <span class="mono">{{ pub.cheffe_reviewed_at|date:"Y-m-d H:i" }}</span>
+          {% if pub.cheffe_reviewed_by %}by {{ pub.cheffe_reviewed_by.get_full_name|default:pub.cheffe_reviewed_by.email }}{% endif %}
+        {% else %}
+          <span class="muted">—</span>
+        {% endif %}
+      </dd>
+
+      <dt>Admin review</dt>
+      <dd>
+        {% if pub.admin_reviewed_at %}
+          <span class="mono">{{ pub.admin_reviewed_at|date:"Y-m-d H:i" }}</span>
+          {% if pub.admin_reviewed_by %}by {{ pub.admin_reviewed_by.get_full_name|default:pub.admin_reviewed_by.email }}{% endif %}
+        {% else %}
+          <span class="muted">—</span>
+        {% endif %}
+      </dd>
+    </dl>
+  </section>
+
+  <!-- TARGET -->
+  <section class="section">
+    <h2>Target object</h2>
+    <div class="target-meta">
+      <code>{{ pub.target_content_type.app_label }}.{{ pub.target_content_type.model }}</code>
+      <span class="object-id">ID {{ pub.target_object_id }}</span>
+    </div>
+
+    {% if target %}
+    <div class="target-box">
+      <a href="{{ target.get_absolute_url }}" class="target-link">
+        {{ target }}
+      </a>
+    </div>
+  {% else %}  
+      <div class="target-box error">Object not found or deleted</div>
+    {% endif %}
+  </section>
+
+  <!-- ENTRIES -->
   {% if entries %}
-    <h3 style="margin-top:16px;">Entries ({{ entries|length }})</h3>
-    <ul>
+  <section class="section">
+    <h2>Affected entries <span class="count">({{ entries|length }})</span></h2>
+    <ul class="entries">
       {% for e in entries %}
         <li>{{ e }}</li>
       {% endfor %}
     </ul>
-  {% else %}
-    <p class="muted" style="margin-top:12px;">No detailed preview available for this target yet.</p>
+  </section>
   {% endif %}
 
-  <hr>
+  <!-- COMMENTS -->
+  {% if pub.cheffe_review_comment or pub.admin_review_comment %}
+  <section class="section">
+    <h2>Review comments</h2>
 
-  <a class="btn" href="{% url 'publications:admin_requests' %}">Back</a>
+    {% if pub.cheffe_review_comment %}
+      <div class="comment comment-cheffe">
+        <strong>Cheffe</strong>
+        {{ pub.cheffe_review_comment }}
+      </div>
+    {% endif %}
+
+    {% if pub.admin_review_comment %}
+      <div class="comment comment-admin">
+        <strong>Admin</strong>
+        {{ pub.admin_review_comment }}
+      </div>
+    {% endif %}
+  </section>
+  {% endif %}
+
+  <!-- ACTIONS -->
+  {% if pub.status == pub.Status.PENDING_ADMIN %}
+  <section class="section">
+    <h2>Admin decision</h2>
+
+    <form method="post" action="{% url 'publications:admin_review' pub.id %}">
+      {% csrf_token %}
+      <label for="comment">Comment (required if rejecting)</label>
+      <textarea name="comment" id="comment" placeholder="Reason for rejection..."></textarea>
+
+      <div class="actions">
+        <button type="submit" name="action" value="approve" class="btn btn-success">Approve</button>
+        <button type="submit" name="action" value="reject" class="btn btn-danger">Reject</button>
+      </div>
+    </form>
+  </section>
+  {% endif %}
+
 </div>
 {% endblock %}
