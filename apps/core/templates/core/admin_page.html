@@ -18,12 +18,22 @@
       <div class="section">
         <h2 class="section-title">Management</h2>
         <div class="admin-links">
+          {% if user.is_superuser %}
           <a href="{% url 'admin:index' %}" class="admin-link">
             <div>
-              <div class="link-title">Manage Campaigns</div>
-              <div class="link-description">Full system administration interface</div>
+              <div class="link-title">Manage General</div>
+              <div class="link-description">Full system administration interface (all apps)</div>
             </div>
           </a>
+        {% else %}
+          <a href="{% url 'admin:campaigns_campaigntemplate_changelist' %}" class="admin-link">
+            <div>
+              <div class="link-title">Manage Campaigns</div>
+              <div class="link-description">Manage campaign templates (staff access)</div>
+            </div>
+          </a>
+        {% endif %}
+        
           
           <a href="{% url 'accounts:admin_team_list' %}" class="admin-link">
             <div>
