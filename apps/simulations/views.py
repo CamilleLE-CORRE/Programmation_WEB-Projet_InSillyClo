@@ -538,56 +538,37 @@ def simulation_view(request):
                 raise Exception("No valid .gb files found.")
 
             try:
-                # 1. On lit le fichier de correspondance (CSV)
-                df_mapping = pd.read_csv(path_mapping, sep=None, engine='python')
+                insillyclo.simulator.compute_all(
+                    observer=observer,
+                    settings=None,
+                    input_template_filled=path_template,
+                    input_parts_files=[path_mapping],
+                    gb_plasmids=gb_files,
+                    output_dir=output_dir,
+                    data_source=insillyclo.data_source.DataSourceHardCodedImplementation(),
+                    primers_file=path_primers_db,
+                    primer_id_pairs=pcr_primers,
+                    enzyme_names=enzymes,
+                    default_mass_concentration=def_conc,
+                    concentration_file=path_conc,
+                    sbol_export=False,
+                )
+            except FileNotFoundError as fnf_error:
+                missing = fnf_error.filename
+                if not missing and "No such file" in str(fnf_error):
+                     # Tentative d'extraction du nom si filename est vide
+                     missing = str(fnf_error)
                 
-                required_ids = df_mapping.iloc[:, 0].dropna().astype(str).str.strip().tolist()
-                
-                # 2. On fait l'inventaire des fichiers présents
-                available_stems = {f.stem.lower() for f in sequences_dir.glob('**/*.gb')}
-                
-                missing_files = []
-                
-                for req_id in required_ids:
-                    # On ignore les en-têtes potentiels ou lignes vides
-                    if req_id.lower() in ['part', 'name', 'id', 'identifier', 'plasmid_id', '']: 
-                        continue
-                        
-                    # La comparaison : est-ce que 'plasmid_A' est dans le dossier ?
-                    if req_id.lower() not in available_stems:
-                        missing_files.append(req_id)
-                
-                # 3. Si des fichiers manquent, on lève une erreur précise
-                if missing_files:
-                    # On affiche les 5 premiers pour ne pas inonder l'écran
-                    missing_str = ", ".join(missing_files[:5])
-                    if len(missing_files) > 5:
-                        missing_str += f" and {len(missing_files) - 5} others..."
-                    
-                    raise Exception(f"Missing plasmid files! The template asks for these, but they are not in your source: {missing_str}")
-
+                raise Exception(f"Simulation failed: A required plasmid file is missing. The simulator looked for: {missing}")
+            
             except Exception as e:
-                # Si c'est notre erreur "Missing plasmid", on la remonte pour l'afficher à l'utilisateur
-                if "Missing plasmid" in str(e):
-                    raise e
-                # Si pandas n'arrive pas à lire le CSV, on ne bloque pas (on laisse le simulateur essayer)
-                print(f"Warning: Could not pre-validate mapping file: {e}")
-
-            insillyclo.simulator.compute_all(
-                observer=observer,
-                settings=None,
-                input_template_filled=path_template,
-                input_parts_files=[path_mapping],
-                gb_plasmids=gb_files,
-                output_dir=output_dir,
-                data_source=insillyclo.data_source.DataSourceHardCodedImplementation(),
-                primers_file=path_primers_db,
-                primer_id_pairs=pcr_primers,
-                enzyme_names=enzymes,
-                default_mass_concentration=def_conc,
-                concentration_file=path_conc,
-                sbol_export=False,
-            )
+                # Si l'erreur contient "No such file" mais n'est pas un FileNotFoundError
+                error_str = str(e)
+                if "No such file" in error_str or "does not exist" in error_str:
+                     raise Exception(f"Simulation failed: A required file is missing. Details: {error_str}")
+                
+                # Sinon, c'est une autre erreur de simulation, on la remonte telle quelle
+                raise e
 
             shutil.make_archive(str(work_dir / 'tout_telecharger'), 'zip', output_dir)
 
