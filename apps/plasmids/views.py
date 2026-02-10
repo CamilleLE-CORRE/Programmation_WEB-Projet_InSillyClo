@@ -233,9 +233,8 @@ def plasmid_detail(request, id):
     sequence = plasmid.sequence
 
     # Diviser la séquence en lignes de 100 caractères (pour l'affichage)
-    sequence_lines = [plasmid.sequence[i:i+100] for i in range(0, len(plasmid.sequence), 100)]
+    sequence_lines = [plasmid.sequence[i:i+92] for i in range(0, len(plasmid.sequence), 100)]
     formatted_sequence = "\n".join(sequence_lines)
-
     # Parse features depuis genbank ou annotations
     if plasmid.genbank_data and plasmid.genbank_data.get("features"):
         parsed = parse_genbank(plasmid.genbank_data)
