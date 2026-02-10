@@ -100,3 +100,19 @@ class ImportPlasmidsForm(forms.Form):
             raise forms.ValidationError("Only .gb/.gbk or .zip files are allowed.")
 
         return f
+    
+
+class PlasmidCollectionForm(forms.ModelForm):
+    class Meta:
+        model = PlasmidCollection
+        fields = ["name", "team"]
+
+    def __init__(self, *args, user=None, **kwargs):
+        super().__init__(*args, **kwargs)
+
+        if user is None:
+            self.fields["team"].queryset = Team.objects.none()
+            return
+
+        # seules les teams où l'utilisateur est membre sont proposées
+        self.fields["team"].queryset = Team.objects.filter(members=user).distinct()

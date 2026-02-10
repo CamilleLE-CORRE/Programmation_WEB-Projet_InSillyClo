@@ -16,6 +16,7 @@ Define database models for correspondencesEntry here:
 from django.db import models
 
 from apps.accounts.models import Team
+from django.urls import reverse
 
 class Correspondence(models.Model):
     id = models.AutoField(primary_key=True)  # Primary key field
@@ -42,6 +43,9 @@ class Correspondence(models.Model):
 
     def __str__(self):
         return f"{self.name} (Owner: {self.owner.email})"
+    
+    def get_absolute_url(self):
+        return reverse("correspondences:detail", args=[self.pk])
     
 class CorrespondenceEntry(models.Model):
     """

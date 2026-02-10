@@ -19,7 +19,7 @@ from django.contrib.auth.decorators import login_required
 from apps.correspondences import forms
 from apps.accounts.models import Team
 
-from .forms import PlasmidSearchForm,AddPlasmidsToCollectionForm, ImportPlasmidsForm
+from .forms import PlasmidSearchForm,AddPlasmidsToCollectionForm, ImportPlasmidsForm, PlasmidCollectionForm
 from .models import PlasmidCollection, Plasmid
 from .service import import_plasmids_from_upload, get_or_create_target_collection
 
@@ -393,15 +393,19 @@ class OwnerRequiredMixin(UserPassesTestMixin):
 
 class CollectionCreateView(LoginRequiredMixin, CreateView):
     model = PlasmidCollection
+    form_class = PlasmidCollectionForm
     template_name = "collections/collection_form.html"
-    fields = ["name", "team"]
+    # fields = ["name", "team"]
     exclude=["is_public"]
 
+    def get_form_kwargs(self):
+        kwargs = super().get_form_kwargs()
+        kwargs["user"] = self.request.user
+        return kwargs
+    
     # Team assignment during creation
     def form_valid(self, form):
         form.instance.owner = self.request.user
-        team = Team.objects.filter(members=self.request.user).first()
-        form.instance.team = team
 
         return super().form_valid(form)  
 
@@ -409,7 +413,14 @@ class CollectionCreateView(LoginRequiredMixin, CreateView):
 class CollectionUpdateView(LoginRequiredMixin, OwnerRequiredMixin, UpdateView):
     model = PlasmidCollection
     template_name = "collections/collection_form.html"
-    fields = ["name", "is_public", "team"]
+    # fields = ["name", "is_public", "team"]
+    form_class = PlasmidCollectionForm
+
+
+    def get_form_kwargs(self):
+        kwargs = super().get_form_kwargs()
+        kwargs["user"] = self.request.user
+        return kwargs
 
 
 class CollectionDeleteView(LoginRequiredMixin, OwnerRequiredMixin, DeleteView):

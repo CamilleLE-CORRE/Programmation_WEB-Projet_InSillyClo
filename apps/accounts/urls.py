@@ -11,7 +11,7 @@ from .views import (
     TeamRemoveMemberView,
     TeamTransferOwnerView,
     admin_team_list,
-    admin_team_detail,
+    AdminTeamDetailView,
 )
 
 urlpatterns = [
@@ -30,7 +30,7 @@ urlpatterns = [
 
     # ADMINISTRATOR VIEW
     path("admin/teams/", admin_team_list, name="admin_team_list"), 
-    path("admin/teams/<int:pk>/", admin_team_detail, name="admin_team_detail"), 
+    path("admin/teams/<int:pk>/", AdminTeamDetailView.as_view(), name="admin_team_detail"),
 
 ]
 

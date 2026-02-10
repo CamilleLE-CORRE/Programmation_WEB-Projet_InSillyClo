@@ -53,6 +53,9 @@ class PlasmidCollection(models.Model):
 
     def __str__(self):
         return f"{self.name}" # (Owner: {self.owner.email})"
+    
+    def get_absolute_url(self):
+        return reverse("plasmids:collection_detail", args=[self.pk])
 
 
 class Plasmid(models.Model):

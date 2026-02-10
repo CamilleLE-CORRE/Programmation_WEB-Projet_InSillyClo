@@ -82,23 +82,70 @@ def admin_team_list(request):
     return render(request, "accounts/admin_team_list.html", {"teams": teams})
 
 
-def admin_team_detail(request, pk):
-    if not request.user.is_authenticated or not request.user.is_staff:
-        return HttpResponseForbidden("Access denied")
+from django.contrib.admin.views.decorators import staff_member_required
+from django.utils.decorators import method_decorator
+from django.views.generic import DetailView
+from django.apps import apps
 
-    team = get_object_or_404(
-        Team.objects.select_related("owner").prefetch_related("members"),
-        pk=pk,
-    )
+@method_decorator(staff_member_required, name="dispatch")
+class AdminTeamDetailView(DetailView):
+    model = apps.get_model("accounts", "Team")  # ou "teams", "Team" selon ton projet
+    template_name = "accounts/admin_team_detail.html"
+    context_object_name = "team"
 
-    return render(
-        request,
-        "accounts/admin_team_detail.html",
-        {
-            "team": team,
-            "members": team.members.all().order_by("email"),
-        },
-    )
+    def get_context_data(self, **kwargs):
+        ctx = super().get_context_data(**kwargs)
+        team = self.object
+
+        # Members
+        if hasattr(team, "members"):
+            ctx["members"] = team.members.all()
+        else:
+            TeamMembership = apps.get_model("accounts", "TeamMembership")
+            ctx["members"] = (TeamMembership.objects
+                              .filter(team=team)
+                              .select_related("user")
+                              .values_list("user", flat=False))
+
+        # Models
+        PlasmidCollection = apps.get_model("plasmids", "PlasmidCollection")
+        Plasmid = apps.get_model("plasmids", "Plasmid")
+
+        # Collections de l’équipe
+        ctx["collections"] = (PlasmidCollection.objects
+                              .filter(team=team)
+                              .select_related("team", "owner")
+                              .order_by("name"))
+
+        # Plasmids de ces collections
+        ctx["plasmids"] = (Plasmid.objects
+                           .filter(collection__team=team)
+                           .select_related("collection")
+                           .order_by("name"))
+
+        try:
+            Correspondence = apps.get_model("correspondences", "Correspondence")
+            if any(f.name == "team" for f in Correspondence._meta.fields):
+                ctx["correspondences"] = Correspondence.objects.filter(team=team).select_related("owner").order_by("name")
+            else:
+                ctx["correspondences"] = Correspondence.objects.none()
+        except Exception:
+            ctx["correspondences"] = []
+
+        try:
+            Publication = apps.get_model("publications", "Publication")
+            if any(f.name == "team" for f in Publication._meta.fields):
+                ctx["publication_requests"] = (Publication.objects
+                                               .filter(team=team)
+                                               .select_related("requested_by")
+                                               .order_by("-id"))
+            else:
+                ctx["publication_requests"] = Publication.objects.none()
+        except Exception:
+            ctx["publication_requests"] = []
+
+        return ctx
+
 
 
 # =========================
