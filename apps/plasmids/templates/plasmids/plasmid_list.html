@@ -3,13 +3,26 @@
 
 {% block content %}
 
-<div style="display:flex; justify-content:space-between; align-items:center;">
+<div style="display:flex; justify-content:space-between; align-items:center; gap:20px;">
+
     <h1>Plasmid List</h1>
 
-    <a class="btn" href="{% url 'plasmids:search' %}">
-        Advanced Search
-    </a>
+    <div style="display:flex; gap:10px;">
+        <a class="btn btn-secondary" href="{% url 'plasmids:collection_list' %}">
+            Plasmid collections
+        </a>
+
+        <a class="btn btn-secondary" href="{% url 'plasmids:plasmid_import' %}">
+            Import plasmids
+        </a>
+
+        <a class="btn" href="{% url 'plasmids:search' %}">
+            Advanced Search
+        </a>
+    </div>
+
 </div>
+
 
 {% if plasmids %}
     <p class="text-center">
