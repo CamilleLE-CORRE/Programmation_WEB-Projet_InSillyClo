@@ -393,10 +393,11 @@ def admin_detail(request, pk):
 
 def notify_admins_new_publication(pub: Publication, request):
     # 1) Search for admin emails
-    admin_emails = list(
-        User.objects.filter(role="administratrice").values_list("email", flat=True) 
-    )
-    admin_emails = [e for e in admin_emails if e] 
+    admin_emails = [
+        u.email
+        for u in User.objects.all()
+        if u.email and is_admin_user(u)
+    ]
 
     if not admin_emails:
         return  
